@@ -60,6 +60,17 @@ app.use(securityMiddleware);
 // CORS middleware
 app.use(cors(corsOptions));
 
+// Add explicit OPTIONS handling for preflight requests
+app.options('*', cors(corsOptions));
+
+// Add CORS debugging middleware
+app.use((req, res, next) => {
+  console.log('Request Origin:', req.headers.origin);
+  console.log('Request Method:', req.method);
+  console.log('Request Headers:', req.headers);
+  next();
+});
+
 // __dirname support for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,6 +147,16 @@ app.get('/health', async (req, res) => {
     database: dbHealth,
     memory: process.memoryUsage(),
     version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    message: 'CORS is working!',
+    origin: req.headers.origin,
+    method: req.method,
+    timestamp: new Date().toISOString()
   });
 });
 
