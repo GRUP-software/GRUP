@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Image Upload - Grup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 50px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+        }
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            transform: translateY(-2px);
+        }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            transform: scale(1.02);
+        }
+        input[type="text"], input[type="password"], textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #dc3545;
+        }
+        .preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        .preview-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .preview-item:hover {
+            transform: translateY(-5px);
+        }
+        .preview img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        .url-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #007bff;
+        }
+        .url-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #e9ecef;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .metadata-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Grup Admin Image Upload</h1>
+            <p>Upload images that will be available in the AdminJS product manager</p>
+        </div>
+
+        <!-- Debug Info -->
+        <div class="debug-info" id="debugInfo">
+            <strong>🔧 Debug Info:</strong><br>
+            Current URL: <span id="currentUrl"></span><br>
+            API Base: <span id="apiBase"></span><br>
+            Status: <span id="connectionStatus">Checking...</span><br>
+            JavaScript: <span id="jsStatus">Loading...</span>
+        </div>
+
+        <!-- Login Section -->
+        <div id="loginSection">
+            <h3>🔐 Admin Login</h3>
+            <input type="text" id="email" placeholder="Email" value="adiazi@grup.com">
+            <input type="password" id="password" placeholder="Password" value="12345678">
+            <button type="button" id="loginBtn">Login to Admin Panel</button>
+            <button type="button" id="testBtn" style="background: #6c757d;">🔍 Test Connection</button>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="uploadSection" style="display: none;">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 id="uploadCount">0</h3>
+                    <p>Images Uploaded</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="sessionTime">00:00</h3>
+                    <p>Session Time</p>
+                </div>
+            </div>
+
+            <!-- Image Metadata Section -->
+            <div class="metadata-section">
+                <h4>📝 Image Information (Optional)</h4>
+                <textarea id="description" placeholder="Describe these images (e.g., 'Product photos for rice bags')" rows="2"></textarea>
+                <input type="text" id="tags" placeholder="Tags (comma-separated, e.g., 'rice, food, bags')">
+                <small style="color: #666;">Adding tags and descriptions helps organize images in the admin panel</small>
+            </div>
+
+            <h3>📤 Upload Images</h3>
+            
+            <div class="upload-area" id="uploadArea">
+                <div style="font-size: 64px; margin-bottom: 15px;">📸</div>
+                <h3 style="margin: 10px 0; color: #007bff;">Click to Upload or Drag & Drop</h3>
+                <p style="font-size: 16px; color: #666; margin: 10px 0;">
+                    Supports: JPEG, PNG, GIF, WebP<br>
+                    <strong>Max 5MB each • Up to 10 images at once</strong>
+                </p>
+                <div style="margin-top: 15px;">
+                    <span style="background: #007bff; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px;">
+                        Choose Files
+                    </span>
+                </div>
+            </div>
+            
+            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+            
+            <div id="preview" class="preview"></div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button type="button" id="uploadBtn" disabled>
+                    <span id="uploadBtnText">📤 Upload Images</span>
+                </button>
+                <button type="button" id="clearBtn" disabled>🗑️ Clear Selection</button>
+                <button type="button" id="logoutBtn" style="background: #6c757d;">👋 Logout</button>
+            </div>
+
+            <div id="urlResults" class="url-list" style="display: none;">
+                <h4>✅ Images Uploaded Successfully!</h4>
+                <p style="color: #28a745; font-weight: bold;">These images are now available in the AdminJS product manager.</p>
+                <div id="urlList"></div>
+                <div style="margin-top: 15px; padding: 10px; background: #e8f5e8; border-radius: 5px;">
+                    <strong>🎯 Next Steps:</strong>
+                    <ol style="margin: 5px 0; padding-left: 20px;">
+                        <li>Go to <a href="/admin" target="_blank">AdminJS Dashboard</a></li>
+                        <li>Navigate to Products → Add New Product</li>
+                        <li>In the Images section, you'll see these uploaded images</li>
+                        <li>Click on images to select them for your product</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = '';
+        let selectedFiles = [];
+        let uploadCount = 0;
+        let sessionStart = Date.now();
+
+        // Utility functions
+        function getApiBase() {
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            return `${protocol}//${host}`;
+        }
+
+        function showMessage(message, type) {
+            console.log(`Message (${type}):`, message);
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function updateDebugInfo() {
+            try {
+                const currentUrl = window.location.href;
+                const apiBase = getApiBase();
+                
+                document.getElementById('currentUrl').textContent = currentUrl;
+                document.getElementById('apiBase').textContent = apiBase;
+                document.getElementById('jsStatus').textContent = '✅ Working';
+                document.getElementById('jsStatus').style.color = 'green';
+            } catch (error) {
+                console.error('Debug info update failed:', error);
+                document.getElementById('jsStatus').textContent = '❌ Error';
+                document.getElementById('jsStatus').style.color = 'red';
+            }
+        }
+
+        // Test connection function
+        async function testConnection() {
+            console.log('Testing connection...');
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.textContent = 'Testing...';
+            statusElement.style.color = 'orange';
+            
+            try {
+                const apiBase = getApiBase();
+                console.log('Testing API at:', `${apiBase}/api/status`);
+                
+                const response = await fetch(`${apiBase}/api/status`);
+                const data = await response.json();
+                
+                console.log('Test response:', response.status, data);
+                
+                if (response.ok) {
+                    statusElement.textContent = '✅ Connected';
+                    statusElement.style.color = 'green';
+                    showMessage('✅ Server connection successful!', 'success');
+                } else {
+                    statusElement.textContent = '❌ API Error';
+                    statusElement.style.color = 'red';
+                    showMessage('❌ API responded with error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                statusElement.textContent = '❌ Connection Failed';
+                statusElement.style.color = 'red';
+                showMessage('❌ Cannot connect to server: ' + error.message, 'error');
+            }
+        }
+
+        // Login function
+        async function login() {
+            console.log('Login function called');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+
+            console.log('Login attempt with email:', email);
+
+            if (!email || !password) {
+                showMessage('❌ Please enter both email and password', 'error');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            try {
+                const apiBase = getApiBase();
+                const loginUrl = `${apiBase}/api/admin-auth/admin-login`;
+                console.log('Attempting login to:', loginUrl);
+                
+                const response = await fetch(loginUrl, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                console.log('Login response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Login response data:', data);
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('uploadSection').style.display = 'block';
+                    showMessage('✅ Welcome to Grup Admin! Upload images that will appear in the product manager.', 'success');
+                } else {
+                    showMessage('❌ Login failed: ' + (data.message || 'Invalid credentials'), 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('❌ Login error: ' + error.message, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login to Admin Panel';
+            }
+        }
+
+        // Logout function
+        function logout() {
+            console.log('Logout function called');
+            authToken = '';
+            selectedFiles = [];
+            uploadCount = 0;
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('preview').innerHTML = '';
+            document.getElementById('urlResults').style.display = 'none';
+            showMessage('👋 Logged out successfully', 'success');
+        }
+
+        // File handling functions
+        function handleFiles(files) {
+            console.log('Files selected:', files.length);
+            selectedFiles = Array.from(files).slice(0, 10);
+            displayPreview();
+            document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+            document.getElementById('clearBtn').disabled = selectedFiles.length === 0;
+        }
+
+        function displayPreview() {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <div style="padding: 10px; background: white;">
+                            <strong>${file.name}</strong><br>
+                            <small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                        </div>
+                    `;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function clearSelection() {
+            console.log('Clear selection called');
+            selectedFiles = [];
+            document.getElementById('preview').innerHTML = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('clearBtn').disabled = true;
+            document.getElementById('urlResults').style.display = 'none';
+        }
+
+        // Upload function
+        async function uploadImages() {
+            if (selectedFiles.length === 0) return;
+
+            const description = document.getElementById('description').value;
+            const tags = document.getElementById('tags').value;
+            const formData = new FormData();
+            
+            selectedFiles.forEach(file => {
+                formData.append('images', file);
+            });
+
+            if (description) formData.append('description', description);
+            if (tags) formData.append('tags', tags);
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadBtnText = document.getElementById('uploadBtnText');
+            uploadBtn.disabled = true;
+            uploadBtnText.innerHTML = '<span class="loading"></span> Uploading & Saving to Gallery...';
+
+            try {
+                const apiBase = getApiBase();
+                const response = await fetch(`${apiBase}/api/admin/upload-images`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    uploadCount += data.count || selectedFiles.length;
+                    document.getElementById('uploadCount').textContent = uploadCount;
+                    
+                    showMessage(`✅ ${data.count || selectedFiles.length} images uploaded and saved to gallery!`, 'success');
+                    
+                    if (data.imageUrls) {
+                        displayUrls(data.imageUrls);
+                    }
+                    
+                    clearSelection();
+                    
+                    // Clear metadata fields
+                    document.getElementById('description').value = '';
+                    document.getElementById('tags').value = '';
+                } else {
+                    showMessage('❌ Upload failed: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Upload error: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtnText.innerHTML = '📤 Upload Images';
+            }
+        }
+
+        function displayUrls(urls) {
+            const urlResults = document.getElementById('urlResults');
+            const urlList = document.getElementById('urlList');
+            
+            urlList.innerHTML = urls.map(url => 
+                `<div class="url-item">${url}</div>`
+            ).join('');
+            
+            urlResults.style.display = 'block';
+        }
+
+        // Session timer
+        function updateSessionTimer() {
+            const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const timeElement = document.getElementById('sessionTime');
+            if (timeElement) {
+                timeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Drag and drop setup
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+            
+            if (!uploadArea) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('dragover');
+                }, false);
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }, false);
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+        }
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Initializing...');
+            
+            try {
+                // Update debug info
+                updateDebugInfo();
+                
+                // Test connection
+                testConnection();
+                
+                // Set up event listeners
+                const loginBtn = document.getElementById('loginBtn');
+                const testBtn = document.getElementById('testBtn');
+                const uploadBtn = document.getElementById('uploadBtn');
+                const clearBtn = document.getElementById('clearBtn');
+                const logoutBtn = document.getElementById('logoutBtn');
+                const fileInput = document.getElementById('fileInput');
+
+                if (loginBtn) {
+                    loginBtn.addEventListener('click', login);
+                    console.log('Login button event listener added');
+                }
+
+                if (testBtn) {
+                    testBtn.addEventListener('click', testConnection);
+                    console.log('Test button event listener added');
+                }
+
+                if (uploadBtn) {
+                    uploadBtn.addEventListener('click', uploadImages);
+                }
+
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', clearSelection);
+                }
+
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', logout);
+                }
+
+                if (fileInput) {
+                    fileInput.addEventListener('change', (e) => {
+                        handleFiles(e.target.files);
+                    });
+                }
+
+                // Set up drag and drop
+                setupDragAndDrop();
+
+                // Start session timer
+                setInterval(updateSessionTimer, 1000);
+
+                console.log('Initialization complete');
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showMessage('❌ Initialization error: ' + error.message, 'error');
+            }
+        });
+
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            showMessage('❌ JavaScript error: ' + e.message, 'error');
+        });
+
+        console.log('Script loaded successfully');
+    </script>
+</body>
+</html>
