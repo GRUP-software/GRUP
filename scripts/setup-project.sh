@@ -65,9 +65,7 @@ LOG_LEVEL=info
 # Session
 SESSION_SECRET=your-session-secret-key
 
-# Rate limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
+
 EOL
 fi
 
