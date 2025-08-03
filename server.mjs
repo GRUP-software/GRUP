@@ -15,7 +15,6 @@ dotenv.config();
 // Import configurations and middleware
 import { connectDatabase, checkDatabaseHealth, createIndexes } from './config/database.js';
 import { securityMiddleware, corsOptions } from './middleware/security.js';
-import { apiLimiter, authLimiter, paymentLimiter, uploadLimiter, adminLimiter } from './middleware/rateLimiter.js';
 import { globalErrorHandler, handleUnhandledRejection, handleUncaughtException } from './utils/errorHandler.js';
 import logger from './utils/logger.js';
 
@@ -92,8 +91,8 @@ app.get('/admin-upload.html', (req, res) => {
 });
 
 // ⚠️ CRITICAL: AdminJS setup MUST come BEFORE body parser
-// Admin panel (with admin rate limiting) - MOVED UP
-app.use('/admin', adminLimiter, adminRouter);
+// Admin panel - REMOVED RATE LIMITING
+app.use('/admin', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
 app.use(express.json({ limit: '10mb' }));
@@ -160,20 +159,18 @@ app.get('/api/cors-test', (req, res) => {
   });
 });
 
-// API routes with rate limiting
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/payment', paymentLimiter, paymentRoutes);
-app.use('/api/admin', uploadLimiter, adminRoutes);
-app.use('/api/admin-auth', authLimiter, adminAuthRoutes);
-
-// Regular API routes
-app.use('/api/products', apiLimiter, productRoutes);
-app.use('/api/orders', apiLimiter, orderRoutes);
-app.use('/api/group', apiLimiter, groupRoutes);
-app.use('/api/cart', apiLimiter, cartRoutes);
-app.use('/api/wallet', apiLimiter, walletRoutes);
-app.use('/api/live-users', apiLimiter, liveUserRoutes);
-app.use('/api/delivery', apiLimiter, deliveryRoutes);
+// API routes - REMOVED ALL RATE LIMITING
+app.use('/api/auth', authRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin-auth', adminAuthRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/group', groupRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/live-users', liveUserRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {
