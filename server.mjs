@@ -53,20 +53,20 @@ app.set('trust proxy', 1);
 // Compression middleware
 app.use(compression());
 
-// Security middleware - apply individually
-app.use(securityMiddleware);
-
-// CORS middleware
+// CORS middleware - Apply BEFORE security middleware for admin panel
 app.use(cors(corsOptions));
 
 // Add explicit OPTIONS handling for preflight requests
 app.options('*', cors(corsOptions));
 
+// Security middleware - apply after CORS
+app.use(securityMiddleware);
+
 // Add CORS debugging middleware
 app.use((req, res, next) => {
   console.log('Request Origin:', req.headers.origin);
   console.log('Request Method:', req.method);
-  console.log('Request Headers:', req.headers);
+  console.log('Request Path:', req.path);
   next();
 });
 
@@ -91,7 +91,7 @@ app.get('/admin-upload.html', (req, res) => {
 });
 
 // ⚠️ CRITICAL: AdminJS setup MUST come BEFORE body parser
-// Admin panel - REMOVED RATE LIMITING
+// Admin panel - RATE LIMITING REMOVED
 app.use('/admin', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
@@ -159,7 +159,7 @@ app.get('/api/cors-test', (req, res) => {
   });
 });
 
-// API routes - REMOVED ALL RATE LIMITING
+// API routes - ALL RATE LIMITING REMOVED
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/admin', adminRoutes);
@@ -288,8 +288,8 @@ const startServer = async () => {
       }
     });
 
-    // Start server
-    const PORT = process.env.PORT || 5000;
+    // Start server with dynamic port selection
+    const PORT = process.env.PORT || 5001; // Changed default port to 5001
     server.listen(PORT, () => {
       logger.info(`🚀 Grup Backend Server running at: http://localhost:${PORT}`);
       logger.info(`📊 Admin Panel: http://localhost:${PORT}/admin`);
@@ -297,6 +297,20 @@ const startServer = async () => {
       logger.info(`📡 API Status: http://localhost:${PORT}/api/status`);
       logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Trying port ${PORT + 1}...`);
+        server.listen(PORT + 1, () => {
+          logger.info(`🚀 Grup Backend Server running at: http://localhost:${PORT + 1}`);
+          logger.info(`📊 Admin Panel: http://localhost:${PORT + 1}/admin`);
+          logger.info(`🖼️  Upload Tool: http://localhost:${PORT + 1}/admin-upload.html`);
+          logger.info(`📡 API Status: http://localhost:${PORT + 1}/api/status`);
+          logger.info(`🏥 Health Check: http://localhost:${PORT + 1}/health`);
+        });
+      } else {
+        logger.error('Failed to start server:', err);
+        process.exit(1);
+      }
     });
 
   } catch (error) {
