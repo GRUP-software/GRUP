@@ -59,14 +59,30 @@ app.use(cors(corsOptions));
 // Add explicit OPTIONS handling for preflight requests
 app.options('*', cors(corsOptions));
 
+// Special CORS handling for admin routes
+app.use('/admin', (req, res, next) => {
+  // Set CORS headers explicitly for admin routes
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Security middleware - apply after CORS
 app.use(securityMiddleware);
 
 // Add CORS debugging middleware
 app.use((req, res, next) => {
-  console.log('Request Origin:', req.headers.origin);
-  console.log('Request Method:', req.method);
-  console.log('Request Path:', req.path);
+  if (req.path.startsWith('/admin')) {
+    console.log('Admin Request - Origin:', req.headers.origin || 'no-origin');
+    console.log('Admin Request - Method:', req.method);
+    console.log('Admin Request - Path:', req.path);
+  }
   next();
 });
 
@@ -91,7 +107,7 @@ app.get('/admin-upload.html', (req, res) => {
 });
 
 // ⚠️ CRITICAL: AdminJS setup MUST come BEFORE body parser
-// Admin panel - RATE LIMITING REMOVED
+// Admin panel - NO RATE LIMITING
 app.use('/admin', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
@@ -159,7 +175,7 @@ app.get('/api/cors-test', (req, res) => {
   });
 });
 
-// API routes - ALL RATE LIMITING REMOVED
+// API routes - NO RATE LIMITING
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/admin', adminRoutes);
@@ -289,7 +305,7 @@ const startServer = async () => {
     });
 
     // Start server with dynamic port selection
-    const PORT = process.env.PORT || 5001; // Changed default port to 5001
+    const PORT = process.env.PORT || 5001;
     server.listen(PORT, () => {
       logger.info(`🚀 Grup Backend Server running at: http://localhost:${PORT}`);
       logger.info(`📊 Admin Panel: http://localhost:${PORT}/admin`);
