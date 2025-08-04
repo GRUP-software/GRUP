@@ -90,11 +90,43 @@ app.use((req, res, next) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve uploaded images
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// CRITICAL FIX: Serve uploaded images with proper CORS headers
+app.use('/uploads', (req, res, next) => {
+  // Set CORS headers for all image requests
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Max-Age', '3600');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  // Log the request for debugging
+  console.log(`Image request: ${req.method} ${req.url} from origin: ${req.headers.origin || 'no-origin'}`);
+  
+  next();
+}, express.static(path.join(__dirname, 'uploads'), {
+  // Additional static file options
+  maxAge: '1d', // Cache for 1 day
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path, stat) => {
+    // Ensure CORS headers are set on the response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, path) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  }
+}));
 
 // Serve React frontend build files (production)
 if (process.env.NODE_ENV === 'production') {
@@ -172,6 +204,23 @@ app.get('/api/cors-test', (req, res) => {
     origin: req.headers.origin,
     method: req.method,
     timestamp: new Date().toISOString()
+  });
+});
+
+// Image test endpoint to verify CORS
+app.get('/api/test-image/:filename', (req, res) => {
+  const { filename } = req.params;
+  const imagePath = path.join(__dirname, 'uploads', filename);
+  
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  
+  res.sendFile(imagePath, (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Image not found' });
+    }
   });
 });
 
@@ -312,6 +361,7 @@ const startServer = async () => {
       logger.info(`🖼️  Upload Tool: http://localhost:${PORT}/admin-upload.html`);
       logger.info(`📡 API Status: http://localhost:${PORT}/api/status`);
       logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
+      logger.info(`🖼️  Image Test: http://localhost:${PORT}/api/test-image/ALLOY-1754053205546-685311602.png`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
