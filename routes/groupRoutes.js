@@ -1,21 +1,32 @@
 import express from "express"
+import { verifyToken } from "../middleware/authMiddleware.js"
 import {
-  startGroup,
+  createGroup,
   joinGroup,
   getGroupStatus,
-  getAllGroups,
-  getMyGroups,
   getGroupProgress,
+  getProductGroupProgress,
+  getUserGroups,
+  getAllGroups,
+  secureGroup,
+  cancelGroup,
 } from "../controllers/groupController.js"
-import { verifyToken } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
 
-router.get("/all", getAllGroups)
-router.get("/progress", getGroupProgress) // For product cards
-router.get("/my-groups", verifyToken, getMyGroups)
-router.post("/group-start", verifyToken, startGroup)
-router.post("/group-join/:productId", verifyToken, joinGroup)
-router.get("/group-status/:productId", getGroupStatus)
+// Public routes
+router.get("/progress", getGroupProgress)
+router.get("/product-progress/:productId", getProductGroupProgress)
+router.get("/status/:productId", getGroupStatus)
+
+// Protected routes (require authentication)
+router.post("/create", verifyToken, createGroup)
+router.post("/join/:groupId", verifyToken, joinGroup)
+router.get("/my-groups", verifyToken, getUserGroups)
+
+// Admin routes (require authentication)
+router.get("/all", verifyToken, getAllGroups)
+router.put("/secure/:groupId", verifyToken, secureGroup)
+router.put("/cancel/:groupId", verifyToken, cancelGroup)
 
 export default router
