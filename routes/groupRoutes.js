@@ -21,6 +21,7 @@ router.get("/status/:productId", getGroupStatus)
 
 // Protected routes (require authentication)
 router.post("/create", verifyToken, createGroup)
+router.post("/group-start", verifyToken, createGroup) // Backward compatibility
 router.post("/join/:groupId", verifyToken, joinGroup)
 router.get("/my-groups", verifyToken, getUserGroups)
 

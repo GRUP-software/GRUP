@@ -1,14 +1,21 @@
 import GroupPurchase from "../models/GroupPurchase.js"
-import GroupParticipant from "../models/GroupParticipant.js"
 import Product from "../models/Product.js"
+import Order from "../models/order.js"
+import { notifyGroupSecured } from "../utils/notifications.js"
 
 // Create a new group purchase
 export const createGroup = async (req, res) => {
-  try {
-    const { productId, requiredQty, expiresAt } = req.body
-    const userId = req.user.id
+  const userId = req.user.id
+  const { productId, requiredQty, expiresAt } = req.body
 
-    // Check if product exists
+  if (!productId || !requiredQty || requiredQty <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Product ID and valid requiredQty are required",
+    })
+  }
+
+  try {
     const product = await Product.findById(productId)
     if (!product) {
       return res.status(404).json({
@@ -17,9 +24,9 @@ export const createGroup = async (req, res) => {
       })
     }
 
-    // Check if there's already an active group for this product
+    // Check for existing active group for this product
     const existingGroup = await GroupPurchase.findOne({
-      product: productId,
+      productId: productId, // Use productId as per your schema
       status: { $in: ["forming", "secured"] },
     })
 
@@ -30,27 +37,32 @@ export const createGroup = async (req, res) => {
       })
     }
 
-    const group = new GroupPurchase({
-      product: productId,
-      creator: userId,
+    const newGroup = new GroupPurchase({
+      productId: productId, // Use productId field
       requiredQty,
-      expiresAt: expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000), // Default 24 hours
+      currentQty: 0,
       status: "forming",
+      participants: [], // Initialize empty participants array
+      expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 48 * 3600 * 1000),
     })
 
-    await group.save()
-    await group.populate("product creator")
+    // Update progress and save
+    newGroup.updateProgress()
+    await newGroup.save()
+
+    // Populate only the product (not creator since it doesn't exist in schema)
+    await newGroup.populate("productId")
 
     res.status(201).json({
       success: true,
-      message: "Group purchase created successfully",
-      data: group,
+      message: "Group started successfully",
+      data: newGroup,
     })
   } catch (err) {
     console.error("Create group error:", err)
     res.status(500).json({
       success: false,
-      message: "Error creating group purchase",
+      message: "Failed to start group",
       error: err.message,
     })
   }
@@ -58,12 +70,19 @@ export const createGroup = async (req, res) => {
 
 // Join a group purchase
 export const joinGroup = async (req, res) => {
-  try {
-    const { groupId } = req.params
-    const { quantity } = req.body
-    const userId = req.user.id
+  const userId = req.user.id
+  const { groupId } = req.params
+  const { quantity } = req.body
 
-    const group = await GroupPurchase.findById(groupId).populate("product")
+  if (!quantity || quantity <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid quantity selected.",
+    })
+  }
+
+  try {
+    const group = await GroupPurchase.findById(groupId).populate("productId")
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -74,7 +93,7 @@ export const joinGroup = async (req, res) => {
     if (group.status !== "forming") {
       return res.status(400).json({
         success: false,
-        message: "Group is no longer accepting participants",
+        message: "Group is not accepting new members",
       })
     }
 
@@ -85,45 +104,62 @@ export const joinGroup = async (req, res) => {
       })
     }
 
-    // Check if user already joined
-    const existingParticipant = await GroupParticipant.findOne({
-      group: groupId,
-      user: userId,
-    })
+    // Check if user already joined by looking at participants array
+    const existingParticipant = group.participants.find((p) => p.user.toString() === userId)
 
     if (existingParticipant) {
       return res.status(400).json({
         success: false,
-        message: "You have already joined this group",
+        message: "You are already in this group purchase",
       })
     }
 
-    // Check if adding this quantity would exceed required quantity
-    if (group.currentQty + quantity > group.requiredQty) {
+    // Check available stock
+    const availableStock = group.requiredQty - group.currentQty
+    if (quantity > availableStock) {
       return res.status(400).json({
         success: false,
-        message: "Quantity would exceed group requirement",
+        message: `Only ${availableStock} units available. Start a new group for ${quantity} units.`,
+        availableStock,
+        suggestNewGroup: true,
       })
     }
 
-    // Create participant
-    const participant = new GroupParticipant({
-      group: groupId,
+    // Add participant to the group's participants array
+    group.participants.push({
       user: userId,
       quantity,
       joinedAt: new Date(),
     })
 
-    await participant.save()
+    // Update current quantity
+    group.currentQty += quantity
 
     // Update group progress
-    await group.updateProgress()
+    group.updateProgress()
 
-    res.json({
+    const wasSecured = group.status === "secured"
+    await group.save()
+
+    // Notify participants & update orders if secured
+    if (wasSecured && group.autoSecured) {
+      await notifyGroupSecured(group)
+      await updateRelatedOrders(group)
+    }
+
+    const totalCost = quantity * group.productId.basePrice
+
+    res.status(200).json({
       success: true,
-      message: "Successfully joined group",
+      message: wasSecured
+        ? "Successfully joined group purchase. Group is now secured!"
+        : "Successfully joined group purchase.",
+      breakdown: {
+        quantity,
+        unitPrice: group.productId.basePrice,
+        totalCost,
+      },
       data: {
-        participant,
         groupProgress: {
           currentQty: group.currentQty,
           requiredQty: group.requiredQty,
@@ -131,6 +167,7 @@ export const joinGroup = async (req, res) => {
           participantCount: group.participantCount,
         },
       },
+      groupSecured: wasSecured,
     })
   } catch (err) {
     console.error("Join group error:", err)
@@ -142,15 +179,61 @@ export const joinGroup = async (req, res) => {
   }
 }
 
+// Get all groups with enhanced progress data
+export const getAllGroups = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query
+
+    const filter = {}
+    if (status) {
+      filter.status = status
+    }
+
+    const groups = await GroupPurchase.find(filter)
+      .populate("productId", "title slug images price basePrice")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+
+    const total = await GroupPurchase.countDocuments(filter)
+
+    const enrichedGroups = groups.map((group) => ({
+      ...group.toObject(),
+      progressPercentage: Math.round(group.progressPercentage),
+      participantCount: group.participantCount,
+      unitsRemaining: group.unitsRemaining,
+      timeRemaining: Math.max(0, group.expiresAt - new Date()),
+      isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000,
+      isNearlyComplete: group.progressPercentage >= 80,
+    }))
+
+    res.json({
+      success: true,
+      count: enrichedGroups.length,
+      total,
+      page: Number.parseInt(page),
+      pages: Math.ceil(total / limit),
+      data: enrichedGroups,
+    })
+  } catch (err) {
+    console.error("Get all groups error:", err)
+    res.status(500).json({
+      success: false,
+      message: "Error fetching groups",
+      error: err.message,
+    })
+  }
+}
+
 // Get group status
 export const getGroupStatus = async (req, res) => {
-  try {
-    const { productId } = req.params
+  const { productId } = req.params
 
+  try {
     const group = await GroupPurchase.findOne({
-      product: productId,
+      productId: productId,
       status: { $in: ["forming", "secured"] },
-    }).populate("product creator")
+    }).populate("productId")
 
     if (!group) {
       return res.json({
@@ -161,23 +244,19 @@ export const getGroupStatus = async (req, res) => {
     }
 
     // Update progress before returning
-    await group.updateProgress()
-
-    const participants = await GroupParticipant.find({ group: group._id })
-      .populate("user", "name email")
-      .sort({ joinedAt: 1 })
+    group.updateProgress()
+    await group.save()
 
     res.json({
       success: true,
       hasActiveGroup: true,
       data: {
         ...group.toObject(),
-        participants,
         participantCount: group.participantCount,
-        progressPercentage: group.progressPercentage,
+        progressPercentage: Math.round(group.progressPercentage),
         unitsRemaining: group.unitsRemaining,
         timeRemaining: Math.max(0, group.expiresAt - new Date()),
-        isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000, // 2 hours
+        isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000,
         isNearlyComplete: group.progressPercentage >= 80,
       },
     })
@@ -194,40 +273,39 @@ export const getGroupStatus = async (req, res) => {
 // Get all groups progress (for admin/dashboard)
 export const getGroupProgress = async (req, res) => {
   try {
-    const groups = await GroupPurchase.find({
+    const activeGroups = await GroupPurchase.find({
       status: { $in: ["forming", "secured"] },
     })
-      .populate("product", "title slug images price")
-      .populate("creator", "name email")
+      .populate("productId", "title slug images price basePrice")
       .sort({ createdAt: -1 })
 
-    const progressData = await Promise.all(
-      groups.map(async (group) => {
-        await group.updateProgress()
+    const progressData = activeGroups.map((group) => {
+      group.updateProgress()
 
-        return {
-          groupId: group._id,
-          productId: group.product._id,
-          productTitle: group.product.title,
-          productSlug: group.product.slug,
-          productImage: group.product.images?.[0] || null,
-          productPrice: group.product.price,
-          creator: group.creator,
-          status: group.status,
-          currentQty: group.currentQty,
-          requiredQty: group.requiredQty,
-          progressPercentage: Math.round(group.progressPercentage),
-          participantCount: group.participantCount,
-          unitsRemaining: group.unitsRemaining,
-          createdAt: group.createdAt,
-          expiresAt: group.expiresAt,
-          timeRemaining: Math.max(0, group.expiresAt - new Date()),
-          isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000,
-          isNearlyComplete: group.progressPercentage >= 80,
-          autoSecured: group.autoSecured || false,
-        }
-      }),
-    )
+      return {
+        groupId: group._id,
+        productId: group.productId._id,
+        productTitle: group.productId.title,
+        productSlug: group.productId.slug,
+        productImage: group.productId.images?.[0] || null,
+        productPrice: group.productId.price,
+        creator: group.creator,
+        status: group.status,
+        currentQty: group.currentQty,
+        requiredQty: group.requiredQty,
+        progressPercentage: Math.round(group.progressPercentage * 100) / 100,
+        participantCount: group.participantCount,
+        unitsRemaining: group.unitsRemaining,
+        createdAt: group.createdAt,
+        expiresAt: group.expiresAt,
+        timeRemaining: Math.max(0, group.expiresAt - new Date()),
+        hoursRemaining: Math.floor(Math.max(0, group.expiresAt - new Date()) / (1000 * 60 * 60)),
+        minutesRemaining: Math.floor((Math.max(0, group.expiresAt - new Date()) % (1000 * 60 * 60)) / (1000 * 60)),
+        isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000, // 2 hours
+        hasExpired: Math.max(0, group.expiresAt - new Date()) <= 0,
+        autoSecured: group.autoSecured || false,
+      }
+    })
 
     res.json({
       success: true,
@@ -250,11 +328,9 @@ export const getProductGroupProgress = async (req, res) => {
     const { productId } = req.params
 
     const group = await GroupPurchase.findOne({
-      product: productId,
+      productId: productId,
       status: { $in: ["forming", "secured"] },
-    })
-      .populate("product", "title slug images price basePrice")
-      .populate("creator", "name email")
+    }).populate("productId", "title slug images price basePrice")
 
     if (!group) {
       return res.json({
@@ -266,12 +342,8 @@ export const getProductGroupProgress = async (req, res) => {
     }
 
     // Update progress
-    await group.updateProgress()
-
-    // Get participants with details
-    const participants = await GroupParticipant.find({ group: group._id })
-      .populate("user", "name email avatar")
-      .sort({ joinedAt: 1 })
+    group.updateProgress()
+    await group.save()
 
     const timeRemaining = Math.max(0, group.expiresAt - new Date())
     const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60))
@@ -282,15 +354,14 @@ export const getProductGroupProgress = async (req, res) => {
       hasActiveGroup: true,
       data: {
         groupId: group._id,
-        product: group.product,
-        creator: group.creator,
+        product: group.productId,
         status: group.status,
         currentQty: group.currentQty,
         requiredQty: group.requiredQty,
         progressPercentage: Math.round(group.progressPercentage * 100) / 100,
         participantCount: group.participantCount,
         unitsRemaining: group.unitsRemaining,
-        participants: participants.map((p) => ({
+        participants: group.participants.map((p) => ({
           user: p.user,
           quantity: p.quantity,
           joinedAt: p.joinedAt,
@@ -312,10 +383,10 @@ export const getProductGroupProgress = async (req, res) => {
           autoSecured: group.autoSecured || false,
         },
         savings: {
-          individualPrice: group.product.price,
-          groupPrice: group.product.basePrice,
-          savingsPerUnit: group.product.price - group.product.basePrice,
-          totalSavings: (group.product.price - group.product.basePrice) * group.currentQty,
+          individualPrice: group.productId.price,
+          groupPrice: group.productId.basePrice,
+          savingsPerUnit: group.productId.price - group.productId.basePrice,
+          totalSavings: (group.productId.price - group.productId.basePrice) * group.currentQty,
         },
       },
     })
@@ -334,41 +405,36 @@ export const getUserGroups = async (req, res) => {
   try {
     const userId = req.user.id
 
-    const participants = await GroupParticipant.find({ user: userId })
-      .populate({
-        path: "group",
-        populate: {
-          path: "product",
-          select: "title slug images price basePrice",
+    const groups = await GroupPurchase.find({
+      "participants.user": userId,
+    })
+      .populate("productId", "title slug images price basePrice")
+      .sort({ createdAt: -1 })
+
+    const userGroups = groups.map((group) => {
+      group.updateProgress()
+
+      const userParticipation = group.participants.find((p) => p.user.toString() === userId)
+
+      return {
+        participantId: userParticipation._id,
+        quantity: userParticipation.quantity,
+        joinedAt: userParticipation.joinedAt,
+        group: {
+          groupId: group._id,
+          product: group.productId,
+          status: group.status,
+          currentQty: group.currentQty,
+          requiredQty: group.requiredQty,
+          progressPercentage: Math.round(group.progressPercentage),
+          participantCount: group.participantCount,
+          unitsRemaining: group.unitsRemaining,
+          expiresAt: group.expiresAt,
+          timeRemaining: Math.max(0, group.expiresAt - new Date()),
+          isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000,
         },
-      })
-      .sort({ joinedAt: -1 })
-
-    const userGroups = await Promise.all(
-      participants.map(async (participant) => {
-        const group = participant.group
-        await group.updateProgress()
-
-        return {
-          participantId: participant._id,
-          quantity: participant.quantity,
-          joinedAt: participant.joinedAt,
-          group: {
-            groupId: group._id,
-            product: group.product,
-            status: group.status,
-            currentQty: group.currentQty,
-            requiredQty: group.requiredQty,
-            progressPercentage: Math.round(group.progressPercentage),
-            participantCount: group.participantCount,
-            unitsRemaining: group.unitsRemaining,
-            expiresAt: group.expiresAt,
-            timeRemaining: Math.max(0, group.expiresAt - new Date()),
-            isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000,
-          },
-        }
-      }),
-    )
+      }
+    })
 
     res.json({
       success: true,
@@ -380,61 +446,6 @@ export const getUserGroups = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching user groups",
-      error: err.message,
-    })
-  }
-}
-
-// Get all groups (admin)
-export const getAllGroups = async (req, res) => {
-  try {
-    const { status, page = 1, limit = 10 } = req.query
-
-    const filter = {}
-    if (status) {
-      filter.status = status
-    }
-
-    const groups = await GroupPurchase.find(filter)
-      .populate("product", "title slug images price basePrice")
-      .populate("creator", "name email")
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-
-    const total = await GroupPurchase.countDocuments(filter)
-
-    const enrichedGroups = await Promise.all(
-      groups.map(async (group) => {
-        await group.updateProgress()
-
-        const participants = await GroupParticipant.find({ group: group._id }).populate("user", "name email")
-
-        return {
-          ...group.toObject(),
-          participants,
-          participantCount: group.participantCount,
-          progressPercentage: group.progressPercentage,
-          unitsRemaining: group.unitsRemaining,
-          timeRemaining: Math.max(0, group.expiresAt - new Date()),
-          isExpiringSoon: group.expiresAt - new Date() < 2 * 60 * 60 * 1000,
-        }
-      }),
-    )
-
-    res.json({
-      success: true,
-      count: enrichedGroups.length,
-      total,
-      page: Number.parseInt(page),
-      pages: Math.ceil(total / limit),
-      data: enrichedGroups,
-    })
-  } catch (err) {
-    console.error("Get all groups error:", err)
-    res.status(500).json({
-      success: false,
-      message: "Error fetching groups",
       error: err.message,
     })
   }
@@ -515,5 +526,37 @@ export const cancelGroup = async (req, res) => {
       message: "Error cancelling group",
       error: err.message,
     })
+  }
+}
+
+/**
+ * Update related orders when a group is secured
+ */
+const updateRelatedOrders = async (group) => {
+  try {
+    const orders = await Order.find({
+      "items.groupPurchaseId": group._id,
+    })
+
+    for (const order of orders) {
+      // Update the specific item's status
+      order.items.forEach((item) => {
+        if (item.groupPurchaseId && item.groupPurchaseId.toString() === group._id.toString()) {
+          item.groupStatus = "secured"
+        }
+      })
+
+      // Check if all groups are secured
+      if (order.checkAllGroupsSecured) {
+        order.checkAllGroupsSecured()
+      }
+      if (order.calculatePriorityScore) {
+        order.calculatePriorityScore()
+      }
+
+      await order.save()
+    }
+  } catch (err) {
+    console.error("Error updating related orders:", err)
   }
 }
