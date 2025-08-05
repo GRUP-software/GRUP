@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { useState, useEffect } from 'react';
+// import { useState, useEffect } from 'react';
 
 const Banner = styled.div`
     background: #426d68;
@@ -220,14 +220,14 @@ const StatLabel = styled.div`
 // `;
 
 const MainBanner = () => {
-    const [activeUsers, setActiveUsers] = useState(1247);
+    // const [activeUsers, setActiveUsers] = useState(1247);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveUsers((prev) => prev + Math.floor(Math.random() * 3));
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
+    // useEffect(() => {
+    //     const interval = setInterval(() => {
+    //         setActiveUsers((prev) => prev + Math.floor(Math.random() * 3));
+    //     }, 3000);
+    //     return () => clearInterval(interval);
+    // }, []);
 
     return (
         <Banner>
@@ -244,20 +244,20 @@ const MainBanner = () => {
                     </Description>
 
                     <StatsRow>
-                        <StatItem>
+                        {/* <StatItem>
                             <StatNumber>
                                 {activeUsers.toLocaleString()}
                             </StatNumber>
                             <StatLabel>Active Buyers</StatLabel>
-                        </StatItem>
+                        </StatItem> */}
                         <StatItem>
                             <StatNumber>40%</StatNumber>
                             <StatLabel>Avg. Savings</StatLabel>
                         </StatItem>
-                        <StatItem>
+                        {/* <StatItem>
                             <StatNumber>500</StatNumber>
                             <StatLabel>Products</StatLabel>
-                        </StatItem>
+                        </StatItem> */}
                     </StatsRow>
 
                     {/* <CTAButtons>

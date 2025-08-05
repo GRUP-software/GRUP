@@ -20,7 +20,7 @@ const Backdrop = styled.div`
     height: 100vh;
     width: 100vw;
     background-color: rgba(0, 0, 0, 0.4);
-    opacity: ${({ isVisible }) => (isVisible ? 1 : 0)};
+    opacity: ${({ $isVisible }) => ($isVisible ? 1 : 0)};
     transition: opacity 0.3s ease-in-out;
     z-index: 998;
 `;
