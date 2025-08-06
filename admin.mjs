@@ -18,7 +18,7 @@ import Wallet from './models/Wallet.js'
 import Transaction from './models/Transaction.js'
 import GroupPurchase from './models/GroupPurchase.js'
 import Category from './models/categoryModel.js'
-import UploadedImage from './models/UploadedImage.js'
+import UploadedImage from './models/uploadedImage.js'
 
 // Register Mongoose adapter
 AdminJS.registerAdapter({

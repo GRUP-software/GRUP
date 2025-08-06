@@ -1,7 +1,7 @@
 import express from "express"
 import upload from "../middleware/upload.js"
 import { verifyAdminToken } from "./adminAuthRoutes.js"
-import UploadedImage from "../models/UploadedImage.js"
+import UploadedImage from "../models/uploadedImage.js"
 
 const router = express.Router()
 
