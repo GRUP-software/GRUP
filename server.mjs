@@ -341,8 +341,8 @@ const startServer = async () => {
     // Scheduled jobs
     cron.schedule('0 * * * *', async () => {
       try {
-        const expireGroups = (await import('./jobs/expireGroups.js')).default;
-        await expireGroups();
+        const groupBuyExpiry = (await import('./jobs/groupBuyExpiry.js')).default;
+        await groupBuyExpiry();
         logger.info('Group expiry job completed');
       } catch (error) {
         logger.error('Group expiry job failed:', error);
