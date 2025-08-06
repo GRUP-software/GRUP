@@ -4,13 +4,13 @@ export const notifyGroupSecured = async (group) => {
   try {
     // Find all orders that contain items from this group
     const orders = await Order.find({
-      "items.groupPurchaseId": group._id,
+      "items.groupbuyId": group._id,
     }).populate("user", "name email")
 
     for (const order of orders) {
       // Update the specific item's status
       order.items.forEach((item) => {
-        if (item.groupPurchaseId && item.groupPurchaseId.toString() === group._id.toString()) {
+        if (item.groupbuyId && item.groupbuyId.toString() === group._id.toString()) {
           item.groupStatus = "secured"
         }
       })

@@ -6,7 +6,7 @@ const orderItemSchema = new Schema({
   quantity: { type: Number, required: true },
   variant: { type: String },
   price: { type: Number, required: true },
-  groupPurchaseId: { type: Schema.Types.ObjectId, ref: "GroupPurchase" },
+  groupbuyId: { type: Schema.Types.ObjectId, ref: "GroupBuy" },
   groupStatus: {
     type: String,
     enum: ["forming", "secured", "dispatched"],

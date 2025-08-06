@@ -68,10 +68,10 @@ export const createIndexes = async () => {
     }
 
     // Group purchase indexes
-    if (collections.grouppurchases) {
-      await collections.grouppurchases.createIndex({ productId: 1 })
-      await collections.grouppurchases.createIndex({ status: 1 })
-      await collections.grouppurchases.createIndex({ expiresAt: 1 })
+    if (collections.groupbuys) {
+      await collections.groupbuys.createIndex({ productId: 1 })
+      await collections.groupbuys.createIndex({ status: 1 })
+      await collections.groupbuys.createIndex({ expiresAt: 1 })
     }
 
     logger.info("Database indexes created successfully")

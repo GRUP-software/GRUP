@@ -80,7 +80,7 @@ export const getRecommendations = async (req, res) => {
       { $match: { _id: { $nin: purchasedProducts.map((id) => new mongoose.Types.ObjectId(id)) } } },
       {
         $lookup: {
-          from: "grouppurchases",
+          from: "groupbuys",
           let: { productId: "$_id" },
           pipeline: [
             {
@@ -145,7 +145,7 @@ export const getInventoryAlerts = async (req, res) => {
     const alerts = await Product.aggregate([
       {
         $lookup: {
-          from: "grouppurchases",
+          from: "groupbuys",
           localField: "_id",
           foreignField: "productId",
           as: "activeGroups",

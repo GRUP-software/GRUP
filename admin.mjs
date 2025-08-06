@@ -16,7 +16,7 @@ import Product from './models/Product.js'
 import Order from './models/order.js'
 import Wallet from './models/Wallet.js'
 import Transaction from './models/Transaction.js'
-import GroupPurchase from './models/GroupPurchase.js'
+import GroupBuy from './models/GroupBuy.js'
 import Category from './models/categoryModel.js'
 import UploadedImage from './models/uploadedImage.js'
 
@@ -206,7 +206,7 @@ const adminJs = new AdminJS({
       },
     },
     {
-      resource: GroupPurchase,
+      resource: GroupBuy,
       options: {
         properties: {
           status: {
@@ -240,7 +240,7 @@ const adminJs = new AdminJS({
   dashboard: {
     handler: async () => {
       const totalUsers = await User.countDocuments()
-      const activeGroupBuys = await GroupPurchase.countDocuments({ status: 'forming' })
+      const activeGroupBuys = await GroupBuy.countDocuments({ status: 'forming' })
       const totalSales = await Order.aggregate([
         { $group: { _id: null, total: { $sum: '$totalAmount' } } },
       ])

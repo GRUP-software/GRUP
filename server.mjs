@@ -22,7 +22,7 @@ import logger from './utils/logger.js';
 import { adminRouter } from './admin.mjs';
 
 // Import routes
-import groupRoutes from './routes/groupRoutes.js';
+import groupRoutes from './routes/groupBuyRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import authRoutes from './routes/auth.js';
@@ -34,8 +34,16 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 
+// Import NEW routes
+import checkoutRoutes from './routes/checkoutRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
+import groupBuyRoutes from './routes/groupBuyRoutes.js';
+
 // Import controllers
 import { userDisconnected, getLiveUserCountUtil } from './controllers/liveUserController.js';
+
+// Import jobs
+import { startGroupBuyExpiryJob } from './jobs/groupBuyExpiry.js';
 
 // Handle uncaught exceptions and unhandled rejections
 handleUncaughtException();
@@ -46,6 +54,9 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: corsOptions
 });
+
+// Make io globally available for WebSocket events
+global.io = io;
 
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', 1);
@@ -167,6 +178,11 @@ io.on('connection', (socket) => {
     logger.info(`Socket ${socket.id} joined product room: ${productId}`);
   });
 
+  socket.on('join_groupbuy_room', (groupBuyId) => {
+    socket.join(`groupbuy_${groupBuyId}`);
+    logger.info(`Socket ${socket.id} joined group buy room: ${groupBuyId}`);
+  });
+
   socket.on('disconnect', async () => {
     logger.info(`User disconnected: ${socket.id}`);
     await userDisconnected(socket.id);
@@ -237,6 +253,11 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
 app.use('/api/delivery', deliveryRoutes);
 
+// NEW API routes
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/webhook', webhookRoutes);
+app.use('/api/groupbuy', groupBuyRoutes);
+
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {
   res.json({ 
@@ -248,7 +269,12 @@ app.get('/api/status', (req, res) => {
       admin: '/admin',
       uploadTool: '/admin-upload.html',
       api: '/api/*',
-      health: '/health'
+      health: '/health',
+      newEndpoints: {
+        checkout: '/api/checkout',
+        webhook: '/api/webhook',
+        groupBuy: '/api/groupbuy'
+      }
     }
   });
 });
@@ -278,7 +304,10 @@ app.get('/api/*', (req, res) => {
       admin: '/admin',
       uploadTool: '/admin-upload.html',
       api: '/api/status',
-      health: '/health'
+      health: '/health',
+      checkout: '/api/checkout',
+      webhook: '/api/webhook',
+      groupBuy: '/api/groupbuy'
     }
   });
 });
@@ -306,6 +335,9 @@ const startServer = async () => {
     // Create database indexes
     await createIndexes();
     
+    // Start group buy expiry job
+    startGroupBuyExpiryJob();
+    
     // Scheduled jobs
     cron.schedule('0 * * * *', async () => {
       try {
@@ -327,25 +359,28 @@ const startServer = async () => {
       }
     });
 
-    // Update group progress every minute
+    // Update group progress every minute - FIXED to use GroupBuy model
     cron.schedule('* * * * *', async () => {
       try {
-        const GroupPurchase = (await import('./models/GroupPurchase.js')).default;
-        const activeGroups = await GroupPurchase.find({ status: 'forming' });
+        const GroupBuy = (await import('./models/GroupBuy.js')).default;
+        const activeGroups = await GroupBuy.find({ status: 'active' });
         
         for (const group of activeGroups) {
-          const wasForming = group.status === 'forming';
-          group.updateProgress();
-          await group.save();
+          const wasActive = group.status === 'active';
           
-          // Notify if group was just secured
-          if (wasForming && group.status === 'secured') {
-            io.to(`product_${group.productId}`).emit('group_secured', {
+          // Check if group reached MVU and should be marked successful
+          if (group.unitsSold >= 20 && group.status === 'active') {
+            group.status = 'successful';
+            await group.save();
+            
+            // Notify participants via WebSocket
+            io.to(`groupbuy_${group._id}`).emit('group_successful', {
+              groupBuyId: group._id,
               productId: group.productId,
-              groupId: group._id,
-              message: 'Group purchase secured!'
+              message: 'Group buy reached minimum viable units and is now successful!'
             });
-            logger.info(`Group ${group._id} secured for product ${group.productId}`);
+            
+            logger.info(`Group buy ${group._id} marked as successful for product ${group.productId}`);
           }
         }
       } catch (error) {
@@ -361,7 +396,10 @@ const startServer = async () => {
       logger.info(`🖼️  Upload Tool: http://localhost:${PORT}/admin-upload.html`);
       logger.info(`📡 API Status: http://localhost:${PORT}/api/status`);
       logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
-      logger.info(`🖼️  Image Test: http://localhost:${PORT}/api/test-image/ALLOY-1754053205546-685311602.png`);
+      logger.info(`💳 Checkout: http://localhost:${PORT}/api/checkout`);
+      logger.info(`🔗 Webhook: http://localhost:${PORT}/api/webhook/paystack`);
+      logger.info(`👥 Group Buy: http://localhost:${PORT}/api/groupbuy`);
+      logger.info(`🔍 Manual Review: http://localhost:${PORT}/api/groupbuy/manual-review`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {

@@ -2,7 +2,7 @@ import Order from "../models/order.js"
 import Product from "../models/Product.js"
 import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
-import GroupPurchase from "../models/GroupPurchase.js"
+import GroupBuy from "../models/GroupBuy.js"
 import { calculateDeliveryFee } from "../utils/deliveryCalculator.js"
 import { generateTrackingNumber } from "../utils/trackingGenerator.js"
 
@@ -28,19 +28,19 @@ export const createOrder = async (req, res) => {
       if (!product) return res.status(400).json({ message: "Invalid product ID" })
 
       // Find the group purchase for this item
-      const groupPurchase = await GroupPurchase.findOne({
+      const groupbuy = await GroupBuy.findOne({
         productId: item.product,
         "participants.user": userId,
         status: { $in: ["forming", "secured"] },
       })
 
-      if (!groupPurchase) {
+      if (!groupbuy) {
         return res.status(400).json({
           message: `No active group purchase found for ${product.title}`,
         })
       }
 
-      const participant = groupPurchase.participants.find((p) => p.user.toString() === userId)
+      const participant = groupbuy.participants.find((p) => p.user.toString() === userId)
       if (!participant) {
         return res.status(400).json({
           message: `You are not a participant in the group for ${product.title}`,
@@ -55,8 +55,8 @@ export const createOrder = async (req, res) => {
         quantity: participant.quantity,
         variant: item.variant || null,
         price: product.basePrice,
-        groupPurchaseId: groupPurchase._id,
-        groupStatus: groupPurchase.status,
+        groupbuyId: groupbuy._id,
+        groupStatus: groupbuy.status,
       })
     }
 
@@ -137,7 +137,7 @@ export const getUserOrders = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id })
       .populate("items.product")
-      .populate("items.groupPurchaseId")
+      .populate("items.Id")
       .sort({ createdAt: -1 })
 
     // Update order statuses and priority scores
@@ -162,7 +162,7 @@ export const getOrderProgress = async (req, res) => {
       user: req.user.id,
     })
       .populate("items.product", "title images")
-      .populate("items.groupPurchaseId", "status progressPercentage participantCount")
+      .populate("items.groupbuyId", "status progressPercentage participantCount")
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" })
@@ -187,8 +187,8 @@ export const getOrderProgress = async (req, res) => {
         productId: item.product._id,
         productTitle: item.product.title,
         groupStatus: item.groupStatus,
-        groupProgress: item.groupPurchaseId?.progressPercentage || 0,
-        participantCount: item.groupPurchaseId?.participantCount || 0,
+        groupProgress: item.groupbuyId?.progressPercentage || 0,
+        participantCount: item.groupbuyId?.participantCount || 0,
       })),
     })
   } catch (err) {
@@ -203,7 +203,7 @@ export const getOrdersForAdmin = async (req, res) => {
     const orders = await Order.find()
       .populate("user", "name email")
       .populate("items.product", "title")
-      .populate("items.groupPurchaseId", "status")
+      .populate("items.groupbuyId", "status")
       .sort({ priorityScore: -1, createdAt: -1 })
 
     // Update all order priorities

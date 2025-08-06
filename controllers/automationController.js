@@ -1,6 +1,6 @@
 import Product from "../models/Product.js"
 import Order from "../models/order.js"
-import GroupPurchase from "../models/GroupPurchase.js"
+import GroupBuy from "../models/GroupBuy.js"
 import User from "../models/User.js"
 import Transaction from "../models/Transaction.js"
 import logger from "../utils/logger.js"
@@ -18,7 +18,7 @@ export const updateDynamicPricing = async () => {
         paymentStatus: "paid",
       })
 
-      const activeGroups = await GroupPurchase.countDocuments({
+      const activeGroups = await GroupBuy.countDocuments({
         productId: product._id,
         status: "forming",
       })

@@ -227,7 +227,7 @@ const getRegionSpecificData = async (regionId) => {
       Product.aggregate([
         {
           $lookup: {
-            from: "grouppurchases",
+            from: "groupbuys",
             localField: "_id",
             foreignField: "productId",
             as: "groups",
