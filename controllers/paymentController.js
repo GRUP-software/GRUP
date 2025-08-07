@@ -1,41 +1,112 @@
-import Order from "../models/order.js"
-import Wallet from "../models/Wallet.js"
-import Transaction from "../models/Transaction.js"
-import crypto from "crypto"
+import Order from "../models/order.js";
+import Cart from "../models/cart.js";
+import Product from "../models/Product.js";
+import Wallet from "../models/Wallet.js";
+import Transaction from "../models/Transaction.js";
+import GroupBuy from "../models/GroupBuy.js";
+import { calculateDeliveryFee } from "../utils/deliveryCalculator.js";
+import { generateTrackingNumber } from "../utils/trackingGenerator.js";
+import crypto from "crypto";
 
-// Initialize Paystack payment
+
 export const initializePayment = async (req, res) => {
   try {
-    const { orderId } = req.body
-    const userId = req.user.id
+    const { deliveryAddress, phone, useWallet, walletAmount, cartId } = req.body;
+    const userId = req.user.id;
 
-    const order = await Order.findOne({ _id: orderId, user: userId })
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" })
+    if (!deliveryAddress || !phone) {
+      return res.status(400).json({ message: "Delivery address and phone number are required" });
     }
 
-    if (order.paymentStatus === "paid") {
-      return res.status(400).json({ message: "Order already paid" })
+    const cart = await Cart.findById(cartId).populate("items.product");
+    if (!cart || cart.user.toString() !== userId) {
+      return res.status(404).json({ message: "Cart not found or does not belong to user" });
     }
 
-    // Paystack initialization
+    if (cart.items.length === 0) {
+      return res.status(400).json({ message: "Cannot checkout with an empty cart" });
+    }
+
+    let subtotal = 0;
+    const processedItems = [];
+
+    for (const item of cart.items) {
+      const product = item.product;
+      const quantity = item.quantity;
+
+      if (!product) {
+        return res.status(400).json({ message: "Invalid product in cart" });
+      }
+
+      if (product.stock < quantity) {
+        return res.status(400).json({ message: `Insufficient stock for ${product.title}` });
+      }
+
+      const groupbuy = await GroupBuy.findOne({
+        productId: item.product._id,
+        "participants.user": userId,
+        status: { $in: ["forming", "secured"] },
+      });
+
+      const itemTotal = product.basePrice * quantity;
+      subtotal += itemTotal;
+
+      processedItems.push({
+        product: product._id,
+        quantity: quantity,
+        variant: item.variant || null,
+        price: product.basePrice,
+        groupbuyId: groupbuy ? groupbuy._id : null,
+        groupStatus: groupbuy ? groupbuy.status : 'N/A',
+      });
+    }
+
+    const deliveryFee = await calculateDeliveryFee(deliveryAddress.coordinates);
+    const totalAmount = subtotal + deliveryFee;
+
+    const wallet = await Wallet.findOne({ user: userId });
+    let walletUsed = 0;
+    let amountToPay = totalAmount;
+
+    if (useWallet && wallet && wallet.balance > 0) {
+      walletUsed = Math.min(wallet.balance, totalAmount, walletAmount);
+      amountToPay = totalAmount - walletUsed;
+    }
+
+    const order = new Order({
+      user: userId,
+      items: processedItems,
+      subtotal,
+      deliveryFee,
+      totalAmount,
+      walletUsed,
+      amountToPay,
+      deliveryAddress: {
+        ...deliveryAddress,
+        phone,
+      },
+      currentStatus: "payment_pending",
+      progress: [{
+        status: "payment_pending",
+        message: "Order created. Awaiting payment.",
+        timestamp: new Date(),
+      }],
+      paymentStatus: "pending",
+      trackingNumber: generateTrackingNumber(),
+    });
+    
+    await order.save();
+
     const paystackData = {
       email: req.user.email || "customer@grup.com",
-      amount: Math.round(order.amountToPay * 100), // Paystack expects kobo
-      reference: `grup_${orderId}_${Date.now()}`,
+      amount: Math.round(order.amountToPay * 100),
+      reference: `grup_${order._id}_${Date.now()}`,
       callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
-        orderId: orderId,
-        userId: userId,
-        custom_fields: [
-          {
-            display_name: "Order ID",
-            variable_name: "order_id",
-            value: orderId,
-          },
-        ],
+        orderId: order._id.toString(),
+        userId: userId.toString(),
       },
-    }
+    };
 
     const response = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -44,232 +115,87 @@ export const initializePayment = async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(paystackData),
-    })
+    });
 
-    const data = await response.json()
+    const data = await response.json();
 
     if (data.status) {
-      // Update order with payment reference
-      order.paymentReference = data.data.reference
-      await order.save()
+      order.paymentReference = data.data.reference;
+      await order.save();
+      await Cart.findByIdAndDelete(cartId);
 
-      res.json({
+      res.status(200).json({
         success: true,
         paymentUrl: data.data.authorization_url,
         reference: data.data.reference,
-        message: "Payment initialized successfully",
-      })
+        orderId: order._id,
+        message: "Payment initialized successfully. Cart has been cleared.",
+      });
     } else {
+      await Order.findByIdAndDelete(order._id);
       res.status(400).json({
         success: false,
         message: "Failed to initialize payment",
         error: data.message,
-      })
+      });
     }
   } catch (error) {
-    console.error("Payment initialization error:", error)
-    res.status(500).json({ message: "Error initializing payment", error: error.message })
+    console.error("Payment initialization error:", error);
+    res.status(500).json({ message: "Error initializing payment", error: error.message });
   }
-}
+};
 
-// Verify Paystack payment
-export const verifyPayment = async (req, res) => {
-  try {
-    const { reference } = req.params
 
-    const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-      },
-    })
-
-    const data = await response.json()
-
-    if (data.status && data.data.status === "success") {
-      const orderId = data.data.metadata.orderId
-      const order = await Order.findById(orderId)
-
-      if (order && order.paymentStatus !== "paid") {
-        // Update order payment status
-        order.paymentStatus = "paid"
-        order.paymentReference = reference
-        order.progress.push({
-          status: "payment_confirmed",
-          message: "Payment confirmed successfully",
-          timestamp: new Date(),
-        })
-
-        await order.save()
-
-        // Create transaction record
-        const wallet = await Wallet.findOne({ user: order.user })
-        if (wallet) {
-          await Transaction.create({
-            wallet: wallet._id,
-            type: "debit",
-            amount: order.amountToPay,
-            reason: "ORDER",
-            description: `Payment for order ${order.trackingNumber}`,
-          })
-        }
-
-        res.json({
-          success: true,
-          message: "Payment verified successfully",
-          order: {
-            id: order._id,
-            trackingNumber: order.trackingNumber,
-            paymentStatus: order.paymentStatus,
-            totalAmount: order.totalAmount,
-          },
-        })
-      } else {
-        res.status(400).json({
-          success: false,
-          message: "Order not found or already paid",
-        })
-      }
-    } else {
-      res.status(400).json({
-        success: false,
-        message: "Payment verification failed",
-        data: data,
-      })
-    }
-  } catch (error) {
-    console.error("Payment verification error:", error)
-    res.status(500).json({ message: "Error verifying payment", error: error.message })
-  }
-}
-
-// Paystack webhook handler
 export const handlePaystackWebhook = async (req, res) => {
   try {
     const hash = crypto
       .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
-      .digest("hex")
+      .digest("hex");
 
     if (hash !== req.headers["x-paystack-signature"]) {
-      return res.status(400).json({ message: "Invalid signature" })
+      return res.status(400).json({ message: "Invalid signature" });
     }
 
-    const event = req.body
+    const event = req.body;
 
     if (event.event === "charge.success") {
-      const { reference, metadata } = event.data
-      const orderId = metadata.orderId
+      const { reference, metadata } = event.data;
+      const orderId = metadata.orderId;
 
-      const order = await Order.findById(orderId)
+      const order = await Order.findById(orderId);
       if (order && order.paymentStatus !== "paid") {
-        order.paymentStatus = "paid"
-        order.paymentReference = reference
+        order.paymentStatus = "paid";
+        order.paymentReference = reference;
+        order.currentStatus = "processing";
         order.progress.push({
           status: "payment_confirmed",
           message: "Payment confirmed via webhook",
           timestamp: new Date(),
-        })
+        });
+        await order.save();
+        
+        const wallet = await Wallet.findOne({ user: order.user });
+        if (wallet && order.walletUsed > 0) {
+            wallet.balance -= order.walletUsed;
+            await wallet.save();
 
-        await order.save()
-
-        console.log(`Payment confirmed for order ${orderId} via webhook`)
-      }
-    }
-
-    res.status(200).json({ message: "Webhook processed" })
-  } catch (error) {
-    console.error("Webhook error:", error)
-    res.status(500).json({ message: "Webhook processing failed" })
-  }
-}
-
-// Manual payment confirmation (like Remita's "I have sent the money")
-export const confirmManualPayment = async (req, res) => {
-  try {
-    const { orderId, paymentReference, paymentMethod } = req.body
-    const userId = req.user.id
-
-    const order = await Order.findOne({ _id: orderId, user: userId })
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" })
-    }
-
-    if (order.paymentStatus === "paid") {
-      return res.status(400).json({ message: "Order already paid" })
-    }
-
-    // Mark as pending verification
-    order.paymentStatus = "pending_verification"
-    order.paymentReference = paymentReference
-    order.paymentMethod = paymentMethod
-    order.progress.push({
-      status: "payment_submitted",
-      message: `Payment submitted for verification. Reference: ${paymentReference}`,
-      timestamp: new Date(),
-    })
-
-    await order.save()
-
-    // In a real system, you'd trigger an admin notification here
-    // For now, we'll auto-verify after a short delay (simulate admin verification)
-    setTimeout(async () => {
-      try {
-        const updatedOrder = await Order.findById(orderId)
-        if (updatedOrder && updatedOrder.paymentStatus === "pending_verification") {
-          updatedOrder.paymentStatus = "paid"
-          updatedOrder.progress.push({
-            status: "payment_verified",
-            message: "Payment verified by admin",
-            timestamp: new Date(),
-          })
-          await updatedOrder.save()
-
-          console.log(`Payment auto-verified for order ${orderId}`)
+            await Transaction.create({
+                wallet: wallet._id,
+                type: "debit",
+                amount: order.walletUsed,
+                reason: "ORDER_PAYMENT",
+                description: `Wallet used for order ${order.trackingNumber} payment`,
+            });
         }
-      } catch (err) {
-        console.error("Auto-verification error:", err)
+        
+        console.log(`Payment confirmed for order ${orderId} via webhook`);
       }
-    }, 30000) // 30 seconds delay
-
-    res.json({
-      success: true,
-      message: "Payment submitted for verification. You will be notified once confirmed.",
-      order: {
-        id: order._id,
-        trackingNumber: order.trackingNumber,
-        paymentStatus: order.paymentStatus,
-        paymentReference: paymentReference,
-      },
-    })
-  } catch (error) {
-    console.error("Manual payment confirmation error:", error)
-    res.status(500).json({ message: "Error confirming payment", error: error.message })
-  }
-}
-
-// Get payment status
-export const getPaymentStatus = async (req, res) => {
-  try {
-    const { orderId } = req.params
-    const userId = req.user.id
-
-    const order = await Order.findOne({ _id: orderId, user: userId })
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" })
     }
 
-    res.json({
-      orderId: order._id,
-      paymentStatus: order.paymentStatus,
-      paymentReference: order.paymentReference,
-      paymentMethod: order.paymentMethod,
-      totalAmount: order.totalAmount,
-      amountToPay: order.amountToPay,
-      walletUsed: order.walletUsed,
-    })
+    res.status(200).json({ message: "Webhook processed" });
   } catch (error) {
-    console.error("Get payment status error:", error)
-    res.status(500).json({ message: "Error fetching payment status", error: error.message })
+    console.error("Webhook error:", error);
+    res.status(500).json({ message: "Webhook processing failed" });
   }
-}
+};

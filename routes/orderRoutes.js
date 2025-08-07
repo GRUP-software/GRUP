@@ -1,7 +1,6 @@
 import express from "express"
 import { verifyToken } from "../middleware/authMiddleware.js"
 import {
-  createOrder,
   getUserOrders,
   getOrderProgress,
   getOrdersForAdmin,
@@ -10,7 +9,7 @@ import {
 
 const router = express.Router()
 
-router.post("/", verifyToken, createOrder)
+router.post("/", verifyToken)
 router.get("/my-orders", verifyToken, getUserOrders)
 router.get("/progress/:orderId", verifyToken, getOrderProgress)
 

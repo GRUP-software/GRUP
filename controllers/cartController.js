@@ -65,14 +65,8 @@ export const addToCart = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    if (product.stock < quantity) {
-      return res.status(400).json({ 
-        message: `Insufficient stock. Available: ${product.stock}` 
-      });
-    }
-
     let cart = await Cart.findOne({ user: userId });
-    
+
     if (!cart) {
       cart = new Cart({ user: userId, items: [] });
     }
@@ -83,26 +77,57 @@ export const addToCart = async (req, res) => {
     );
 
     if (existingItemIndex > -1) {
-      // Update quantity
       const newQuantity = cart.items[existingItemIndex].quantity + quantity;
-      
+
       if (newQuantity > product.stock) {
         return res.status(400).json({ 
-          message: `Cannot add ${quantity} more. Total would exceed stock of ${product.stock}` 
+          message: `Cannot add more. Total would exceed stock of ${product.stock}` 
         });
       }
-      
+
+      // Update the quantity of the existing item
       cart.items[existingItemIndex].quantity = newQuantity;
+
     } else {
-      // Add new item
+      // Add new item if it doesn't exist
+      if (quantity > product.stock) {
+        return res.status(400).json({ 
+          message: `Cannot add ${quantity} items. Only ${product.stock} are available.`
+        });
+      }
       cart.items.push({ product: productId, quantity });
     }
 
     await cart.save();
     
-    // Return updated cart
+    // Fetch and return the updated cart data for the frontend
     const updatedCart = await Cart.findOne({ user: userId }).populate('items.product');
-    res.json({ message: 'Item added to cart', cart: updatedCart });
+
+    // Calculate total price and other details for a complete response
+    let totalPrice = 0;
+    const cartItems = updatedCart.items.map(item => {
+      const itemTotal = item.product.price * item.quantity;
+      totalPrice += itemTotal;
+      return {
+        ...item.toObject(),
+        itemTotal,
+      };
+    });
+
+    const wallet = await Wallet.findOne({ user: userId });
+    const walletBalance = wallet?.balance || 0;
+    const maxWalletUse = Math.min(walletBalance, totalPrice);
+
+    res.status(200).json({
+      message: 'Item added to cart successfully',
+      items: cartItems,
+      totalPrice,
+      itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      walletBalance,
+      maxWalletUse,
+      remainingAfterWallet: totalPrice - maxWalletUse,
+    });
+
   } catch (error) {
     console.error('Add to cart error:', error);
     res.status(500).json({ message: 'Error adding to cart', error: error.message });
