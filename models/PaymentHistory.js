@@ -1,39 +1,78 @@
-import mongoose from "mongoose"
+import mongoose from 'mongoose';
 
-const { Schema } = mongoose
+const { Schema } = mongoose;
 
-const paymentHistorySchema = new Schema(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    referenceId: { type: String, required: true, unique: true },
-    status: {
-      type: String,
-      enum: ["pending", "paid", "failed", "refunded"],
-      default: "pending",
+const paymentHistorySchema = new Schema({
+  userId: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
+  
+  referenceId: { 
+    type: String, 
+    required: true, 
+    unique: true 
+  },
+  
+  paystackReference: { 
+    type: String 
+  },
+  
+  cartItems: [{
+    productId: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'Product', 
+      required: true 
     },
-    cartItems: [
-      {
-        productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-        quantity: { type: Number, required: true },
-        price: { type: Number, required: true }, // Price at time of purchase
-      },
-    ],
-    amount: { type: Number, required: true }, // Total amount
-    walletUsed: { type: Number, default: 0 }, // Amount paid from wallet
-    paystackAmount: { type: Number, required: true }, // Amount to be paid via Paystack
-    paystackReference: { type: String },
-    paystackData: { type: Schema.Types.Mixed }, // Store full Paystack response
-    groupBuysCreated: [{ type: Schema.Types.ObjectId, ref: "GroupBuy" }], // Track created group buys
+    quantity: { 
+      type: Number, 
+      required: true 
+    },
+    price: { 
+      type: Number, 
+      required: true 
+    }
+  }],
+  
+  amount: { 
+    type: Number, 
+    required: true 
   },
-  {
-    timestamps: true,
+  
+  walletUsed: { 
+    type: Number, 
+    default: 0 
   },
-)
+  
+  paystackAmount: { 
+    type: Number, 
+    required: true 
+  },
+  
+  status: {
+    type: String,
+    enum: ['pending', 'paid', 'failed'],
+    default: 'pending'
+  },
+  
+  groupBuysCreated: [{
+    type: Schema.Types.ObjectId,
+    ref: 'GroupBuy'
+  }],
+  
+  paymentMethod: {
+    type: String,
+    enum: ['paystack', 'wallet_only'],
+    default: 'paystack'
+  },
+  
+  metadata: {
+    type: Schema.Types.Mixed
+  }
+}, {
+  timestamps: true
+});
 
-// Index for faster queries
-paymentHistorySchema.index({ referenceId: 1 })
-paymentHistorySchema.index({ userId: 1, status: 1 })
-paymentHistorySchema.index({ createdAt: -1 })
-
-const PaymentHistory = mongoose.model("PaymentHistory", paymentHistorySchema)
-export default PaymentHistory
+const PaymentHistory = mongoose.model('PaymentHistory', paymentHistorySchema);
+export default PaymentHistory;

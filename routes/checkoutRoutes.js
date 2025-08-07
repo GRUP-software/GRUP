@@ -1,9 +1,10 @@
-import express from "express"
-import { verifyToken } from "../middleware/authMiddleware.js"
-import { checkout } from "../controllers/checkoutController.js"
+import express from 'express';
+import { verifyToken } from '../middleware/authMiddleware.js';
+import { checkout } from '../controllers/checkoutController.js';
 
-const router = express.Router()
+const router = express.Router();
 
-router.post("/", verifyToken, checkout)
+// Initialize checkout
+router.post('/', verifyToken, checkout);
 
-export default router
+export default router;

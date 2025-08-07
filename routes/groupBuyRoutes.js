@@ -1,26 +1,30 @@
-import express from "express"
-import { verifyToken } from "../middleware/authMiddleware.js"
-import {
-  getActiveGroupBuys,
-  getGroupBuyByProduct,
+import express from 'express';
+import { verifyToken } from '../middleware/authMiddleware.js';
+import { 
+  getActiveGroupBuys, 
   getUserGroupBuys,
-  getGroupBuyStats,
   getManualReviewGroupBuys,
   updateGroupBuyStatus,
-} from "../controllers/groupBuyController.js"
+  getGroupBuyStats,
+  getGroupBuyByProduct
+} from '../controllers/groupBuyController.js';
 
-const router = express.Router()
+const router = express.Router();
 
-// Public routes
-router.get("/active", getActiveGroupBuys)
-router.get("/product/:productId", getGroupBuyByProduct)
+// Get all active group buys
+router.get('/active', getActiveGroupBuys);
 
-// Protected routes
-router.get("/my-groups", verifyToken, getUserGroupBuys)
+// Get group buy for specific product
+router.get('/product/:productId', getGroupBuyByProduct);
+
+// Get user's group buy participations
+router.get('/my-groups', verifyToken, getUserGroupBuys);
+
+// Get group buy statistics
+router.get('/stats', getGroupBuyStats);
 
 // Admin routes
-router.get("/stats", verifyToken, getGroupBuyStats)
-router.get("/manual-review", verifyToken, getManualReviewGroupBuys)
-router.patch("/:groupBuyId/status", verifyToken, updateGroupBuyStatus)
+router.get('/manual-review', verifyToken, getManualReviewGroupBuys);
+router.patch('/:groupBuyId/status', verifyToken, updateGroupBuyStatus);
 
-export default router
+export default router;

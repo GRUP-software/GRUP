@@ -39,11 +39,8 @@ router.post('/signup', async (req, res) => {
           referrer.referredUsers.push(newUser._id);
         }
 
-        // If at least 3 referrals and no reward given yet
-        if (
-          referrer.referredUsers.length >= 3 &&
-          !referrer.hasReceivedReferralBonus
-        ) {
+        // Check if referrer now has 3 or more referrals and hasn't received bonus yet
+        if (referrer.referredUsers.length >= 3 && !referrer.hasReceivedReferralBonus) {
           let wallet = await Wallet.findOne({ user: referrer._id });
           if (!wallet) {
             wallet = await Wallet.create({ user: referrer._id, balance: 500 });
@@ -73,7 +70,7 @@ router.post('/signup', async (req, res) => {
     await Wallet.create({ user: newUser._id, balance: 0 });
 
     const token = generateToken(newUser);
-    const referralLink = `https://your-frontend-domain.com/signup?ref=${newUser.referralCode}`;
+    const referralLink = `${process.env.FRONTEND_URL}/signup?ref=${newUser.referralCode}`;
 
     res.status(201).json({
       token,
@@ -82,7 +79,7 @@ router.post('/signup', async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         referralCode: newUser.referralCode,
-        referralLink, // Include the generated referral link
+        referralLink,
       },
     });
   } catch (err) {
@@ -102,6 +99,8 @@ router.post('/login', async (req, res) => {
     }
 
     const token = generateToken(user);
+    const referralLink = `${process.env.FRONTEND_URL}/signup?ref=${user.referralCode}`;
+    
     res.status(200).json({
       token,
       user: {
@@ -109,6 +108,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         referralCode: user.referralCode,
+        referralLink,
       },
     });
   } catch (err) {
