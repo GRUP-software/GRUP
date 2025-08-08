@@ -9,7 +9,7 @@ const orderItemSchema = new Schema({
   groupbuyId: { type: Schema.Types.ObjectId, ref: "GroupBuy" },
   groupStatus: {
     type: String,
-    enum: ["forming", "secured", "dispatched"],
+    enum: ["forming", "secured", "dispatched", "N/A"], // Added "N/A"
     default: "forming",
   },
 })
@@ -30,6 +30,7 @@ const orderProgressSchema = new Schema({
     type: String,
     enum: [
       "pending",
+      "payment_pending", // Added "payment_pending"
       "groups_forming",
       "all_secured",
       "processing",
@@ -68,6 +69,7 @@ const orderSchema = new Schema(
       type: String,
       enum: [
         "pending",
+        "payment_pending", // Added "payment_pending"
         "groups_forming",
         "all_secured",
         "processing",

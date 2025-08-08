@@ -14,6 +14,7 @@ export const getCart = async (req, res) => {
         totalPrice: 0,
         itemCount: 0,
         walletBalance: 0,
+        cartId: null, // Explicitly return null if no cart
       });
     }
 
@@ -47,6 +48,7 @@ export const getCart = async (req, res) => {
       walletBalance,
       maxWalletUse,
       remainingAfterWallet,
+      cartId: cart._id, // Include cartId here
     });
   } catch (error) {
     console.error('Get cart error:', error);
@@ -126,6 +128,7 @@ export const addToCart = async (req, res) => {
       walletBalance,
       maxWalletUse,
       remainingAfterWallet: totalPrice - maxWalletUse,
+      cartId: updatedCart._id, // Include cartId here
     });
 
   } catch (error) {
@@ -203,6 +206,7 @@ export const updateCartQuantity = async (req, res) => {
       walletBalance,
       maxWalletUse,
       remainingAfterWallet: totalPrice - maxWalletUse,
+      cartId: updatedCart._id, // Include cartId here
     });
   } catch (error) {
     console.error('Update quantity error:', error);
