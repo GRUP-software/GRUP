@@ -18,10 +18,7 @@ const deliveryAddressSchema = new Schema({
   street: { type: String, required: true },
   city: { type: String, required: true },
   state: { type: String, required: true },
-  coordinates: {
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
-  },
+  // Removed coordinates as per request
   phone: { type: String, required: true },
 })
 
@@ -61,7 +58,8 @@ const orderSchema = new Schema(
     // Delivery information
     deliveryAddress: deliveryAddressSchema,
     estimatedDeliveryTime: Date,
-    deliveryDistance: Number, // in kilometers
+    // Removed deliveryDistance as it relies on coordinates
+    // deliveryDistance: Number, // in kilometers
 
     // Order tracking
     progress: [orderProgressSchema],

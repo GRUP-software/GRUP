@@ -322,7 +322,7 @@
                 "upload-images"
               ]
             },
-            "description": "Headers: Authorization: Bearer <adminToken>, multipart/form-data. Form fields: images: file(s) (up to 5), description (optional), tags (optional, comma-separated). Expect: 200 { success: true, imageUrls: [...], images: [...], count }"
+            "description": "Headers: Authorization: Bearer <adminToken>, multipart/form-data (optional files). Form fields: images: file(s) (up to 5), description (optional), tags (optional, comma-separated). Expect: 200 { success: true, imageUrls: [...], images: [...], count }"
           },
           "response": []
         },
@@ -631,6 +631,20 @@
       "item": [
         {
           "name": "GET /api/cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.cartId) {",
+                  "    pm.environment.set(\"cartId\", jsonData.cartId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -655,6 +669,20 @@
         },
         {
           "name": "POST /api/cart/add",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.cartId) {",
+                  "    pm.environment.set(\"cartId\", jsonData.cartId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -842,7 +870,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deliveryAddress\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"Lagos\",\n    \"state\": \"Lagos\",\n    \"coordinates\": { \"lat\": 6.5244, \"lng\": 3.3792 }\n  },\n  \"phone\": \"08012345678\",\n  \"useWallet\": false,\n  \"walletAmount\": 0,\n  \"cartId\": \"{{cartId}}\"\n}"
+              "raw": "{\n  \"deliveryAddress\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"Lagos\",\n    \"state\": \"Lagos\"\n  },\n  \"phone\": \"08012345678\",\n  \"useWallet\": false,\n  \"walletAmount\": 0,\n  \"cartId\": \"{{cartId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/payment/initialize",
@@ -855,7 +883,7 @@
                 "initialize"
               ]
             },
-            "description": "Body: { \"deliveryAddress\": { \"street\": \"...\", \"city\":\"...\", \"state\":\"...\", \"coordinates\": { \"lat\":6.5244, \"lng\":3.3792 } }, \"phone\":\"08012345678\", \"useWallet\": true, \"walletAmount\": 0, \"cartId\":\"<cartObjectId>\" }. Pre-reqs: A Cart document exists (this route requires cartId; GET /api/cart does not return it. You’ll need to fetch it from MongoDB: db.carts.findOne({ user: ObjectId(\"<userId>\") })._id). Products in cart have stock. With PAYSTACK_SECRET_KEY set and amountToPay > 0: Expect: 200 { success: true, paymentUrl, reference, orderId, message }. Cart is deleted upon successful init. If amountToPay == 0 (wallet covers all), current code still initializes Paystack (unlike /api/checkout), so you’ll likely see 400 unless you reduce wallet use; use the /api/checkout path if you want wallet-only completion for now."
+            "description": "Body: { \"deliveryAddress\": { \"street\": \"...\", \"city\":\"...\", \"state\":\"...\" }, \"phone\":\"08012345678\", \"useWallet\": true, \"walletAmount\": 0, \"cartId\":\"<cartObjectId>\" }. Pre-reqs: A Cart document exists (this route requires cartId; GET /api/cart does not return it. You’ll need to fetch it from MongoDB: db.carts.findOne({ user: ObjectId(\"<userId>\") })._id). Products in cart have stock. With PAYSTACK_SECRET_KEY set and amountToPay > 0: Expect: 200 { success: true, paymentUrl, reference, orderId, message }. Cart is deleted upon successful init. If amountToPay == 0 (wallet covers all), current code still initializes Paystack (unlike /api/checkout), so you’ll likely see 400 unless you reduce wallet use; use the /api/checkout path if you want wallet-only completion for now."
           },
           "response": []
         },
@@ -892,7 +920,27 @@
             },
             "description": "Headers: x-paystack-signature: <sha512 of raw body using PAYSTACK_SECRET_KEY>. Body: Paystack event JSON (charge.success). Expect: 200 { message: \"Webhook processed\" } if signature valid. Effect: finds Order by metadata.orderId, marks paid, deducts walletUsed (if any), logs Transaction, pushes progress."
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const crypto = require('crypto');",
+                  "const paystackSecretKey = pm.environment.get('paystackSecretKey'); // Ensure this env var is set in Postman",
+                  "if (!paystackSecretKey) {",
+                  "    console.error('Error: paystackSecretKey environment variable is not set.');",
+                  "    return;",
+                  "}",
+                  "const rawBody = pm.request.body.raw;",
+                  "const hash = crypto.createHmac('sha512', paystackSecretKey).update(rawBody).digest('hex');",
+                  "pm.request.headers.upsert({ key: 'x-paystack-signature', value: hash });",
+                  "console.log('Pre-request Script: Generated Signature:', hash);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         }
       ]
     },
@@ -1322,63 +1370,23 @@
       ]
     },
     {
-      "name": "Delivery (/api/delivery)",
+      "name": "Delivery (/api/delivery) - Removed",
       "item": [
         {
-          "name": "POST /api/delivery/calculate-fee",
+          "name": "All delivery coordinate-related endpoints have been removed.",
           "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"coordinates\": { \"lat\": 6.5244, \"lng\": 3.3792 }\n}"
-            },
+            "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/delivery/calculate-fee",
+              "raw": "Removed",
               "host": [
-                "{{baseUrl}}"
+                "Removed"
               ],
               "path": [
-                "api",
-                "delivery",
-                "calculate-fee"
+                "Removed"
               ]
             },
-            "description": "Body: { \"coordinates\": { \"lat\":6.5244, \"lng\":3.3792 } }. Expect: 200 { deliveryFee, coordinates, address, addressComponents, message }"
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/delivery/search-address",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"address\": \"Lekki, Lagos\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/delivery/search-address",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "delivery",
-                "search-address"
-              ]
-            },
-            "description": "Body: { \"address\":\"Lekki, Lagos\" }. Expect: 200 { coordinates: {lat,lng}, address, deliveryFee, message } or 404 if not found"
+            "description": "The /api/delivery/calculate-fee and /api/delivery/search-address endpoints, along with their associated logic, have been removed as per your request."
           },
           "response": []
         }
@@ -1407,32 +1415,20 @@
           "response": []
         },
         {
-          "name": "GET /api/region/detect",
+          "name": "GET /api/region/detect - Removed",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/region/detect?lat=6.5244&lng=3.3792",
+              "raw": "Removed",
               "host": [
-                "{{baseUrl}}"
+                "Removed"
               ],
               "path": [
-                "api",
-                "region",
-                "detect"
-              ],
-              "query": [
-                {
-                  "key": "lat",
-                  "value": "6.5244"
-                },
-                {
-                  "key": "lng",
-                  "value": "3.3792"
-                }
+                "Removed"
               ]
             },
-            "description": "Expect: 200 { success: true, region, detected:true, message } or default to Lagos with detected:false"
+            "description": "This endpoint has been removed as it relied on user delivery coordinates."
           },
           "response": []
         },
@@ -1487,7 +1483,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"regionId\": \"<your-region-id>\",\n  \"coordinates\": { \"lat\": 6.5244, \"lng\": 3.3792 }\n}"
+              "raw": "{\n  \"regionId\": \"<your-region-id>\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/region/set",
@@ -1500,7 +1496,7 @@
                 "set"
               ]
             },
-            "description": "Body: { \"regionId\":\"<id>\", \"coordinates\": {lat,lng} }. Expect: 200 { success: true, message, region:{... plus stats} }. Side effects: Saves preference on user if JWT is provided."
+            "description": "Body: { \"regionId\":\"<id>\" }. Expect: 200 { success: true, message, region:{... plus stats} }. Side effects: Saves preference on user if JWT is provided."
           },
           "response": []
         }

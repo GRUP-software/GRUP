@@ -12,7 +12,7 @@ export const getShoppingRegions = async (req, res) => {
       async () => {
         return await ShoppingRegion.find({ isActive: true })
           .sort({ priority: -1, name: 1 })
-          .select("name displayName state coordinates features")
+          .select("name displayName state features") // Removed coordinates
           .lean()
       },
       1800, // 30 minutes cache
@@ -36,7 +36,7 @@ export const getShoppingRegions = async (req, res) => {
 // Set user's shopping region
 export const setUserRegion = async (req, res) => {
   try {
-    const { regionId, coordinates } = req.body
+    const { regionId } = req.body // Removed coordinates
     const userId = req.user?.id
 
     // Validate region exists
@@ -54,7 +54,6 @@ export const setUserRegion = async (req, res) => {
       id: region._id,
       name: region.name,
       displayName: region.displayName,
-      coordinates: coordinates || region.coordinates,
       features: region.features,
       setAt: new Date(),
     }
@@ -161,62 +160,7 @@ export const getRegionProducts = async (req, res) => {
   }
 }
 
-// Auto-detect user's region based on IP/coordinates
-export const detectUserRegion = async (req, res) => {
-  try {
-    const { lat, lng } = req.query
-
-    if (!lat || !lng) {
-      return res.status(400).json({
-        success: false,
-        message: "Coordinates required for region detection",
-      })
-    }
-
-    // Find nearest region using geospatial query
-    const nearestRegion = await ShoppingRegion.findOne({
-      isActive: true,
-      coordinates: {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [Number.parseFloat(lng), Number.parseFloat(lat)],
-          },
-          $maxDistance: 100000, // 100km radius
-        },
-      },
-    })
-
-    if (!nearestRegion) {
-      // Default to Lagos if no region found
-      const defaultRegion = await ShoppingRegion.findOne({
-        name: "lagos",
-        isActive: true,
-      })
-
-      return res.json({
-        success: true,
-        region: defaultRegion,
-        detected: false,
-        message: "No nearby region found, defaulting to Lagos",
-      })
-    }
-
-    res.json({
-      success: true,
-      region: nearestRegion,
-      detected: true,
-      message: `Detected region: ${nearestRegion.displayName}`,
-    })
-  } catch (error) {
-    console.error("Detect user region error:", error)
-    res.status(500).json({
-      success: false,
-      message: "Error detecting user region",
-      error: error.message,
-    })
-  }
-}
+// Removed detectUserRegion endpoint as it relies on coordinates.
 
 // Helper function to get region-specific data
 const getRegionSpecificData = async (regionId) => {

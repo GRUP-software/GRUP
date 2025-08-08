@@ -29,7 +29,6 @@ import authRoutes from './routes/auth.js';
 import cartRoutes from './routes/cartRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import liveUserRoutes from './routes/liveUserRoutes.js';
-import deliveryRoutes from './routes/deliveryRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
@@ -251,7 +250,6 @@ app.use('/api/group', groupRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
-app.use('/api/delivery', deliveryRoutes);
 
 // NEW API routes
 app.use('/api/checkout', checkoutRoutes);
