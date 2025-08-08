@@ -1,5 +1,5 @@
 import DeliveryZone from "../models/DeliveryZone.js"
-import { calculateDistance } from "./openStreetMapService.js"
+// import { calculateDistance } from "./openStreetMapService.js"
 
 // Calculate delivery fee based on coordinates
 export const calculateDeliveryFee = async (coordinates) => {
