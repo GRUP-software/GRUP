@@ -18,7 +18,6 @@ const deliveryAddressSchema = new Schema({
   street: { type: String, required: true },
   city: { type: String, required: true },
   state: { type: String, required: true },
-  // Removed coordinates as per request
   phone: { type: String, required: true },
 })
 
@@ -124,7 +123,7 @@ orderSchema.methods.checkAllGroupsSecured = function () {
       timestamp: new Date(),
     })
   }
-  return this.allGroupsSecured
+  return this.allGroupsSecued
 }
 
 const Order = mongoose.model("Order", orderSchema)
