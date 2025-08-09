@@ -1,8 +1,6 @@
 import GroupBuy from "../models/GroupBuy.js"
-import PaymentHistory from "../models/PaymentHistory.js"
-import Product from "../models/Product.js"
-import User from "../models/User.js"
 import logger from "../utils/logger.js"
+import mongoose from "mongoose"
 
 // Get all active group buys
 export const getActiveGroupBuys = async (req, res) => {
@@ -93,14 +91,101 @@ export const getUserGroupBuys = async (req, res) => {
   try {
     const userId = req.user.id
 
-    const groupBuys = await GroupBuy.find({
-      participants: userId,
-    })
-      .populate("productId", "title price images")
-      .sort({ createdAt: -1 })
+    // Use aggregation to get user-specific participation details
+    const groupBuys = await GroupBuy.aggregate([
+      {
+        $match: {
+          participants: new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        $lookup: {
+          from: "paymenthistories",
+          let: { groupBuyId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$userId", new mongoose.Types.ObjectId(userId)] },
+                    { $in: ["$$groupBuyId", "$groupBuysCreated"] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "userPayments",
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          select: "title price images",
+          as: "productId",
+        },
+      },
+      {
+        $unwind: "$productId",
+      },
+      {
+        $addFields: {
+          // Calculate user-specific data from their payments
+          userQuantity: {
+            $sum: {
+              $map: {
+                input: "$userPayments",
+                as: "payment",
+                in: {
+                  $sum: {
+                    $map: {
+                      input: "$$payment.cartItems",
+                      as: "item",
+                      in: {
+                        $cond: [{ $eq: ["$$item.productId", "$productId._id"] }, "$$item.quantity", 0],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          userAmount: {
+            $sum: {
+              $map: {
+                input: "$userPayments",
+                as: "payment",
+                in: {
+                  $sum: {
+                    $map: {
+                      input: "$$payment.cartItems",
+                      as: "item",
+                      in: {
+                        $cond: [
+                          { $eq: ["$$item.productId", "$productId._id"] },
+                          { $multiply: ["$$item.quantity", "$$item.price"] },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          userPurchaseDate: {
+            $arrayElemAt: ["$userPayments.createdAt", 0],
+          },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ])
 
     const enrichedGroupBuys = groupBuys.map((groupBuy) => ({
-      ...groupBuy.toObject(),
+      ...groupBuy,
       progressPercentage: Math.round((groupBuy.unitsSold / groupBuy.minimumViableUnits) * 100),
       timeRemaining: Math.max(0, groupBuy.expiresAt - new Date()),
       isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
@@ -176,13 +261,13 @@ export const getManualReviewGroupBuys = async (req, res) => {
 
     const enrichedGroupBuys = groupBuys.map((groupBuy) => {
       const totalCollected = groupBuy.paymentHistories.reduce((sum, payment) => sum + payment.amount, 0)
-      
+
       return {
         ...groupBuy.toObject(),
         progressPercentage: Math.round((groupBuy.unitsSold / groupBuy.minimumViableUnits) * 100),
         totalCollected,
         participantCount: groupBuy.participants.length,
-        shortfall: (groupBuy.minimumViableUnits - groupBuy.unitsSold),
+        shortfall: groupBuy.minimumViableUnits - groupBuy.unitsSold,
       }
     })
 
@@ -223,7 +308,7 @@ export const updateGroupBuyStatus = async (req, res) => {
 
     groupBuy.status = status
     groupBuy.adminNotes = adminNotes
-    
+
     if (status === "successful") {
       groupBuy.successfulAt = new Date()
     }
