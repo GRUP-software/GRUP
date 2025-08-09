@@ -34,7 +34,6 @@ import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 
 // Import NEW routes
-import checkoutRoutes from './routes/checkoutRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
@@ -252,7 +251,6 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
 
 // NEW API routes
-app.use('/api/checkout', checkoutRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/groupbuy', groupBuyRoutes);
 
@@ -269,7 +267,7 @@ app.get('/api/status', (req, res) => {
       api: '/api/*',
       health: '/health',
       newEndpoints: {
-        checkout: '/api/checkout',
+       
         webhook: '/api/webhook',
         groupBuy: '/api/groupbuy'
       }
@@ -303,7 +301,7 @@ app.get('/api/*', (req, res) => {
       uploadTool: '/admin-upload.html',
       api: '/api/status',
       health: '/health',
-      checkout: '/api/checkout',
+
       webhook: '/api/webhook',
       groupBuy: '/api/groupbuy'
     }
@@ -394,7 +392,6 @@ const startServer = async () => {
       logger.info(`🖼️  Upload Tool: http://localhost:${PORT}/admin-upload.html`);
       logger.info(`📡 API Status: http://localhost:${PORT}/api/status`);
       logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
-      logger.info(`💳 Checkout: http://localhost:${PORT}/api/checkout`);
       logger.info(`🔗 Webhook: http://localhost:${PORT}/api/webhook/paystack`);
       logger.info(`👥 Group Buy: http://localhost:${PORT}/api/groupbuy`);
       logger.info(`🔍 Manual Review: http://localhost:${PORT}/api/groupbuy/manual-review`);

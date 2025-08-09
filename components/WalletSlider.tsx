@@ -96,8 +96,7 @@ export default function WalletSlider({ subtotal, walletBalance, onWalletChange }
                   ℹ️
                   <div className="text-xs text-blue-700">
                     <p className="font-medium mb-1">Wallet Usage Policy</p>
-                    <p>• Wallet balance can only offset product costs</p>
-                    <p>• Delivery fees cannot be paid with wallet balance</p>
+                    <p>• Wallet balance can offset product costs</p>
                     <p>• Unused balance remains in your wallet</p>
                   </div>
                 </div>

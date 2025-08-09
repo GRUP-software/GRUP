@@ -1,99 +1,113 @@
 import mongoose from "mongoose"
-const { Schema } = mongoose
 
-const orderItemSchema = new Schema({
-  product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-  quantity: { type: Number, required: true },
-  variant: { type: String },
-  price: { type: Number, required: true },
-  groupbuyId: { type: Schema.Types.ObjectId, ref: "GroupBuy" },
-  groupStatus: {
-    type: String,
-    enum: ["forming", "secured", "dispatched", "N/A"], // Added "N/A"
-    default: "forming",
-  },
-})
-
-const deliveryAddressSchema = new Schema({
-  street: { type: String, required: true },
-  city: { type: String, required: true },
-  state: { type: String, required: true },
-  phone: { type: String, required: true },
-})
-
-const orderProgressSchema = new Schema({
-  status: {
-    type: String,
-    enum: [
-      "pending",
-      "payment_pending", // Added "payment_pending"
-      "groups_forming",
-      "all_secured",
-      "processing",
-      "packaged",
-      "dispatched",
-      "out_for_delivery",
-      "delivered",
-      "cancelled",
-    ],
-    default: "groups_forming",
-  },
-  timestamp: { type: Date, default: Date.now },
-  message: String,
-})
-
-const orderSchema = new Schema(
+const orderSchema = new mongoose.Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    items: [orderItemSchema],
-
-    // Pricing breakdown
-    subtotal: { type: Number, required: true },
-    deliveryFee: { type: Number, required: true },
-    totalAmount: { type: Number, required: true },
-    walletUsed: { type: Number, default: 0 },
-    amountToPay: { type: Number, required: true },
-
-    // Delivery information
-    deliveryAddress: deliveryAddressSchema,
-    estimatedDeliveryTime: Date,
-    // Removed deliveryDistance as it relies on coordinates
-    // deliveryDistance: Number, // in kilometers
-
-    // Order tracking
-    progress: [orderProgressSchema],
+    trackingNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    paymentHistoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PaymentHistory",
+      required: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    items: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        groupbuyId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "GroupBuy",
+        },
+        groupStatus: {
+          type: String,
+          enum: ["forming", "secured", "dispatched"],
+          default: "forming",
+        },
+      },
+    ],
     currentStatus: {
       type: String,
       enum: [
-        "pending",
-        "payment_pending", // Added "payment_pending"
         "groups_forming",
         "all_secured",
         "processing",
         "packaged",
-        "dispatched",
+        "awaiting_fulfillment_choice",
+        "ready_for_pickup",
         "out_for_delivery",
         "delivered",
+        "picked_up",
         "cancelled",
       ],
       default: "groups_forming",
+      index: true,
     },
-
-    // Priority calculation
-    priorityScore: { type: Number, default: 0 },
-    allGroupsSecured: { type: Boolean, default: false },
-
-    paymentMethod: { type: String, enum: ["wallet", "paypal", "card"], default: "wallet" },
-    paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
-
-    // Delivery tracking
-    trackingNumber: String,
-    deliveryRoute: [
+    allGroupsSecured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deliveryAddress: {
+      street: String,
+      city: String,
+      state: String,
+      phone: String,
+    },
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    walletUsed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    paystackAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    fulfillmentChoice: {
+      type: String,
+      enum: ["pickup", "delivery"],
+    },
+    estimatedFulfillmentTime: Date,
+    priorityScore: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    progress: [
       {
-        lat: Number,
-        lng: Number,
-        timestamp: Date,
         status: String,
+        message: String,
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
   },
@@ -102,29 +116,59 @@ const orderSchema = new Schema(
   },
 )
 
-// Calculate priority score
-orderSchema.methods.calculatePriorityScore = function () {
-  const securedItems = this.items.filter((item) => item.groupStatus === "secured").length
-  const completionPercentage = securedItems / this.items.length
-  const valueWeight = Math.min(this.totalAmount / 10000, 1) // Normalize to 0-1
-
-  this.priorityScore = completionPercentage * 0.6 + valueWeight * 0.4
-  return this.priorityScore
-}
-
-// Check if all groups are secured
+// Method to check if all groups are secured
 orderSchema.methods.checkAllGroupsSecured = function () {
-  this.allGroupsSecured = this.items.every((item) => item.groupStatus === "secured")
-  if (this.allGroupsSecured && this.currentStatus === "groups_forming") {
+  const allSecured = this.items.every((item) => item.groupStatus === "secured" || item.groupStatus === "dispatched")
+
+  if (allSecured && !this.allGroupsSecured) {
+    this.allGroupsSecured = true
     this.currentStatus = "all_secured"
     this.progress.push({
       status: "all_secured",
-      message: "All group purchases secured! Order ready for processing.",
+      message: "All group buys have been secured! Your order will be processed soon.",
       timestamp: new Date(),
     })
   }
-  return this.allGroupsSecued
+
+  return allSecured
 }
 
-const Order = mongoose.model("Order", orderSchema)
-export default Order
+// Method to calculate priority score for admin sorting
+orderSchema.methods.calculatePriorityScore = function () {
+  let score = 0
+
+  // Higher priority for orders with all groups secured
+  if (this.allGroupsSecured) score += 100
+
+  // Higher priority for orders closer to fulfillment
+  const statusPriority = {
+    groups_forming: 10,
+    all_secured: 80,
+    processing: 70,
+    packaged: 90,
+    awaiting_fulfillment_choice: 85,
+    ready_for_pickup: 60,
+    out_for_delivery: 50,
+    delivered: 0,
+    picked_up: 0,
+    cancelled: 0,
+  }
+  score += statusPriority[this.currentStatus] || 0
+
+  // Higher priority for older orders (time-based urgency)
+  const daysSinceCreated = (Date.now() - this.createdAt) / (1000 * 60 * 60 * 24)
+  score += Math.min(daysSinceCreated * 5, 50) // Max 50 points for age
+
+  // Higher priority for higher value orders
+  score += Math.min(this.totalAmount / 1000, 30) // Max 30 points for value
+
+  this.priorityScore = Math.round(score)
+  return this.priorityScore
+}
+
+// Index for efficient queries
+orderSchema.index({ user: 1, createdAt: -1 })
+orderSchema.index({ currentStatus: 1, priorityScore: -1 })
+orderSchema.index({ allGroupsSecured: 1, createdAt: -1 })
+
+export default mongoose.model("Order", orderSchema)
