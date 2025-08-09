@@ -16,7 +16,7 @@ export const getWalletData = async (req, res) => {
     const transactions = await Transaction.find({ wallet: wallet._id }).sort({ createdAt: -1 }).limit(50)
 
     // Get user referral info for context
-    const user = await User.findById(userId).select('referralCode hasReceivedReferralBonus referredUsers')
+    const user = await User.findById(userId).select("referralCode hasReceivedReferralBonus referredUsers")
 
     res.json({
       balance: wallet.balance,
@@ -26,7 +26,7 @@ export const getWalletData = async (req, res) => {
         hasReceivedBonus: user.hasReceivedReferralBonus,
         totalReferrals: user.referredUsers?.length || 0,
         referralsNeeded: Math.max(0, 3 - (user.referredUsers?.length || 0)),
-      }
+      },
     })
   } catch (error) {
     console.error("Get wallet error:", error)
