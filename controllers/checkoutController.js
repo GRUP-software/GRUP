@@ -160,10 +160,10 @@ const processWalletOnlyPayment = async (paymentHistory, res) => {
     paymentHistory.status = "paid"
     await paymentHistory.save()
 
-    // Process group buys
+    // Process group buys FIRST
     const groupBuys = await processGroupBuys(paymentHistory)
 
-    // Clear user's cart
+    // Clear user's cart ONLY AFTER successful group buy processing
     await Cart.findOneAndUpdate({ user: paymentHistory.userId }, { items: [] })
 
     res.json({
