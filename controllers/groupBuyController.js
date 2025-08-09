@@ -86,118 +86,135 @@ export const getGroupBuyByProduct = async (req, res) => {
   }
 }
 
-// Get user's group buy participations
+// Get user's group buy participations with user-specific data
 export const getUserGroupBuys = async (req, res) => {
   try {
     const userId = req.user.id
+    console.log(`Fetching group buys for user: ${userId}`)
 
-    // Use aggregation to get user-specific participation details
+    const userObjectId = new mongoose.Types.ObjectId(userId)
+
     const groupBuys = await GroupBuy.aggregate([
+      // Match group buys where user is a participant
       {
         $match: {
-          participants: new mongoose.Types.ObjectId(userId),
+          participants: userObjectId,
         },
       },
-      {
-        $lookup: {
-          from: "paymenthistories",
-          let: { groupBuyId: "$_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$userId", new mongoose.Types.ObjectId(userId)] },
-                    { $in: ["$$groupBuyId", "$groupBuysCreated"] },
-                  ],
-                },
-              },
-            },
-          ],
-          as: "userPayments",
-        },
-      },
+      // Lookup product details
       {
         $lookup: {
           from: "products",
           localField: "productId",
           foreignField: "_id",
-          select: "title price images",
           as: "productId",
         },
       },
       {
         $unwind: "$productId",
       },
+      // Lookup payment histories for this group buy and user
       {
-        $addFields: {
-          // Calculate user-specific data from their payments
-          userQuantity: {
-            $sum: {
-              $map: {
-                input: "$userPayments",
-                as: "payment",
-                in: {
-                  $sum: {
-                    $map: {
-                      input: "$$payment.cartItems",
-                      as: "item",
-                      in: {
-                        $cond: [{ $eq: ["$$item.productId", "$productId._id"] }, "$$item.quantity", 0],
-                      },
-                    },
-                  },
+        $lookup: {
+          from: "paymenthistories",
+          let: {
+            groupBuyId: "$_id",
+            productId: "$productId._id",
+            userId: userObjectId,
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [{ $eq: ["$userId", "$$userId"] }, { $in: ["$$groupBuyId", "$groupBuysCreated"] }],
                 },
               },
             },
-          },
-          userAmount: {
-            $sum: {
-              $map: {
-                input: "$userPayments",
-                as: "payment",
-                in: {
-                  $sum: {
-                    $map: {
-                      input: "$$payment.cartItems",
-                      as: "item",
-                      in: {
-                        $cond: [
-                          { $eq: ["$$item.productId", "$productId._id"] },
-                          { $multiply: ["$$item.quantity", "$$item.price"] },
-                          0,
-                        ],
-                      },
-                    },
-                  },
+            {
+              $unwind: "$cartItems",
+            },
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$cartItems.productId", "$$productId"],
                 },
               },
             },
-          },
-          userPurchaseDate: {
-            $arrayElemAt: ["$userPayments.createdAt", 0],
-          },
+            {
+              $project: {
+                quantity: "$cartItems.quantity",
+                price: "$cartItems.price",
+                amount: { $multiply: ["$cartItems.quantity", "$cartItems.price"] },
+                createdAt: 1,
+              },
+            },
+          ],
+          as: "userPayments",
         },
       },
+      // Calculate user-specific totals
+      {
+        $addFields: {
+          userQuantity: {
+            $sum: "$userPayments.quantity",
+          },
+          userAmount: {
+            $sum: "$userPayments.amount",
+          },
+          userPurchaseDate: {
+            $min: "$userPayments.createdAt",
+          },
+          progressPercentage: {
+            $round: [{ $multiply: [{ $divide: ["$unitsSold", "$minimumViableUnits"] }, 100] }],
+          },
+          timeRemaining: {
+            $max: [0, { $subtract: ["$expiresAt", new Date()] }],
+          },
+          isViable: { $gte: ["$unitsSold", "$minimumViableUnits"] },
+          isExpired: { $lte: ["$expiresAt", new Date()] },
+        },
+      },
+      // Project final structure
+      {
+        $project: {
+          _id: 1,
+          productId: {
+            _id: "$productId._id",
+            title: "$productId.title",
+            price: "$productId.price",
+            images: "$productId.images",
+            unitTag: "$productId.unitTag",
+          },
+          unitsSold: 1,
+          minimumViableUnits: 1,
+          status: 1,
+          expiresAt: 1,
+          progressPercentage: 1,
+          timeRemaining: 1,
+          isViable: 1,
+          isExpired: 1,
+          userQuantity: { $ifNull: ["$userQuantity", 0] },
+          userAmount: { $ifNull: ["$userAmount", 0] },
+          userPurchaseDate: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+      // Sort by creation date (newest first)
       {
         $sort: { createdAt: -1 },
       },
     ])
 
-    const enrichedGroupBuys = groupBuys.map((groupBuy) => ({
-      ...groupBuy,
-      progressPercentage: Math.round((groupBuy.unitsSold / groupBuy.minimumViableUnits) * 100),
-      timeRemaining: Math.max(0, groupBuy.expiresAt - new Date()),
-      isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
-      isExpired: groupBuy.expiresAt <= new Date(),
-    }))
+    console.log(`Found ${groupBuys.length} group buys for user ${userId}`)
 
     res.json({
       success: true,
-      data: enrichedGroupBuys,
-      count: enrichedGroupBuys.length,
+      data: groupBuys,
+      count: groupBuys.length,
     })
   } catch (error) {
+    console.error("Error fetching user group buys:", error)
     logger.error("Get user group buys error:", error)
     res.status(500).json({ message: "Error fetching user group buys", error: error.message })
   }
