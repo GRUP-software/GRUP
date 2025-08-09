@@ -2,70 +2,133 @@ import Order from "../models/order.js"
 import Cart from "../models/cart.js"
 import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
-import { nanoid } from "nanoid"
-import { processGroupBuys } from "./checkoutController.js" // Re-use group buy processing logic
+import GroupBuy from "../models/GroupBuy.js"
+import { generateTrackingNumber } from "../utils/trackingGenerator.js"
+import crypto from "crypto"
+
+// Helper function to process group buys after successful payment
+// Moved here from checkoutController.js to be accessible by paymentController
+const processGroupBuys = async (paymentHistoryOrOrder) => {
+  const groupBuys = []
+  const userId = paymentHistoryOrOrder.userId || paymentHistoryOrOrder.user // Handle both PaymentHistory and Order objects
+  const cartItems = paymentHistoryOrOrder.cartItems || paymentHistoryOrOrder.items
+
+  for (const item of cartItems) {
+    // Check if there's an active group buy for this product
+    let groupBuy = await GroupBuy.findOne({
+      productId: item.product, // Use item.product for Order, item.productId for PaymentHistory
+      status: { $in: ["forming", "secured"] },
+      expiresAt: { $gt: new Date() },
+    })
+
+    if (!groupBuy) {
+      // Create new group buy
+      groupBuy = new GroupBuy({
+        productId: item.product,
+        participants: [userId],
+        unitsSold: item.quantity,
+        paymentHistories: [paymentHistoryOrOrder._id], // Link to the order/payment history
+      })
+    } else {
+      // Join existing group buy
+      groupBuy.addParticipant(userId, item.quantity)
+      groupBuy.paymentHistories.push(paymentHistoryOrOrder._id)
+    }
+
+    await groupBuy.save()
+    groupBuys.push(groupBuy)
+
+    // Emit WebSocket event for real-time updates
+    const io = global.io
+    if (io) {
+      io.emit("groupBuyUpdate", {
+        productId: item.product,
+        groupBuyId: groupBuy._id,
+        unitsSold: groupBuy.unitsSold,
+        status: groupBuy.status,
+        participants: groupBuy.participants.length,
+        minimumViableUnits: groupBuy.minimumViableUnits,
+        progressPercentage: Math.round((groupBuy.unitsSold / groupBuy.minimumViableUnits) * 100),
+      })
+    }
+  }
+
+  // If it's an Order object, update its groupBuysCreated field
+  if (paymentHistoryOrOrder.groupBuysCreated) {
+    paymentHistoryOrOrder.groupBuysCreated = groupBuys.map((gb) => gb._id)
+    await paymentHistoryOrOrder.save()
+  }
+
+  return groupBuys
+}
 
 export const initializePayment = async (req, res) => {
   try {
-    const { deliveryAddress, phone, useWallet, walletAmount, cartId } = req.body
+    // Removed walletAmount from req.body. Backend will determine usable wallet amount.
+    const { deliveryAddress, phone, useWallet, cartId } = req.body
     const userId = req.user.id
 
-    // Validate delivery address
     if (!deliveryAddress || !deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.state || !phone) {
-      return res.status(400).json({ message: "Delivery address (street, city, state) and phone are required." })
+      return res.status(400).json({ message: "Delivery address (street, city, state) and phone number are required" })
     }
 
-    // Fetch cart
     const cart = await Cart.findById(cartId).populate("items.product")
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ message: "Cart is empty or not found." })
+    if (!cart || cart.user.toString() !== userId) {
+      return res.status(404).json({ message: "Cart not found or does not belong to user" })
+    }
+
+    if (cart.items.length === 0) {
+      return res.status(400).json({ message: "Cannot checkout with an empty cart" })
     }
 
     let subtotal = 0
-    const orderItems = []
+    const processedItems = []
 
     for (const item of cart.items) {
       const product = item.product
+      const quantity = item.quantity
+
       if (!product) {
-        return res.status(400).json({ message: `Product not found for item in cart.` })
+        return res.status(400).json({ message: "Invalid product in cart" })
       }
-      if (product.stock < item.quantity) {
-        return res.status(400).json({ message: `Insufficient stock for ${product.title}.` })
+
+      if (product.stock < quantity) {
+        return res.status(400).json({ message: `Insufficient stock for ${product.title}` })
       }
-      subtotal += product.price * item.quantity
-      orderItems.push({
+
+      // Determine the item price, prioritizing basePrice if valid, otherwise falling back to product.price
+      const itemPrice = product.basePrice != null && product.basePrice > 0 ? product.basePrice : product.price
+      const itemTotal = itemPrice * quantity // Use the determined itemPrice
+
+      subtotal += itemTotal
+
+      processedItems.push({
         product: product._id,
-        quantity: item.quantity,
-        price: product.price,
-        variant: item.variant, // Include variant if applicable
+        quantity: quantity,
+        variant: item.variant || null,
+        price: itemPrice, // Use the determined itemPrice
+        // groupbuyId and groupStatus will be determined after payment if applicable
       })
     }
 
-    // Calculate delivery fee (placeholder for now, as coordinate logic is removed)
+    // Placeholder for delivery fee calculation.
     // In a real scenario, this would depend on the delivery address and possibly region.
     const deliveryFee = 1000 // Example fixed delivery fee
+    const totalAmount = subtotal + deliveryFee
 
-    let totalAmount = subtotal + deliveryFee
-    let amountToPay = totalAmount
+    const wallet = await Wallet.findOne({ user: userId })
     let walletUsed = 0
+    let amountToPay = totalAmount
 
-    if (useWallet) {
-      const wallet = await Wallet.findOne({ user: userId })
-      if (!wallet) {
-        return res.status(400).json({ message: "Wallet not found." })
-      }
-      // Use either the requested walletAmount or the full balance, up to the total amount
-      walletUsed = Math.min(wallet.balance, walletAmount || wallet.balance, totalAmount)
+    if (useWallet && wallet && wallet.balance > 0) {
+      // CRITICAL SECURITY FIX: Calculate walletUsed based ONLY on backend wallet balance and totalAmount
+      walletUsed = Math.min(wallet.balance, totalAmount)
       amountToPay = totalAmount - walletUsed
     }
 
-    // Generate unique reference for the order
-    const reference = `ORD_${nanoid(10)}_${Date.now()}`
-
-    // Create the order with pending payment status
     const order = new Order({
       user: userId,
-      items: orderItems,
+      items: processedItems,
       subtotal,
       deliveryFee,
       totalAmount,
@@ -77,10 +140,17 @@ export const initializePayment = async (req, res) => {
         state: deliveryAddress.state,
         phone: phone,
       },
-      currentStatus: amountToPay > 0 ? "payment_pending" : "groups_forming", // Set status based on payment need
-      paymentStatus: amountToPay > 0 ? "pending" : "paid", // Set payment status
-      paymentMethod: amountToPay > 0 ? "card" : "wallet", // Default to card if payment needed, else wallet
-      trackingNumber: `TRK_${nanoid(8)}`, // Generate a simple tracking number
+      currentStatus: amountToPay > 0 ? "payment_pending" : "groups_forming",
+      progress: [
+        {
+          status: amountToPay > 0 ? "payment_pending" : "groups_forming",
+          message: amountToPay > 0 ? "Order created. Awaiting payment." : "Order created. Groups are forming.",
+          timestamp: new Date(),
+        },
+      ],
+      paymentStatus: amountToPay > 0 ? "pending" : "paid", // If amountToPay is 0, it's considered paid by wallet
+      paymentMethod: amountToPay > 0 ? "card" : "wallet",
+      trackingNumber: generateTrackingNumber(),
     })
 
     await order.save()
@@ -88,39 +158,30 @@ export const initializePayment = async (req, res) => {
     // If amountToPay is 0 (fully paid by wallet), process immediately
     if (amountToPay === 0) {
       // Deduct from wallet
-      const wallet = await Wallet.findOne({ user: userId })
-      wallet.balance -= walletUsed
-      await wallet.save()
+      if (wallet) {
+        // Ensure wallet exists before deducting
+        wallet.balance -= walletUsed
+        await wallet.save()
 
-      // Log wallet transaction
-      const transaction = new Transaction({
-        user: userId,
-        type: "debit",
-        amount: walletUsed,
-        description: `Payment for Order ${order._id} using wallet`,
-        balanceAfter: wallet.balance,
-        order: order._id,
-      })
-      await transaction.save()
+        await Transaction.create({
+          wallet: wallet._id,
+          type: "debit",
+          amount: walletUsed,
+          reason: "ORDER_PAYMENT",
+          description: `Wallet used for order ${order.trackingNumber} payment`,
+          user: userId, // Link transaction to user
+        })
+      }
 
       // Process group buys and clear cart
-      await processGroupBuys({ userId, cartItems: order.items, _id: order._id }) // Pass necessary data for group buy processing
-      await Cart.findByIdAndDelete(cartId) // Clear the cart
+      await processGroupBuys(order) // Pass the order object
+      await Cart.findByIdAndDelete(cartId)
 
-      // Update order status to reflect group forming
-      order.currentStatus = "groups_forming"
-      order.progress.push({
-        status: "groups_forming",
-        message: "Order placed and groups are now forming.",
-        timestamp: new Date(),
-      })
-      await order.save()
-
-      return res.json({
+      return res.status(200).json({
         success: true,
         message: "Order placed successfully using wallet!",
         orderId: order._id,
-        reference: reference,
+        reference: order.paymentReference, // This might be null if no Paystack
         amount: amountToPay,
         walletUsed: walletUsed,
         totalAmount: totalAmount,
@@ -129,21 +190,14 @@ export const initializePayment = async (req, res) => {
 
     // Initialize Paystack payment for remaining amount
     const paystackData = {
-      email: req.user.email || "customer@grup.com", // Use user's email or a default
-      amount: Math.round(amountToPay * 100), // Convert to kobo
-      reference: reference,
-      callback_url: `${process.env.FRONTEND_URL}/payment/callback`, // Frontend callback URL
+      email: req.user.email || "customer@grup.com",
+      amount: Math.round(order.amountToPay * 100),
+      reference: `grup_${order._id}_${Date.now()}`,
+      callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
         orderId: order._id.toString(),
         userId: userId.toString(),
-        walletUsed: walletUsed,
-        custom_fields: [
-          {
-            display_name: "Order ID",
-            variable_name: "order_id",
-            value: order._id.toString(),
-          },
-        ],
+        walletUsed: order.walletUsed,
       },
     }
 
@@ -159,44 +213,95 @@ export const initializePayment = async (req, res) => {
     const data = await response.json()
 
     if (data.status) {
-      // Update order with Paystack authorization URL and reference
-      order.paystackAuthorizationUrl = data.data.authorization_url
-      order.paystackReference = data.data.reference
+      order.paymentReference = data.data.reference
+      order.paystackAuthorizationUrl = data.data.authorization_url // Store auth URL
       await order.save()
-
-      // Clear the cart after successful payment initialization
       await Cart.findByIdAndDelete(cartId)
 
-      res.json({
+      res.status(200).json({
         success: true,
         paymentUrl: data.data.authorization_url,
-        reference: reference,
+        reference: data.data.reference,
         orderId: order._id,
-        amount: amountToPay,
-        walletUsed: walletUsed,
-        totalAmount: totalAmount,
-        message: "Payment initialized successfully. Redirecting to Paystack...",
+        message: "Payment initialized successfully. Cart has been cleared.",
       })
     } else {
-      // If Paystack initialization fails, delete the created order
-      await Order.findByIdAndDelete(order._id)
+      await Order.findByIdAndDelete(order._id) // Clean up order if Paystack init fails
       res.status(400).json({
         success: false,
-        message: "Failed to initialize payment with Paystack",
+        message: "Failed to initialize payment",
         error: data.message,
       })
     }
   } catch (error) {
     console.error("Payment initialization error:", error)
-    res.status(500).json({ message: "Payment initialization failed", error: error.message })
+    res.status(500).json({ message: "Error initializing payment", error: error.message })
   }
 }
 
 export const handlePaystackWebhook = async (req, res) => {
-  // This function would handle the Paystack webhook events
-  // It would verify the signature, then process the payment status
-  // and update the order accordingly.
-  // This logic is typically in webhookController.js or paymentController.js
-  // but for brevity, it's not fully implemented here.
-  res.status(200).json({ message: "Webhook received (handler not fully implemented here)" })
+  try {
+    const event = req.body
+
+    console.log("--- Paystack Webhook Debug ---")
+    console.log("Raw Body String for Hashing:", JSON.stringify(req.body))
+    console.log("Received Signature:", req.headers["x-paystack-signature"])
+    console.log(
+      "Expected Secret Key (first 5 chars):",
+      process.env.PAYSTACK_SECRET_KEY ? process.env.PAYSTACK_SECRET_KEY.substring(0, 5) + "..." : "NOT SET",
+    )
+    console.log("--- End Debug ---")
+
+    const hash = crypto
+      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
+      .update(JSON.stringify(req.body))
+      .digest("hex")
+
+    if (hash !== req.headers["x-paystack-signature"]) {
+      return res.status(400).json({ message: "Invalid signature" })
+    }
+
+    if (event.event === "charge.success") {
+      const { reference, metadata } = event.data
+      const orderId = metadata.orderId
+
+      const order = await Order.findById(orderId)
+      if (order && order.paymentStatus !== "paid") {
+        order.paymentStatus = "paid"
+        order.paymentReference = reference
+        order.currentStatus = "processing" // Or 'groups_forming' if group buy is primary
+        order.progress.push({
+          status: "payment_confirmed",
+          message: "Payment confirmed via webhook",
+          timestamp: new Date(),
+        })
+        await order.save()
+
+        const wallet = await Wallet.findOne({ user: order.user })
+        if (wallet && order.walletUsed > 0) {
+          wallet.balance -= order.walletUsed
+          await wallet.save()
+
+          await Transaction.create({
+            wallet: wallet._id,
+            type: "debit",
+            amount: order.walletUsed,
+            reason: "ORDER_PAYMENT",
+            description: `Wallet used for order ${order.trackingNumber} payment`,
+            user: order.user, // Link transaction to user
+          })
+        }
+
+        // Process group buys after successful payment
+        await processGroupBuys(order)
+
+        console.log(`Payment confirmed for order ${orderId} via webhook`)
+      }
+    }
+
+    res.status(200).json({ message: "Webhook processed" })
+  } catch (error) {
+    console.error("Webhook error:", error)
+    res.status(500).json({ message: "Webhook processing failed" })
+  }
 }

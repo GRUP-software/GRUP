@@ -52,7 +52,6 @@ export const checkout = async (req, res) => {
       }
 
       // Crucial security check: walletUsed cannot exceed wallet balance or total price
-      // This prevents a user from spending more than they have, even if frontend sends a higher value
       walletUsed = Math.min(wallet.balance, walletUse, totalPrice)
       paystackAmount = totalPrice - walletUsed
 
@@ -146,6 +145,9 @@ const processWalletOnlyPayment = async (paymentHistory, res) => {
   try {
     // Deduct from wallet
     const wallet = await Wallet.findOne({ user: paymentHistory.userId })
+    if (!wallet) {
+      return res.status(400).json({ message: "Wallet not found for user." })
+    }
     // Additional security check: ensure wallet balance is sufficient for the amount recorded as used
     if (wallet.balance < paymentHistory.walletUsed) {
       return res.status(400).json({ message: "Insufficient wallet balance" })
