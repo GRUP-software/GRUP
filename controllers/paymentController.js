@@ -90,41 +90,44 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
   }
 }
 
-// Helper function to process group buys after successful payment
+// Enhanced helper function to process group buys after successful payment
 const processGroupBuys = async (paymentHistory) => {
   const groupBuys = []
   console.log(`Processing GroupBuys for PaymentHistory: ${paymentHistory._id}`)
 
   for (const item of paymentHistory.cartItems) {
-    console.log(`Processing item: Product ${item.productId}, Quantity: ${item.quantity}`)
+    console.log(
+      `Processing item: Product ${item.productId}, Quantity: ${item.quantity}, Amount: ${item.price * item.quantity}`,
+    )
 
-    // Check if there's an active group buy for this product
+    // Find existing active or successful group buy for this product (not expired)
     let groupBuy = await GroupBuy.findOne({
       productId: item.productId,
-      status: { $in: ["active", "successful"] },
-      expiresAt: { $gt: new Date() },
+      status: { $in: ["active", "successful"] }, // Can join both active and successful
+      expiresAt: { $gt: new Date() }, // Not expired
     })
 
+    const itemAmount = item.price * item.quantity
+
     if (!groupBuy) {
-      // Create new group buy
+      // Create new group buy with default MVU (admin can change this)
       console.log(`Creating new GroupBuy for product: ${item.productId}`)
-      groupBuy = new GroupBuy({
-        productId: item.productId,
-        participants: [paymentHistory.userId],
-        unitsSold: item.quantity,
-        paymentHistories: [paymentHistory._id],
-      })
+      groupBuy = GroupBuy.createWithMVU(item.productId, 20) // Default MVU, admin can modify
+
+      // Add first participant
+      groupBuy.addOrUpdateParticipant(paymentHistory.userId, item.quantity, itemAmount, paymentHistory._id)
     } else {
-      // Join existing group buy
+      // Join existing group buy (handles same user multiple purchases)
       console.log(`Joining existing GroupBuy: ${groupBuy._id}`)
-      groupBuy.addParticipant(paymentHistory.userId, item.quantity)
-      groupBuy.paymentHistories.push(paymentHistory._id)
+      groupBuy.addOrUpdateParticipant(paymentHistory.userId, item.quantity, itemAmount, paymentHistory._id)
     }
 
     await groupBuy.save()
     groupBuys.push(groupBuy)
 
-    console.log(`✅ GroupBuy processed: ${groupBuy._id}, Status: ${groupBuy.status}, Units: ${groupBuy.unitsSold}`)
+    console.log(
+      `✅ GroupBuy processed: ${groupBuy._id}, Status: ${groupBuy.status}, Units: ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits}`,
+    )
 
     // Emit WebSocket event for real-time updates
     const io = global.io
@@ -136,12 +139,13 @@ const processGroupBuys = async (paymentHistory) => {
         status: groupBuy.status,
         participants: groupBuy.participants.length,
         minimumViableUnits: groupBuy.minimumViableUnits,
-        progressPercentage: Math.round((groupBuy.unitsSold / groupBuy.minimumViableUnits) * 100),
+        progressPercentage: groupBuy.getProgressPercentage(),
+        totalAmountCollected: groupBuy.totalAmountCollected,
       })
     }
   }
 
-  // Update payment history with created group buys
+  // Update payment history with created/joined group buys
   paymentHistory.groupBuysCreated = groupBuys.map((gb) => gb._id)
   await paymentHistory.save()
 
@@ -154,7 +158,7 @@ const processWalletOnlyPayment = async (paymentHistory, res) => {
   try {
     console.log(`Processing wallet-only payment for PaymentHistory: ${paymentHistory._id}`)
 
-    // Deduct from wallet - FIXED: Use correct field name
+    // Deduct from wallet
     const wallet = await Wallet.findOne({ user: paymentHistory.userId })
     if (!wallet) {
       return res.status(400).json({ message: "Wallet not found for user." })
@@ -223,7 +227,6 @@ export const initializePayment = async (req, res) => {
       return res.status(400).json({ message: "Delivery address (street, city, state) and phone number are required" })
     }
 
-    // FIXED: Use correct field name for population
     const cart = await Cart.findById(cartId).populate("items.product")
     if (!cart || cart.user.toString() !== userId) {
       return res.status(404).json({ message: "Cart not found or does not belong to user" })
@@ -239,7 +242,6 @@ export const initializePayment = async (req, res) => {
     const cartItems = []
 
     for (const item of cart.items) {
-      // FIXED: Use correct field name
       const product = item.product
       const quantity = item.quantity
 
@@ -271,7 +273,6 @@ export const initializePayment = async (req, res) => {
     let paystackAmount = totalPrice
 
     if (useWallet) {
-      // FIXED: Use correct field name
       const wallet = await Wallet.findOne({ user: userId })
       if (wallet && wallet.balance > 0) {
         walletUsed = Math.min(wallet.balance, totalPrice)
@@ -280,7 +281,7 @@ export const initializePayment = async (req, res) => {
       }
     }
 
-    // Generate unique reference (same format as checkout)
+    // Generate unique reference
     const referenceId = `GRP_${nanoid(10)}_${Date.now()}`
     console.log(`🔗 Generated reference: ${referenceId}`)
 
@@ -313,10 +314,10 @@ export const initializePayment = async (req, res) => {
       return await processWalletOnlyPayment(paymentHistory, res)
     }
 
-    // Initialize Paystack payment - FIXED: Multiply by 100 for kobo
+    // Initialize Paystack payment
     const paystackData = {
       email: req.user.email || "customer@grup.com",
-      amount: Math.round(paystackAmount * 100), // ✅ FIXED: Convert to kobo
+      amount: Math.round(paystackAmount * 100), // Convert to kobo
       reference: referenceId,
       callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
@@ -427,7 +428,6 @@ export const handlePaystackWebhook = async (req, res) => {
       // Handle wallet deduction if applicable
       if (paymentHistory.walletUsed > 0) {
         console.log(`💳 Deducting ${paymentHistory.walletUsed} from wallet`)
-        // FIXED: Use correct field name
         const wallet = await Wallet.findOne({ user: paymentHistory.userId })
         if (wallet) {
           wallet.balance -= paymentHistory.walletUsed

@@ -34,6 +34,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 
 // Import NEW routes
+
 import webhookRoutes from './routes/webhookRoutes.js';
 import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
@@ -147,8 +148,7 @@ app.get('/admin-upload.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-upload.html'));
 });
 
-// ⚠️ CRITICAL: AdminJS setup MUST come BEFORE body parser
-// Admin panel - NO RATE LIMITING
+// AdminJS setup MUST come BEFORE body parser
 app.use('/admin', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
@@ -267,7 +267,6 @@ app.get('/api/status', (req, res) => {
       api: '/api/*',
       health: '/health',
       newEndpoints: {
-       
         webhook: '/api/webhook',
         groupBuy: '/api/groupbuy'
       }
@@ -301,7 +300,6 @@ app.get('/api/*', (req, res) => {
       uploadTool: '/admin-upload.html',
       api: '/api/status',
       health: '/health',
-
       webhook: '/api/webhook',
       groupBuy: '/api/groupbuy'
     }
@@ -355,17 +353,15 @@ const startServer = async () => {
       }
     });
 
-    // Update group progress every minute - FIXED to use GroupBuy model
+    // Update group progress every minute
     cron.schedule('* * * * *', async () => {
       try {
         const GroupBuy = (await import('./models/GroupBuy.js')).default;
         const activeGroups = await GroupBuy.find({ status: 'active' });
         
         for (const group of activeGroups) {
-          const wasActive = group.status === 'active';
-          
           // Check if group reached MVU and should be marked successful
-          if (group.unitsSold >= 20 && group.status === 'active') {
+          if (group.unitsSold >= group.minimumViableUnits && group.status === 'active') {
             group.status = 'successful';
             await group.save();
             
