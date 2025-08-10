@@ -14,17 +14,12 @@ import {
 
 const router = express.Router()
 
+// Specific routes MUST come before dynamic routes
 // Get all active group buys
 router.get("/active", getActiveGroupBuys)
 
-// Get all group buys with filtering
+// Get all group buys with filtering (admin)
 router.get("/all", getAllGroupBuys)
-
-// Get group buy for specific product
-router.get("/product/:productId", getGroupBuyByProduct)
-
-// Get single group buy by ID
-router.get("/:id", getGroupBuyById)
 
 // Get user's group buy participations
 router.get("/my-groups", verifyToken, getUserGroupBuys)
@@ -32,8 +27,56 @@ router.get("/my-groups", verifyToken, getUserGroupBuys)
 // Get group buy statistics
 router.get("/stats", getGroupBuyStats)
 
-// Admin routes
+// Get group buys needing manual review (admin)
 router.get("/manual-review", verifyToken, getManualReviewGroupBuys)
+
+// Get group buy for specific product
+router.get("/product/:productId", getGroupBuyByProduct)
+
+// Debug endpoint to check database state
+router.get("/debug", async (req, res) => {
+  try {
+    const GroupBuy = (await import("../models/GroupBuy.js")).default
+    const PaymentHistory = (await import("../models/PaymentHistory.js")).default
+    const Order = (await import("../models/order.js")).default
+
+    const groupBuysCount = await GroupBuy.countDocuments()
+    const paymentHistoriesCount = await PaymentHistory.countDocuments()
+    const ordersCount = await Order.countDocuments()
+
+    const recentGroupBuys = await GroupBuy.find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("productId", "title price")
+
+    const recentPaymentHistories = await PaymentHistory.find({}).sort({ createdAt: -1 }).limit(5)
+
+    const recentOrders = await Order.find({}).sort({ createdAt: -1 }).limit(5)
+
+    res.json({
+      success: true,
+      debug: {
+        groupBuysCount,
+        paymentHistoriesCount,
+        ordersCount,
+        recentGroupBuys,
+        recentPaymentHistories,
+        recentOrders,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Debug query failed",
+      error: error.message,
+    })
+  }
+})
+
+// Get single group buy by ID (MUST be after specific routes)
+router.get("/:id", getGroupBuyById)
+
+// Admin routes
 router.post("/:id/review", verifyToken, reviewGroupBuy)
 router.patch("/:id/mvu", verifyToken, updateGroupBuyMVU)
 

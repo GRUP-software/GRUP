@@ -34,9 +34,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 
 // Import NEW routes
-
 import webhookRoutes from './routes/webhookRoutes.js';
-import groupBuyRoutes from './routes/groupBuyRoutes.js';
+// REMOVED DUPLICATE: import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
 // Import controllers
 import { userDisconnected, getLiveUserCountUtil } from './controllers/liveUserController.js';
@@ -245,14 +244,14 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/group', groupRoutes);
+app.use('/api/group', groupRoutes); // Keep only one registration
 app.use('/api/cart', cartRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);
-app.use('/api/groupbuy', groupBuyRoutes);
+// REMOVED DUPLICATE: app.use('/api/groupbuy', groupBuyRoutes);
 
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {

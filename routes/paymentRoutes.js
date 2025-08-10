@@ -1,6 +1,11 @@
 import express from "express"
-import { verifyToken } from "../middleware/authMiddleware.js" // Assuming verifyToken is protect
-import { initializePayment, handlePaystackWebhook } from "../controllers/paymentController.js"
+import { verifyToken } from "../middleware/authMiddleware.js"
+import {
+  initializePayment,
+  handlePaystackWebhook,
+  verifyPayment,
+  getUserPaymentHistory,
+} from "../controllers/paymentController.js"
 
 const router = express.Router()
 
@@ -9,5 +14,11 @@ router.post("/initialize", verifyToken, initializePayment)
 
 // Webhook route for Paystack (does NOT require authentication, Paystack calls this)
 router.post("/webhook/paystack", handlePaystackWebhook)
+
+// Route to verify payment
+router.get("/verify/:reference", verifyToken, verifyPayment)
+
+// Route to get user's payment history
+router.get("/history", verifyToken, getUserPaymentHistory)
 
 export default router

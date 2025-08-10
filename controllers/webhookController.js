@@ -1,10 +1,93 @@
 import crypto from "crypto"
 import PaymentHistory from "../models/PaymentHistory.js"
 import Wallet from "../models/Wallet.js"
-import Cart from "../models/cart.js"
 import Transaction from "../models/Transaction.js"
-import { processGroupBuys } from "./checkoutController.js"
+import Order from "../models/order.js"
+import { generateTrackingNumber } from "../utils/trackingGenerator.js"
 import logger from "../utils/logger.js"
+import { processGroupBuys } from "./paymentController.js"
+
+// Helper function to create order after successful payment
+const createOrderFromPayment = async (paymentHistory) => {
+  try {
+    console.log(`Creating order for PaymentHistory: ${paymentHistory._id}`)
+
+    const trackingNumber = generateTrackingNumber()
+
+    // Convert PaymentHistory cartItems to Order items format
+    const orderItems = paymentHistory.cartItems.map((item) => ({
+      product: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+      groupbuyId: null, // Will be populated when GroupBuys are linked
+      groupStatus: "forming",
+    }))
+
+    const order = new Order({
+      trackingNumber,
+      paymentHistoryId: paymentHistory._id,
+      user: paymentHistory.userId,
+      items: orderItems,
+      currentStatus: "groups_forming",
+      deliveryAddress: paymentHistory.metadata?.deliveryAddress || {},
+      totalAmount: paymentHistory.amount,
+      walletUsed: paymentHistory.walletUsed,
+      paystackAmount: paymentHistory.paystackAmount,
+      progress: [
+        {
+          status: "groups_forming",
+          message: "Order created successfully. Groups are forming for your items.",
+          timestamp: new Date(),
+        },
+      ],
+    })
+
+    await order.save()
+
+    // Update PaymentHistory with order reference
+    paymentHistory.orderId = order._id
+    await paymentHistory.save()
+
+    console.log(`✅ Order created: ${trackingNumber} for PaymentHistory: ${paymentHistory._id}`)
+    return order
+  } catch (error) {
+    console.error("❌ Error creating order from payment:", error)
+    throw error
+  }
+}
+
+// Helper function to link order items to group buys
+const linkOrderToGroupBuys = async (order, groupBuys) => {
+  try {
+    console.log(`Linking order ${order.trackingNumber} to ${groupBuys.length} GroupBuys`)
+
+    // Create a map of productId to groupBuy for quick lookup
+    const productGroupBuyMap = {}
+    groupBuys.forEach((gb) => {
+      productGroupBuyMap[gb.productId.toString()] = gb
+    })
+
+    // Update order items with groupBuy references
+    let orderUpdated = false
+    order.items.forEach((item) => {
+      const productId = item.product.toString()
+      if (productGroupBuyMap[productId]) {
+        item.groupbuyId = productGroupBuyMap[productId]._id
+        item.groupStatus = productGroupBuyMap[productId].status === "successful" ? "secured" : "forming"
+        orderUpdated = true
+      }
+    })
+
+    if (orderUpdated) {
+      order.checkAllGroupsSecured()
+      order.calculatePriorityScore()
+      await order.save()
+      console.log(`✅ Order ${order.trackingNumber} linked to GroupBuys`)
+    }
+  } catch (error) {
+    console.error("❌ Error linking order to group buys:", error)
+  }
+}
 
 // Paystack webhook handler
 export const handlePaystackWebhook = async (req, res) => {
@@ -87,8 +170,11 @@ const handleSuccessfulCharge = async (data) => {
     // Process group buys
     const groupBuys = await processGroupBuys(paymentHistory)
 
-    // Clear user's cart
-    await Cart.findOneAndUpdate({ user: paymentHistory.userId }, { items: [] })
+    // Create Order AFTER payment confirmation and GroupBuy processing
+    const order = await createOrderFromPayment(paymentHistory)
+
+    // Link order to group buys
+    await linkOrderToGroupBuys(order, groupBuys)
 
     logger.info(`Payment ${reference} processed successfully. Group buys created: ${groupBuys.length}`)
 

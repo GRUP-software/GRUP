@@ -7,6 +7,7 @@ import Order from "../models/order.js"
 import { generateTrackingNumber } from "../utils/trackingGenerator.js"
 import crypto from "crypto"
 import { nanoid } from "nanoid"
+import mongoose from "mongoose"
 
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
@@ -90,67 +91,191 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
   }
 }
 
-// Enhanced helper function to process group buys after successful payment
-const processGroupBuys = async (paymentHistory) => {
+// Enhanced helper function to process group buys after successful payment with race condition protection
+export const processGroupBuys = async (paymentHistory) => {
   const groupBuys = []
-  console.log(`Processing GroupBuys for PaymentHistory: ${paymentHistory._id}`)
+  console.log(`🔄 Processing GroupBuys for PaymentHistory: ${paymentHistory._id}`)
 
-  for (const item of paymentHistory.cartItems) {
-    console.log(
-      `Processing item: Product ${item.productId}, Quantity: ${item.quantity}, Amount: ${item.price * item.quantity}`,
-    )
+  try {
+    for (const item of paymentHistory.cartItems) {
+      console.log(
+        `Processing item: Product ${item.productId}, Quantity: ${item.quantity}, Amount: ${item.price * item.quantity}`,
+      )
 
-    // Find existing active or successful group buy for this product (not expired)
-    let groupBuy = await GroupBuy.findOne({
-      productId: item.productId,
-      status: { $in: ["active", "successful"] }, // Can join both active and successful
-      expiresAt: { $gt: new Date() }, // Not expired
+      const itemAmount = item.price * item.quantity
+
+      // Ensure proper ObjectId conversion
+      const userId = new mongoose.Types.ObjectId(paymentHistory.userId)
+      const paymentHistoryId = new mongoose.Types.ObjectId(paymentHistory._id)
+      const productId = new mongoose.Types.ObjectId(item.productId)
+
+      console.log(`🔍 Processing for User: ${userId}, Product: ${productId}, Amount: ${itemAmount}`)
+
+      let groupBuy = null
+      let isNewGroupBuy = false
+
+      // Try to find existing active GroupBuy for this product
+      try {
+        groupBuy = await GroupBuy.findOne({
+          productId: productId,
+          status: { $in: ["active", "successful"] },
+          expiresAt: { $gt: new Date() },
+        })
+
+        if (groupBuy) {
+          console.log(`✅ Found existing GroupBuy: ${groupBuy._id}`)
+
+          // Update existing GroupBuy using the model method
+          groupBuy.addOrUpdateParticipant(userId, item.quantity, itemAmount, paymentHistoryId)
+          await groupBuy.save()
+          console.log(`✅ Updated existing GroupBuy: ${groupBuy._id}`)
+        }
+      } catch (error) {
+        console.error(`❌ Error finding/updating existing GroupBuy:`, error)
+        groupBuy = null
+      }
+
+      // If no existing GroupBuy found, create new one
+      if (!groupBuy) {
+        try {
+          console.log(`🆕 Creating new GroupBuy for product: ${productId}`)
+
+          // Validate participant data before creating GroupBuy
+          const participantData = {
+            userId: userId,
+            quantity: Number(item.quantity),
+            amount: Number(itemAmount),
+            paymentHistories: [paymentHistoryId],
+            joinedAt: new Date(),
+          }
+
+          // Validate required fields
+          if (!participantData.userId) {
+            throw new Error("Participant userId is required")
+          }
+          if (!participantData.quantity || participantData.quantity <= 0) {
+            throw new Error("Participant quantity must be a positive number")
+          }
+          if (!participantData.amount || participantData.amount <= 0) {
+            throw new Error("Participant amount must be a positive number")
+          }
+
+          console.log(`🔍 Creating participant with validated data:`, {
+            userId: participantData.userId.toString(),
+            quantity: participantData.quantity,
+            amount: participantData.amount,
+            paymentHistoriesCount: participantData.paymentHistories.length,
+          })
+
+          const groupBuyData = {
+            productId: productId,
+            minimumViableUnits: 20,
+            unitsSold: Number(item.quantity),
+            totalAmountCollected: Number(itemAmount),
+            status: "active",
+            expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+            participants: [participantData],
+            paymentHistories: [paymentHistoryId],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+
+          console.log(`🔍 Creating GroupBuy with validated data:`, {
+            productId: groupBuyData.productId.toString(),
+            unitsSold: groupBuyData.unitsSold,
+            totalAmountCollected: groupBuyData.totalAmountCollected,
+            participantsCount: groupBuyData.participants.length,
+            firstParticipant: {
+              userId: groupBuyData.participants[0].userId.toString(),
+              quantity: groupBuyData.participants[0].quantity,
+              amount: groupBuyData.participants[0].amount,
+            },
+          })
+
+          groupBuy = new GroupBuy(groupBuyData)
+
+          // Validate before saving
+          const validationError = groupBuy.validateSync()
+          if (validationError) {
+            console.error(`❌ GroupBuy validation failed:`, validationError.errors)
+            throw validationError
+          }
+
+          await groupBuy.save()
+          isNewGroupBuy = true
+          console.log(`✅ Created new GroupBuy: ${groupBuy._id}`)
+        } catch (error) {
+          console.error(`❌ Error creating new GroupBuy:`, {
+            message: error.message,
+            errors: error.errors,
+            stack: error.stack,
+          })
+
+          // Handle potential duplicate key error (race condition)
+          if (error.code === 11000) {
+            console.log(`🔄 Duplicate GroupBuy creation detected, retrying find...`)
+
+            groupBuy = await GroupBuy.findOne({
+              productId: productId,
+              status: { $in: ["active", "successful"] },
+              expiresAt: { $gt: new Date() },
+            })
+
+            if (groupBuy) {
+              console.log(`✅ Found GroupBuy created by concurrent request: ${groupBuy._id}`)
+              groupBuy.addOrUpdateParticipant(userId, item.quantity, itemAmount, paymentHistoryId)
+              await groupBuy.save()
+            } else {
+              throw new Error(`Failed to create or find GroupBuy for product ${productId}`)
+            }
+          } else {
+            throw error
+          }
+        }
+      }
+
+      if (groupBuy) {
+        groupBuys.push(groupBuy)
+
+        console.log(
+          `✅ GroupBuy processed: ${groupBuy._id}, Status: ${groupBuy.status}, Units: ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits}`,
+        )
+
+        // Emit WebSocket event for real-time updates
+        const io = global.io
+        if (io) {
+          io.emit("groupBuyUpdate", {
+            productId: item.productId,
+            groupBuyId: groupBuy._id,
+            unitsSold: groupBuy.unitsSold,
+            status: groupBuy.status,
+            participants: groupBuy.participants.length,
+            minimumViableUnits: groupBuy.minimumViableUnits,
+            progressPercentage: groupBuy.getProgressPercentage(),
+            totalAmountCollected: groupBuy.totalAmountCollected,
+            isNewGroupBuy: isNewGroupBuy,
+          })
+        }
+      }
+    }
+
+    // Update payment history with created/joined group buys
+    if (groupBuys.length > 0) {
+      paymentHistory.groupBuysCreated = groupBuys.map((gb) => gb._id)
+      await paymentHistory.save()
+      console.log(`✅ Updated PaymentHistory with ${groupBuys.length} GroupBuy references`)
+    }
+
+    console.log(`✅ Processed ${groupBuys.length} GroupBuys for PaymentHistory: ${paymentHistory._id}`)
+    return groupBuys
+  } catch (error) {
+    console.error(`❌ Error in processGroupBuys:`, {
+      message: error.message,
+      stack: error.stack,
+      paymentHistoryId: paymentHistory._id,
     })
-
-    const itemAmount = item.price * item.quantity
-
-    if (!groupBuy) {
-      // Create new group buy with default MVU (admin can change this)
-      console.log(`Creating new GroupBuy for product: ${item.productId}`)
-      groupBuy = GroupBuy.createWithMVU(item.productId, 20) // Default MVU, admin can modify
-
-      // Add first participant
-      groupBuy.addOrUpdateParticipant(paymentHistory.userId, item.quantity, itemAmount, paymentHistory._id)
-    } else {
-      // Join existing group buy (handles same user multiple purchases)
-      console.log(`Joining existing GroupBuy: ${groupBuy._id}`)
-      groupBuy.addOrUpdateParticipant(paymentHistory.userId, item.quantity, itemAmount, paymentHistory._id)
-    }
-
-    await groupBuy.save()
-    groupBuys.push(groupBuy)
-
-    console.log(
-      `✅ GroupBuy processed: ${groupBuy._id}, Status: ${groupBuy.status}, Units: ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits}`,
-    )
-
-    // Emit WebSocket event for real-time updates
-    const io = global.io
-    if (io) {
-      io.emit("groupBuyUpdate", {
-        productId: item.productId,
-        groupBuyId: groupBuy._id,
-        unitsSold: groupBuy.unitsSold,
-        status: groupBuy.status,
-        participants: groupBuy.participants.length,
-        minimumViableUnits: groupBuy.minimumViableUnits,
-        progressPercentage: groupBuy.getProgressPercentage(),
-        totalAmountCollected: groupBuy.totalAmountCollected,
-      })
-    }
+    throw error
   }
-
-  // Update payment history with created/joined group buys
-  paymentHistory.groupBuysCreated = groupBuys.map((gb) => gb._id)
-  await paymentHistory.save()
-
-  console.log(`✅ Processed ${groupBuys.length} GroupBuys for PaymentHistory: ${paymentHistory._id}`)
-  return groupBuys
 }
 
 // Helper function to process wallet-only payments
@@ -445,7 +570,9 @@ export const handlePaystackWebhook = async (req, res) => {
       }
 
       // Process group buys after successful payment
+      console.log(`🔄 Starting GroupBuy processing for PaymentHistory: ${paymentHistory._id}`)
       const groupBuys = await processGroupBuys(paymentHistory)
+      console.log(`✅ GroupBuy processing completed. Created/joined ${groupBuys.length} GroupBuys`)
 
       // Create Order AFTER payment confirmation
       const order = await createOrderFromPayment(paymentHistory)

@@ -1,0 +1,986 @@
+{
+  "info": {
+    "name": "Grup Backend API Collection",
+    "description": "Complete API collection for Grup Backend with GroupBuy functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{userToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set authorization header based on endpoint",
+          "if (pm.request.url.path.includes('admin')) {",
+          "    pm.request.headers.add({key: 'Authorization', value: 'Bearer ' + pm.environment.get('adminToken')});",
+          "} else if (!pm.request.url.path.includes('webhook') && !pm.request.url.path.includes('track')) {",
+          "    pm.request.headers.add({key: 'Authorization', value: 'Bearer ' + pm.environment.get('userToken')});",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "User Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('userToken', response.token);",
+                  "    pm.environment.set('userId', response.user._id);",
+                  "    pm.environment.set('referralCode', response.user.referralCode);",
+                  "    pm.test('User created successfully', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"phoneNumber\": \"{{testPhoneNumber}}\",\n  \"referralCode\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('userToken', response.token);",
+                  "    pm.environment.set('userId', response.user._id);",
+                  "    pm.test('Login successful', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('adminToken', response.token);",
+                  "    pm.test('Admin login successful', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin-auth/admin-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin-auth", "admin-login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/id/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "id", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Product (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('productId', response.product._id);",
+                  "    pm.environment.set('testProductSlug', response.product.slug);",
+                  "    pm.test('Product created successfully', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Yam\",\n  \"description\": \"Fresh yam for testing GroupBuy functionality\",\n  \"price\": 5000,\n  \"category\": \"Tubers\",\n  \"stock\": 100,\n  \"unit\": \"kg\",\n  \"images\": [],\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Cart Management",
+      "item": [
+        {
+          "name": "Get Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.cart) {",
+                  "        pm.environment.set('cartId', response.cart._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Add to Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('cartId', response.cart._id);",
+                  "    pm.test('Item added to cart', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "add"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/update-quantity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "update-quantity"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Wallet",
+      "item": [
+        {
+          "name": "Get Wallet Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet"]
+            }
+          }
+        },
+        {
+          "name": "Calculate Wallet Offset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cartId\": \"{{cartId}}\",\n  \"useWallet\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/calculate-offset",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "calculate-offset"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payment & Checkout",
+      "item": [
+        {
+          "name": "Initialize Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('paymentHistoryId', response.paymentHistory._id);",
+                  "    if (response.order) {",
+                  "        pm.environment.set('orderId', response.order._id);",
+                  "        pm.environment.set('trackingNumber', response.order.trackingNumber);",
+                  "    }",
+                  "    pm.test('Payment initialized', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cartId\": \"{{cartId}}\",\n  \"useWallet\": false,\n  \"deliveryAddress\": \"{{testAddress}}\",\n  \"phoneNumber\": \"{{testPhoneNumber}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/initialize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "initialize"]
+            }
+          }
+        },
+        {
+          "name": "Paystack Webhook (Simulate)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate Paystack webhook signature",
+                  "const crypto = require('crypto');",
+                  "const secret = pm.environment.get('paystackSecretKey');",
+                  "const body = pm.request.body.raw;",
+                  "const hash = crypto.createHmac('sha512', secret).update(body).digest('hex');",
+                  "pm.request.headers.add({key: 'x-paystack-signature', value: hash});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"charge.success\",\n  \"data\": {\n    \"reference\": \"{{paymentHistoryId}}\",\n    \"amount\": 1500000,\n    \"status\": \"success\",\n    \"customer\": {\n      \"email\": \"{{userEmail}}\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/webhook/paystack",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "webhook", "paystack"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. GroupBuy Management",
+      "item": [
+        {
+          "name": "Get Active GroupBuys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "active"]
+            }
+          }
+        },
+        {
+          "name": "Get My GroupBuys",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.groupBuys && response.groupBuys.length > 0) {",
+                  "        pm.environment.set('groupBuyId', response.groupBuys[0]._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/my-groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "my-groups"]
+            }
+          }
+        },
+        {
+          "name": "Get GroupBuy by Product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/product/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "product", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get GroupBuy Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get GroupBuy Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/{{groupBuyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "{{groupBuyId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Order Management",
+      "item": [
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/my-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "my-orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Order Progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/progress/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "progress", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Track Order (Public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/track/{{trackingNumber}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "track", "{{trackingNumber}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Admin - Products",
+      "item": [
+        {
+          "name": "Update Product",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Test Yam\",\n  \"price\": 5500,\n  \"stock\": 150\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Admin - GroupBuys",
+      "item": [
+        {
+          "name": "Get All GroupBuys",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/all?status=active&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "all"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Manual Review GroupBuys",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/group/manual-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "manual-review"]
+            }
+          }
+        },
+        {
+          "name": "Review GroupBuy (Approve/Reject)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\",\n  \"reason\": \"GroupBuy reached sufficient participation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/group/{{groupBuyId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "{{groupBuyId}}", "review"]
+            }
+          }
+        },
+        {
+          "name": "Update GroupBuy MVU",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minimumViableUnits\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/group/{{groupBuyId}}/mvu",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "group", "{{groupBuyId}}", "mvu"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Admin - Orders",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/admin/all?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "admin", "all"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lookup Order by Tracking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/lookup/{{trackingNumber}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "lookup", "{{trackingNumber}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\",\n  \"note\": \"Order is being prepared for shipment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/admin/{{trackingNumber}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "admin", "{{trackingNumber}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Referrals",
+      "item": [
+        {
+          "name": "Validate Referral Code",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/referral/validate/{{referralCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "referral", "validate", "{{referralCode}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Referral Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/referral/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "referral", "info"]
+            }
+          }
+        },
+        {
+          "name": "Get Referral Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/referral/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "referral", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Live Users",
+      "item": [
+        {
+          "name": "Update User Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"page\": \"/products\",\n  \"action\": \"viewing_products\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/live-users/activity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "live-users", "activity"]
+            }
+          }
+        },
+        {
+          "name": "Get Live User Count",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/live-users/count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "live-users", "count"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Analytics (Admin)",
+      "item": [
+        {
+          "name": "Dashboard Analytics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Product Analytics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "products"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    }
+  ]
+}
