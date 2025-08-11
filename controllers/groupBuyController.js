@@ -13,7 +13,7 @@ export const getActiveGroupBuys = async (req, res) => {
       status: { $in: ["active", "successful"] },
       expiresAt: { $gt: new Date() },
     })
-      .populate("productId", "title price images description unitTag")
+      .populate("productId", "title price images description unitTag slug")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -57,7 +57,7 @@ export const getGroupBuyByProduct = async (req, res) => {
       productId,
       status: { $in: ["active", "successful"] },
       expiresAt: { $gt: new Date() },
-    }).populate("productId", "title price images description unitTag")
+    }).populate("productId", "title price images description unitTag slug")
 
     if (!groupBuy) {
       return res.json({
@@ -102,7 +102,7 @@ export const getAllGroupBuys = async (req, res) => {
     sort[sortBy] = sortOrder === "desc" ? -1 : 1
 
     const groupBuys = await GroupBuy.find(filter)
-      .populate("productId", "title price images category")
+      .populate("productId", "title price images category slug")
       .populate("participants.userId", "firstName lastName email")
       .populate("paymentHistories", "referenceId amount status createdAt")
       .sort(sort)
@@ -163,7 +163,7 @@ export const getUserGroupBuys = async (req, res) => {
     if (status) filter.status = status
 
     const groupBuys = await GroupBuy.find(filter)
-      .populate("productId", "title price images category")
+      .populate("productId", "title price images category slug")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -217,7 +217,7 @@ export const getGroupBuyById = async (req, res) => {
     const userId = req.user?.id
 
     const groupBuy = await GroupBuy.findById(id)
-      .populate("productId", "title price images category description")
+      .populate("productId", "title price images category description slug")
       .populate("participants.userId", "firstName lastName email phone")
       .populate("paymentHistories", "referenceId amount status createdAt")
 
@@ -299,7 +299,7 @@ export const getManualReviewGroupBuys = async (req, res) => {
     sort[sortBy] = sortOrder === "desc" ? -1 : 1
 
     const groupBuys = await GroupBuy.find({ status: "manual_review" })
-      .populate("productId", "title price images category")
+      .populate("productId", "title price images category slug")
       .populate("participants.userId", "firstName lastName email phone")
       .sort(sort)
       .limit(limit * 1)
@@ -344,7 +344,7 @@ export const reviewGroupBuy = async (req, res) => {
     }
 
     const groupBuy = await GroupBuy.findById(id)
-      .populate("productId", "title price")
+      .populate("productId", "title price slug")
       .populate("participants.userId", "firstName lastName email")
 
     if (!groupBuy) {
