@@ -343,7 +343,7 @@ const processWalletOnlyPayment = async (paymentHistory, res) => {
 
 export const initializePayment = async (req, res) => {
   try {
-    const { deliveryAddress, phone, useWallet, cartId } = req.body
+    const { deliveryAddress, phone, useWallet, cartId, callback_url } = req.body
     const userId = req.user.id
 
     console.log(`🚀 Payment initialization started for user: ${userId}`)
@@ -444,7 +444,7 @@ export const initializePayment = async (req, res) => {
       email: req.user.email || "customer@grup.com",
       amount: Math.round(paystackAmount * 100), // Convert to kobo
       reference: referenceId,
-      callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
+      callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
         userId: userId,
         paymentHistoryId: paymentHistory._id.toString(),

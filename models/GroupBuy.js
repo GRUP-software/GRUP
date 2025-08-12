@@ -188,6 +188,7 @@ groupBuySchema.methods.canAcceptMoreParticipants = function () {
   )
 }
 
+// Method to prepare GroupBuy for manual review when expired
 groupBuySchema.methods.prepareForManualReview = function () {
   const progressPercentage = this.getProgressPercentage()
 
