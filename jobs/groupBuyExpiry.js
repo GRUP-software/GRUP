@@ -40,7 +40,7 @@ export const processExpiredGroupBuys = async () => {
 
         logger.info(`GroupBuy ${groupBuy._id} moved to manual review`)
         logger.info(`   Recommendation: ${groupBuy.manualReviewData.recommendedAction}`)
-        logger.info(`   Notes: ${groupBuy.manualReviewData.reviewNotes}`)
+        logger.info(`   Notes: ${groupBuy.adminNotes}`)
 
         // Update related orders
         await updateRelatedOrders(groupBuy)

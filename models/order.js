@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema(
         },
         groupStatus: {
           type: String,
-          enum: ["forming", "secured", "dispatched"],
+          enum: ["forming", "secured", "dispatched", "under_review"],
           default: "forming",
         },
       },
@@ -60,6 +60,7 @@ const orderSchema = new mongoose.Schema(
         "delivered",
         "picked_up",
         "cancelled",
+        "groups_under_review",
       ],
       default: "groups_forming",
       index: true,
@@ -152,6 +153,7 @@ orderSchema.methods.calculatePriorityScore = function () {
     delivered: 0,
     picked_up: 0,
     cancelled: 0,
+    groups_under_review: 20,
   }
   score += statusPriority[this.currentStatus] || 0
 

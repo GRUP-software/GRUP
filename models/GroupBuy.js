@@ -188,6 +188,32 @@ groupBuySchema.methods.canAcceptMoreParticipants = function () {
   )
 }
 
+groupBuySchema.methods.prepareForManualReview = function () {
+  const progressPercentage = this.getProgressPercentage()
+
+  // Set status to manual review
+  this.status = "manual_review"
+
+  // Set up manual review data based on completion status
+  this.manualReviewData = {
+    reviewedBy: null,
+    reviewedAt: null,
+    adminNotes: null,
+    recommendedAction: progressPercentage >= 80 ? "approve" : progressPercentage >= 50 ? "pending" : "reject",
+  }
+
+  // Set review notes based on progress
+  if (progressPercentage >= 80) {
+    this.adminNotes = `GroupBuy expired with high completion (${this.unitsSold}/${this.minimumViableUnits} units, ${progressPercentage.toFixed(1)}%). Recommended for approval.`
+  } else if (progressPercentage >= 50) {
+    this.adminNotes = `GroupBuy expired with moderate completion (${this.unitsSold}/${this.minimumViableUnits} units, ${progressPercentage.toFixed(1)}%). Requires admin decision.`
+  } else {
+    this.adminNotes = `GroupBuy expired with low completion (${this.unitsSold}/${this.minimumViableUnits} units, ${progressPercentage.toFixed(1)}%). Recommended for rejection/refund.`
+  }
+
+  this.updatedAt = new Date()
+}
+
 // Pre-save middleware
 groupBuySchema.pre("save", function (next) {
   // Ensure participants have required fields
