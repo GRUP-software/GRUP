@@ -2,6 +2,7 @@ import GroupBuy from "../models/GroupBuy.js"
 import Order from "../models/order.js"
 import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
+import Product from "../models/Product.js"
 import logger from "../utils/logger.js"
 
 // Get all active group buys
@@ -60,10 +61,36 @@ export const getGroupBuyByProduct = async (req, res) => {
     }).populate("productId", "title price images description unitTag slug")
 
     if (!groupBuy) {
+      const product = await Product.findById(productId)
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" })
+      }
+
+      // Return default GroupBuy data structure that frontend expects
+      const defaultGroupBuyData = {
+        _id: null,
+        productId: product,
+        status: "inactive",
+        unitsSold: 0,
+        minimumViableUnits: product.minimumViableUnits || 20,
+        totalAmountCollected: 0,
+        participants: [],
+        expiresAt: null,
+        createdAt: null,
+        // Computed fields that frontend expects
+        progressPercentage: 0,
+        timeRemaining: 0,
+        isViable: false,
+        spotsRemaining: product.minimumViableUnits || 20,
+        canAcceptMore: true,
+        hasActiveGroupBuy: false,
+      }
+
       return res.json({
         success: true,
         hasActiveGroupBuy: false,
-        message: "No active group buy for this product",
+        data: defaultGroupBuyData,
       })
     }
 
@@ -74,6 +101,7 @@ export const getGroupBuyByProduct = async (req, res) => {
       isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
       spotsRemaining: Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold),
       canAcceptMore: groupBuy.canAcceptMoreParticipants(),
+      hasActiveGroupBuy: true,
     }
 
     res.json({
@@ -181,10 +209,8 @@ export const getUserGroupBuys = async (req, res) => {
         unitsSold: groupBuy.unitsSold,
         minimumViableUnits: groupBuy.minimumViableUnits,
         totalAmountCollected: groupBuy.totalAmountCollected,
-        progressPercentage: groupBuy.getProgressPercentage(),
-        participantCount: groupBuy.getParticipantCount(),
+        participants: groupBuy.participants,
         expiresAt: groupBuy.expiresAt,
-        isExpired: groupBuy.isExpired(),
         createdAt: groupBuy.createdAt,
         // User-specific data
         userQuantity: userParticipation?.quantity || 0,
@@ -219,7 +245,6 @@ export const getGroupBuyById = async (req, res) => {
     const groupBuy = await GroupBuy.findById(id)
       .populate("productId", "title price images category description slug")
       .populate("participants.userId", "firstName lastName email phone")
-      .populate("paymentHistories", "referenceId amount status createdAt")
 
     if (!groupBuy) {
       return res.status(404).json({ message: "Group buy not found" })
@@ -549,7 +574,6 @@ const updateOrdersAfterReview = async (groupBuy, reviewResult) => {
     logger.error(`❌ Error updating orders after GroupBuy review:`, error)
   }
 }
-
 
 export const updateGroupBuyMVU = async (req, res) => {
   try {

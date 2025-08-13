@@ -1,31 +1,68 @@
 import Product from "../models/Product.js"
+import GroupBuy from "../models/GroupBuy.js"
 
 // GET all products with shareable message links and enhanced data
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
 
-    const host = `${req.protocol}://${req.get("host")}`
-    const enrichedProducts = products.map((product) => {
-      const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
-      const encodedMessage = encodeURIComponent(message)
+    const host =
+      process.env.NODE_ENV === "development" ? "http://localhost:4000" : `${req.protocol}://${req.get("host")}`
 
-      return {
-        ...product.toObject(),
-        shareLink: `${host}/product/${product.slug}?msg=${encodedMessage}`,
-        // Ensure description is included
-        description: product.description || "",
-        // Add computed fields for frontend
-        hasDescription: Boolean(product.description && product.description.trim()),
-        shortDescription: product.description
-          ? product.description.length > 150
-            ? product.description.substring(0, 150) + "..."
-            : product.description
-          : "",
-        isLowStock: product.stock <= (product.lowStockThreshold || 5),
-        stockStatus: product.stock > 0 ? "in-stock" : "out-of-stock",
-      }
-    })
+    const enrichedProducts = await Promise.all(
+      products.map(async (product) => {
+        const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
+        const encodedMessage = encodeURIComponent(message)
+
+        // Fetch the most recent GroupBuy for this product (active or inactive)
+        const groupBuy = await GroupBuy.findOne({ productId: product._id })
+          .sort({ createdAt: -1 })
+          .populate("productId", "title price")
+
+        let groupBuyData = {
+          hasActiveGroupBuy: false,
+          minimumViableUnits: product.minimumViableUnits || 20, // Use product's MVU
+          currentParticipants: 0,
+          progressPercentage: 0,
+          timeRemaining: 0,
+          status: "none",
+          expiresAt: null,
+        }
+
+        if (groupBuy) {
+          const now = new Date()
+          const isActive = groupBuy.status === "active" && groupBuy.expiresAt > now
+          const timeLeft = Math.max(0, groupBuy.expiresAt - now)
+
+          groupBuyData = {
+            hasActiveGroupBuy: isActive,
+            minimumViableUnits: groupBuy.minimumViableUnits,
+            currentParticipants: groupBuy.participants.length,
+            progressPercentage: Math.round((groupBuy.participants.length / groupBuy.minimumViableUnits) * 100),
+            timeRemaining: timeLeft,
+            status: groupBuy.status,
+            expiresAt: groupBuy.expiresAt,
+          }
+        }
+
+        return {
+          ...product.toObject(),
+          shareLink: `${host}/product/${product.slug}?msg=${encodedMessage}`,
+          // Ensure description is included
+          description: product.description || "",
+          // Add computed fields for frontend
+          hasDescription: Boolean(product.description && product.description.trim()),
+          shortDescription: product.description
+            ? product.description.length > 150
+              ? product.description.substring(0, 150) + "..."
+              : product.description
+            : "",
+          isLowStock: product.stock <= (product.lowStockThreshold || 5),
+          stockStatus: product.stock > 0 ? "in-stock" : "out-of-stock",
+          ...groupBuyData,
+        }
+      }),
+    )
 
     res.json({
       success: true,
@@ -53,9 +90,41 @@ export const getProductBySlug = async (req, res) => {
       })
     }
 
-    const host = `${req.protocol}://${req.get("host")}`
+    const host =
+      process.env.NODE_ENV === "development" ? "http://localhost:4000" : `${req.protocol}://${req.get("host")}`
+
     const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
     const encodedMessage = encodeURIComponent(message)
+
+    const groupBuy = await GroupBuy.findOne({ productId: product._id })
+      .sort({ createdAt: -1 })
+      .populate("productId", "title price")
+
+    let groupBuyData = {
+      hasActiveGroupBuy: false,
+      minimumViableUnits: product.minimumViableUnits || 20, // Use product's MVU
+      currentParticipants: 0,
+      progressPercentage: 0,
+      timeRemaining: 0,
+      status: "none",
+      expiresAt: null,
+    }
+
+    if (groupBuy) {
+      const now = new Date()
+      const isActive = groupBuy.status === "active" && groupBuy.expiresAt > now
+      const timeLeft = Math.max(0, groupBuy.expiresAt - now)
+
+      groupBuyData = {
+        hasActiveGroupBuy: isActive,
+        minimumViableUnits: groupBuy.minimumViableUnits,
+        currentParticipants: groupBuy.participants.length,
+        progressPercentage: Math.round((groupBuy.participants.length / groupBuy.minimumViableUnits) * 100),
+        timeRemaining: timeLeft,
+        status: groupBuy.status,
+        expiresAt: groupBuy.expiresAt,
+      }
+    }
 
     const enrichedProduct = {
       ...product.toObject(),
@@ -73,6 +142,7 @@ export const getProductBySlug = async (req, res) => {
             isAvailable: variant.stock > 0,
           }))
         : [],
+      ...groupBuyData,
     }
 
     res.json({
@@ -100,9 +170,41 @@ export const getProductById = async (req, res) => {
       })
     }
 
-    const host = `${req.protocol}://${req.get("host")}`
+    const host =
+      process.env.NODE_ENV === "development" ? "http://localhost:4000" : `${req.protocol}://${req.get("host")}`
+
     const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
     const encodedMessage = encodeURIComponent(message)
+
+    const groupBuy = await GroupBuy.findOne({ productId: product._id })
+      .sort({ createdAt: -1 })
+      .populate("productId", "title price")
+
+    let groupBuyData = {
+      hasActiveGroupBuy: false,
+      minimumViableUnits: product.minimumViableUnits || 20, // Use product's MVU
+      currentParticipants: 0,
+      progressPercentage: 0,
+      timeRemaining: 0,
+      status: "none",
+      expiresAt: null,
+    }
+
+    if (groupBuy) {
+      const now = new Date()
+      const isActive = groupBuy.status === "active" && groupBuy.expiresAt > now
+      const timeLeft = Math.max(0, groupBuy.expiresAt - now)
+
+      groupBuyData = {
+        hasActiveGroupBuy: isActive,
+        minimumViableUnits: groupBuy.minimumViableUnits,
+        currentParticipants: groupBuy.participants.length,
+        progressPercentage: Math.round((groupBuy.participants.length / groupBuy.minimumViableUnits) * 100),
+        timeRemaining: timeLeft,
+        status: groupBuy.status,
+        expiresAt: groupBuy.expiresAt,
+      }
+    }
 
     const enrichedProduct = {
       ...product.toObject(),
@@ -117,6 +219,7 @@ export const getProductById = async (req, res) => {
             isAvailable: variant.stock > 0,
           }))
         : [],
+      ...groupBuyData,
     }
 
     res.json({
@@ -147,6 +250,7 @@ export const createProduct = async (req, res) => {
       groupEligible,
       variants,
       lowStockThreshold,
+      minimumViableUnits,
     } = req.body
 
     // Validate required fields
@@ -172,6 +276,7 @@ export const createProduct = async (req, res) => {
       variants: variants ? JSON.parse(variants) : [],
       lowStockThreshold: Number(lowStockThreshold) || 5,
       images: imageUrls,
+      minimumViableUnits: Number(minimumViableUnits) || 20,
     })
 
     await product.save()
@@ -208,6 +313,7 @@ export const updateProduct = async (req, res) => {
       groupEligible,
       variants,
       lowStockThreshold,
+      minimumViableUnits,
     } = req.body
 
     const updateData = {
@@ -221,6 +327,7 @@ export const updateProduct = async (req, res) => {
       groupEligible: groupEligible === "true",
       variants: variants ? JSON.parse(variants) : [],
       lowStockThreshold: Number(lowStockThreshold) || 5,
+      minimumViableUnits: Number(minimumViableUnits) || 20,
     }
 
     if (req.files?.length > 0) {

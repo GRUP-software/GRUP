@@ -8,6 +8,7 @@ import { generateTrackingNumber } from "../utils/trackingGenerator.js"
 import crypto from "crypto"
 import { nanoid } from "nanoid"
 import mongoose from "mongoose"
+import Product from "../models/Product.js" // Import Product model
 
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
@@ -140,6 +141,14 @@ export const processGroupBuys = async (paymentHistory) => {
         try {
           console.log(`🆕 Creating new GroupBuy for product: ${productId}`)
 
+          const product = await Product.findById(productId)
+          if (!product) {
+            throw new Error(`Product not found: ${productId}`)
+          }
+
+          const productMVU = product.minimumViableUnits ?? 20;
+          console.log(`📊 Using product MVU: ${productMVU} for product: ${product.title}`)
+
           // Validate participant data before creating GroupBuy
           const participantData = {
             userId: userId,
@@ -169,7 +178,7 @@ export const processGroupBuys = async (paymentHistory) => {
 
           const groupBuyData = {
             productId: productId,
-            minimumViableUnits: 20,
+            minimumViableUnits: productMVU, // Use product's MVU instead of hardcoded 20
             unitsSold: Number(item.quantity),
             totalAmountCollected: Number(itemAmount),
             status: "active",
@@ -182,6 +191,7 @@ export const processGroupBuys = async (paymentHistory) => {
 
           console.log(`🔍 Creating GroupBuy with validated data:`, {
             productId: groupBuyData.productId.toString(),
+            minimumViableUnits: groupBuyData.minimumViableUnits, // Log the actual MVU being used
             unitsSold: groupBuyData.unitsSold,
             totalAmountCollected: groupBuyData.totalAmountCollected,
             participantsCount: groupBuyData.participants.length,
@@ -203,7 +213,7 @@ export const processGroupBuys = async (paymentHistory) => {
 
           await groupBuy.save()
           isNewGroupBuy = true
-          console.log(`✅ Created new GroupBuy: ${groupBuy._id}`)
+          console.log(`✅ Created new GroupBuy: ${groupBuy._id} with MVU: ${productMVU}`)
         } catch (error) {
           console.error(`❌ Error creating new GroupBuy:`, {
             message: error.message,
