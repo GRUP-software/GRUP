@@ -22,7 +22,7 @@ export const getReferralInfo = async (req, res) => {
     }).sort({ createdAt: -1 })
 
     const frontendUrl = process.env.NODE_ENV === "development" ? "http://localhost:4000" : process.env.FRONTEND_URL
-    const referralLink = `${frontendUrl}/signup?ref=${user.referralCode}`
+    const referralLink = `${frontendUrl}/register?ref=${user.referralCode}`
 
     res.json({
       referralCode: user.referralCode,
