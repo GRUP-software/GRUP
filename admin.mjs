@@ -36,6 +36,9 @@ const ShareLinkComponent = componentLoader.add(
   path.join(__dirname, 'components', 'ShareLinkComponent.jsx')
 )
 
+// We'll add it back as a simple text field for now
+let SellingUnitsManagerComponent = null
+
 // AdminJS config
 const adminJs = new AdminJS({
   rootPath: '/admin',

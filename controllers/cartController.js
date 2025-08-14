@@ -3,6 +3,45 @@ import Product from "../models/Product.js"
 import Wallet from "../models/Wallet.js"
 import GroupBuy from "../models/GroupBuy.js"
 
+const calculateSellingUnitPrice = (product, sellingUnit) => {
+  if (!sellingUnit || !product.sellingUnits?.enabled) {
+    return product.price
+  }
+
+  if (sellingUnit.priceType === "manual" && sellingUnit.customPrice > 0) {
+    return sellingUnit.customPrice
+  }
+
+  return (product.sellingUnits.baseUnitPrice || 0) * sellingUnit.baseUnitQuantity
+}
+
+const formatCartItems = (cartItems) => {
+  return cartItems.map((item) => {
+    let itemPrice = item.product.price
+    let displayInfo = {
+      displayName: `${item.quantity} ${item.product.unitTag}`,
+      baseUnitDisplay: null,
+    }
+
+    if (item.sellingUnit && item.product.sellingUnits?.enabled) {
+      itemPrice = item.sellingUnit.pricePerUnit
+      displayInfo = {
+        displayName: `${item.quantity} ${item.sellingUnit.displayName}`,
+        baseUnitDisplay: `${item.sellingUnit.totalBaseUnits} ${item.sellingUnit.baseUnitName}${item.sellingUnit.totalBaseUnits > 1 ? "s" : ""}`,
+      }
+    }
+
+    const itemTotal = itemPrice * item.quantity
+
+    return {
+      ...item.toObject(),
+      itemPrice,
+      itemTotal,
+      ...displayInfo,
+    }
+  })
+}
+
 export const getCart = async (req, res) => {
   try {
     const userId = req.user.id
@@ -15,24 +54,28 @@ export const getCart = async (req, res) => {
         totalPrice: 0,
         itemCount: 0,
         walletBalance: 0,
-        cartId: null, // Explicitly return null if no cart
+        cartId: null,
       })
     }
 
-    // Calculate total price with current product prices
     let totalPrice = 0
     const validItems = []
 
     for (const item of cart.items) {
-      if (item.product && item.product.price) {
-        const itemTotal = item.product.price * item.quantity
+      if (item.product) {
+        let itemPrice = item.product.price
+
+        if (item.sellingUnit && item.product.sellingUnits?.enabled) {
+          itemPrice = item.sellingUnit.pricePerUnit
+        }
+
+        const itemTotal = itemPrice * item.quantity
         totalPrice += itemTotal
-        validItems.push({
-          ...item.toObject(),
-          itemTotal,
-        })
+        validItems.push(item)
       }
     }
+
+    const formattedItems = formatCartItems(validItems)
 
     // Get user's wallet balance for offset calculation
     const wallet = await Wallet.findOne({ user: userId })
@@ -43,13 +86,13 @@ export const getCart = async (req, res) => {
     const remainingAfterWallet = totalPrice - maxWalletUse
 
     res.json({
-      items: validItems,
+      items: formattedItems,
       totalPrice,
       itemCount: validItems.reduce((sum, item) => sum + item.quantity, 0),
       walletBalance,
       maxWalletUse,
       remainingAfterWallet,
-      cartId: cart._id, // Include cartId here
+      cartId: cart._id,
     })
   } catch (error) {
     console.error("Get cart error:", error)
@@ -59,7 +102,7 @@ export const getCart = async (req, res) => {
 
 export const addToCart = async (req, res) => {
   try {
-    const { productId, quantity = 1 } = req.body
+    const { productId, quantity = 1, variant, sellingUnit } = req.body
     const userId = req.user.id
 
     // Verify product exists and has stock
@@ -91,8 +134,25 @@ export const addToCart = async (req, res) => {
       cart = new Cart({ user: userId, items: [] })
     }
 
-    // Check if item already exists in cart
-    const existingItemIndex = cart.items.findIndex((item) => item.product.toString() === productId)
+    let sellingUnitData = null
+    if (sellingUnit && product.sellingUnits?.enabled) {
+      const unitPrice = calculateSellingUnitPrice(product, sellingUnit)
+      sellingUnitData = {
+        optionName: sellingUnit.name,
+        displayName: sellingUnit.displayName,
+        baseUnitQuantity: sellingUnit.baseUnitQuantity,
+        baseUnitName: product.sellingUnits.baseUnitName,
+        pricePerUnit: unitPrice,
+        totalBaseUnits: sellingUnit.baseUnitQuantity * quantity,
+      }
+    }
+
+    const existingItemIndex = cart.items.findIndex((item) => {
+      const productMatch = item.product.toString() === productId
+      const variantMatch = item.variant === variant
+      const sellingUnitMatch = item.sellingUnit?.optionName === sellingUnitData?.optionName
+      return productMatch && variantMatch && sellingUnitMatch
+    })
 
     if (existingItemIndex > -1) {
       const newQuantity = cart.items[existingItemIndex].quantity + quantity
@@ -103,8 +163,11 @@ export const addToCart = async (req, res) => {
         })
       }
 
-      // Update the quantity of the existing item
       cart.items[existingItemIndex].quantity = newQuantity
+      if (cart.items[existingItemIndex].sellingUnit) {
+        cart.items[existingItemIndex].sellingUnit.totalBaseUnits =
+          cart.items[existingItemIndex].sellingUnit.baseUnitQuantity * newQuantity
+      }
     } else {
       // Add new item if it doesn't exist
       if (quantity > product.stock) {
@@ -112,7 +175,14 @@ export const addToCart = async (req, res) => {
           message: `Cannot add ${quantity} items. Only ${product.stock} are available.`,
         })
       }
-      cart.items.push({ product: productId, quantity })
+
+      const newItem = {
+        product: productId,
+        quantity,
+        variant,
+        sellingUnit: sellingUnitData,
+      }
+      cart.items.push(newItem)
     }
 
     await cart.save()
@@ -120,16 +190,16 @@ export const addToCart = async (req, res) => {
     // Fetch and return the updated cart data for the frontend
     const updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
 
-    // Calculate total price and other details for a complete response
     let totalPrice = 0
-    const cartItems = updatedCart.items.map((item) => {
-      const itemTotal = item.product.price * item.quantity
-      totalPrice += itemTotal
-      return {
-        ...item.toObject(),
-        itemTotal,
+    for (const item of updatedCart.items) {
+      let itemPrice = item.product.price
+      if (item.sellingUnit) {
+        itemPrice = item.sellingUnit.pricePerUnit
       }
-    })
+      totalPrice += itemPrice * item.quantity
+    }
+
+    const formattedItems = formatCartItems(updatedCart.items)
 
     const wallet = await Wallet.findOne({ user: userId })
     const walletBalance = wallet?.balance || 0
@@ -137,13 +207,13 @@ export const addToCart = async (req, res) => {
 
     res.status(200).json({
       message: "Item added to cart successfully",
-      items: cartItems,
+      items: formattedItems,
       totalPrice,
-      itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      itemCount: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
       walletBalance,
       maxWalletUse,
       remainingAfterWallet: totalPrice - maxWalletUse,
-      cartId: updatedCart._id, // Include cartId here
+      cartId: updatedCart._id,
     })
   } catch (error) {
     console.error("Add to cart error:", error)
@@ -153,7 +223,7 @@ export const addToCart = async (req, res) => {
 
 export const updateCartQuantity = async (req, res) => {
   try {
-    const { productId, quantity } = req.body
+    const { productId, quantity, variant, sellingUnitName } = req.body
     const userId = req.user.id
 
     if (!productId) {
@@ -165,7 +235,12 @@ export const updateCartQuantity = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" })
     }
 
-    const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId)
+    const itemIndex = cart.items.findIndex((item) => {
+      const productMatch = item.product.toString() === productId
+      const variantMatch = item.variant === variant
+      const sellingUnitMatch = item.sellingUnit?.optionName === sellingUnitName
+      return productMatch && variantMatch && sellingUnitMatch
+    })
 
     if (itemIndex === -1) {
       return res.status(404).json({ message: "Item not found in cart" })
@@ -188,6 +263,9 @@ export const updateCartQuantity = async (req, res) => {
       }
 
       cart.items[itemIndex].quantity = quantity
+      if (cart.items[itemIndex].sellingUnit) {
+        cart.items[itemIndex].sellingUnit.totalBaseUnits = cart.items[itemIndex].sellingUnit.baseUnitQuantity * quantity
+      }
     }
 
     await cart.save()
@@ -196,14 +274,15 @@ export const updateCartQuantity = async (req, res) => {
     const updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
 
     let totalPrice = 0
-    const cartItems = updatedCart.items.map((item) => {
-      const itemTotal = item.product.price * item.quantity
-      totalPrice += itemTotal
-      return {
-        ...item.toObject(),
-        itemTotal,
+    for (const item of updatedCart.items) {
+      let itemPrice = item.product.price
+      if (item.sellingUnit) {
+        itemPrice = item.sellingUnit.pricePerUnit
       }
-    })
+      totalPrice += itemPrice * item.quantity
+    }
+
+    const formattedItems = formatCartItems(updatedCart.items)
 
     // Get wallet balance for offset calculation
     const wallet = await Wallet.findOne({ user: userId })
@@ -212,13 +291,13 @@ export const updateCartQuantity = async (req, res) => {
 
     res.json({
       message: "Cart updated successfully",
-      items: cartItems,
+      items: formattedItems,
       totalPrice,
-      itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      itemCount: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
       walletBalance,
       maxWalletUse,
       remainingAfterWallet: totalPrice - maxWalletUse,
-      cartId: updatedCart._id, // Include cartId here
+      cartId: updatedCart._id,
     })
   } catch (error) {
     console.error("Update quantity error:", error)

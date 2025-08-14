@@ -35,6 +35,28 @@ const productSchema = new Schema(
         options: [String], // e.g., sizes: ["Small", "Medium", "Large"]
       },
     ],
+    sellingUnits: {
+      enabled: { type: Boolean, default: false },
+      baseUnit: { type: String }, // e.g., "250g portions", "paints", "pieces"
+      baseUnitName: { type: String }, // e.g., "250g portion", "paint", "piece"
+      baseUnitPrice: { type: Number }, // Price per base unit
+      options: [
+        {
+          name: { type: String }, // Removed required to prevent validation errors
+          displayName: { type: String }, // Removed required to prevent validation errors
+          baseUnitQuantity: { type: Number, default: 1 }, // Added default value
+          priceType: {
+            type: String,
+            enum: ["manual", "calculated"],
+            default: "calculated",
+          },
+          customPrice: { type: Number, default: 0 }, // Manual price override
+          image: { type: String }, // Optional image for this selling unit option
+          description: { type: String }, // Optional description
+          isActive: { type: Boolean, default: true },
+        },
+      ],
+    },
   },
   {
     timestamps: true,
@@ -48,6 +70,29 @@ productSchema.pre("save", function (next) {
   }
   next()
 })
+
+productSchema.methods.getSellingUnitPrice = function (optionIndex) {
+  if (!this.sellingUnits.enabled || !this.sellingUnits.options[optionIndex]) {
+    return this.price
+  }
+
+  const option = this.sellingUnits.options[optionIndex]
+
+  if (option.priceType === "manual" && option.customPrice > 0) {
+    return option.customPrice
+  }
+
+  // Calculate price based on base unit price and quantity
+  return this.sellingUnits.baseUnitPrice * option.baseUnitQuantity
+}
+
+productSchema.methods.getActiveSellingUnits = function () {
+  if (!this.sellingUnits.enabled) {
+    return []
+  }
+
+  return this.sellingUnits.options.filter((option) => option.isActive)
+}
 
 const Product = mongoose.model("Product", productSchema)
 export default Product
