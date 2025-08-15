@@ -137,13 +137,16 @@ export const addToCart = async (req, res) => {
     let sellingUnitData = null
     if (sellingUnit && product.sellingUnits?.enabled) {
       const unitPrice = calculateSellingUnitPrice(product, sellingUnit)
+      const baseUnitQuantity = Number(sellingUnit.baseUnitQuantity) || 0
+      const validQuantity = Number(quantity) || 1
+
       sellingUnitData = {
         optionName: sellingUnit.name,
         displayName: sellingUnit.displayName,
-        baseUnitQuantity: sellingUnit.baseUnitQuantity,
+        baseUnitQuantity: baseUnitQuantity,
         baseUnitName: product.sellingUnits.baseUnitName,
         pricePerUnit: unitPrice,
-        totalBaseUnits: sellingUnit.baseUnitQuantity * quantity,
+        totalBaseUnits: baseUnitQuantity * validQuantity,
       }
     }
 
@@ -165,8 +168,9 @@ export const addToCart = async (req, res) => {
 
       cart.items[existingItemIndex].quantity = newQuantity
       if (cart.items[existingItemIndex].sellingUnit) {
-        cart.items[existingItemIndex].sellingUnit.totalBaseUnits =
-          cart.items[existingItemIndex].sellingUnit.baseUnitQuantity * newQuantity
+        const baseUnitQuantity = Number(cart.items[existingItemIndex].sellingUnit.baseUnitQuantity) || 0
+        const validNewQuantity = Number(newQuantity) || 0
+        cart.items[existingItemIndex].sellingUnit.totalBaseUnits = baseUnitQuantity * validNewQuantity
       }
     } else {
       // Add new item if it doesn't exist
@@ -230,6 +234,8 @@ export const updateCartQuantity = async (req, res) => {
       return res.status(400).json({ message: "Product ID is required" })
     }
 
+    const validQuantity = Number(quantity) || 0
+
     const cart = await Cart.findOne({ user: userId })
     if (!cart) {
       return res.status(404).json({ message: "Cart not found" })
@@ -247,7 +253,7 @@ export const updateCartQuantity = async (req, res) => {
     }
 
     // If quantity is 0 or less, remove item
-    if (quantity <= 0) {
+    if (validQuantity <= 0) {
       cart.items.splice(itemIndex, 1)
     } else {
       // Verify stock availability
@@ -256,15 +262,16 @@ export const updateCartQuantity = async (req, res) => {
         return res.status(404).json({ message: "Product not found" })
       }
 
-      if (quantity > product.stock) {
+      if (validQuantity > product.stock) {
         return res.status(400).json({
           message: `Insufficient stock. Available: ${product.stock}`,
         })
       }
 
-      cart.items[itemIndex].quantity = quantity
+      cart.items[itemIndex].quantity = validQuantity
       if (cart.items[itemIndex].sellingUnit) {
-        cart.items[itemIndex].sellingUnit.totalBaseUnits = cart.items[itemIndex].sellingUnit.baseUnitQuantity * quantity
+        const baseUnitQuantity = Number(cart.items[itemIndex].sellingUnit.baseUnitQuantity) || 0
+        cart.items[itemIndex].sellingUnit.totalBaseUnits = baseUnitQuantity * validQuantity
       }
     }
 
