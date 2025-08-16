@@ -59,6 +59,15 @@ export const getAllProducts = async (req, res) => {
             : "",
           isLowStock: product.stock <= (product.lowStockThreshold || 5),
           stockStatus: product.stock > 0 ? "in-stock" : "out-of-stock",
+          sellingUnitsData: product.sellingUnits?.enabled
+            ? {
+                ...product.sellingUnits,
+                options: product.getActiveSellingUnits().map((option) => ({
+                  ...option.toObject(),
+                  calculatedPrice: product.calculateSellingUnitPrice(option.name),
+                })),
+              }
+            : null,
           ...groupBuyData,
         }
       }),
@@ -142,6 +151,15 @@ export const getProductBySlug = async (req, res) => {
             isAvailable: variant.stock > 0,
           }))
         : [],
+      sellingUnitsData: product.sellingUnits?.enabled
+        ? {
+            ...product.sellingUnits,
+            options: product.getActiveSellingUnits().map((option) => ({
+              ...option.toObject(),
+              calculatedPrice: product.calculateSellingUnitPrice(option.name),
+            })),
+          }
+        : null,
       ...groupBuyData,
     }
 
@@ -219,6 +237,15 @@ export const getProductById = async (req, res) => {
             isAvailable: variant.stock > 0,
           }))
         : [],
+      sellingUnitsData: product.sellingUnits?.enabled
+        ? {
+            ...product.sellingUnits,
+            options: product.getActiveSellingUnits().map((option) => ({
+              ...option.toObject(),
+              calculatedPrice: product.calculateSellingUnitPrice(option.name),
+            })),
+          }
+        : null,
       ...groupBuyData,
     }
 
@@ -251,6 +278,7 @@ export const createProduct = async (req, res) => {
       variants,
       lowStockThreshold,
       minimumViableUnits,
+      sellingUnits,
     } = req.body
 
     // Validate required fields
@@ -264,7 +292,7 @@ export const createProduct = async (req, res) => {
     // Generate image URLs if files exist
     const imageUrls = req.files?.map((file) => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`) || []
 
-    const product = new Product({
+    const productData = {
       title,
       description: description.trim(), // Ensure description is properly stored
       basePrice,
@@ -277,8 +305,21 @@ export const createProduct = async (req, res) => {
       lowStockThreshold: Number(lowStockThreshold) || 5,
       images: imageUrls,
       minimumViableUnits: Number(minimumViableUnits) || 20,
-    })
+    }
 
+    if (sellingUnits) {
+      try {
+        productData.sellingUnits = typeof sellingUnits === "string" ? JSON.parse(sellingUnits) : sellingUnits
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid selling units format",
+          error: error.message,
+        })
+      }
+    }
+
+    const product = new Product(productData)
     await product.save()
 
     res.status(201).json({
@@ -314,6 +355,7 @@ export const updateProduct = async (req, res) => {
       variants,
       lowStockThreshold,
       minimumViableUnits,
+      sellingUnits,
     } = req.body
 
     const updateData = {
@@ -328,6 +370,18 @@ export const updateProduct = async (req, res) => {
       variants: variants ? JSON.parse(variants) : [],
       lowStockThreshold: Number(lowStockThreshold) || 5,
       minimumViableUnits: Number(minimumViableUnits) || 20,
+    }
+
+    if (sellingUnits) {
+      try {
+        updateData.sellingUnits = typeof sellingUnits === "string" ? JSON.parse(sellingUnits) : sellingUnits
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid selling units format",
+          error: error.message,
+        })
+      }
     }
 
     if (req.files?.length > 0) {
@@ -358,6 +412,107 @@ export const updateProduct = async (req, res) => {
     res.status(400).json({
       success: false,
       message: "Error updating product",
+      error: err.message,
+    })
+  }
+}
+
+// UPDATE selling units for a product
+export const updateSellingUnits = async (req, res) => {
+  try {
+    const { sellingUnits } = req.body
+
+    if (!sellingUnits) {
+      return res.status(400).json({
+        success: false,
+        message: "Selling units data is required",
+      })
+    }
+
+    const product = await Product.findById(req.params.id)
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      })
+    }
+
+    product.sellingUnits = sellingUnits
+    await product.save()
+
+    res.json({
+      success: true,
+      message: "Selling units updated successfully",
+      data: {
+        sellingUnits: product.sellingUnits,
+        sellingUnitsData: product.sellingUnits?.enabled
+          ? {
+              ...product.sellingUnits,
+              options: product.getActiveSellingUnits().map((option) => ({
+                ...option.toObject(),
+                calculatedPrice: product.calculateSellingUnitPrice(option.name),
+              })),
+            }
+          : null,
+      },
+    })
+  } catch (err) {
+    console.error("Update Selling Units Error:", err.message)
+    res.status(400).json({
+      success: false,
+      message: "Error updating selling units",
+      error: err.message,
+    })
+  }
+}
+
+// GET calculated price for a selling unit option
+export const getSellingUnitPrice = async (req, res) => {
+  try {
+    const { productId, optionName } = req.params
+
+    const product = await Product.findById(productId)
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      })
+    }
+
+    if (!product.sellingUnits?.enabled) {
+      return res.status(400).json({
+        success: false,
+        message: "Selling units not enabled for this product",
+      })
+    }
+
+    const calculatedPrice = product.calculateSellingUnitPrice(optionName)
+    const option = product.sellingUnits.options.find((opt) => opt.name === optionName)
+
+    if (!option) {
+      return res.status(404).json({
+        success: false,
+        message: "Selling unit option not found",
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        optionName,
+        displayName: option.displayName,
+        baseUnitQuantity: option.baseUnitQuantity,
+        priceType: option.priceType,
+        customPrice: option.customPrice,
+        calculatedPrice,
+        baseUnitName: product.sellingUnits.baseUnitName,
+      },
+    })
+  } catch (err) {
+    console.error("Get Selling Unit Price Error:", err.message)
+    res.status(500).json({
+      success: false,
+      message: "Error calculating selling unit price",
       error: err.message,
     })
   }

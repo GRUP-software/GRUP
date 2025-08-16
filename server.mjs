@@ -160,6 +160,29 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api', (req, res, next) => {
+  console.log(`[v0] API Request: ${req.method} ${req.path}`);
+  console.log(`[v0] Full URL: ${req.originalUrl}`);
+  console.log(`[v0] Headers:`, req.headers);
+  next();
+});
+
+// API routes - NO RATE LIMITING
+app.use('/api/auth', authRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin-auth', adminAuthRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/group', groupRoutes); // Keep only one registration
+app.use('/api/cart', cartRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/live-users', liveUserRoutes);
+
+// NEW API routes
+app.use('/api/webhook', webhookRoutes);
+// REMOVED DUPLICATE: app.use('/api/groupbuy', groupBuyRoutes);
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   logger.info(`User connected: ${socket.id}`);
@@ -236,22 +259,6 @@ app.get('/api/test-image/:filename', (req, res) => {
     }
   });
 });
-
-// API routes - NO RATE LIMITING
-app.use('/api/auth', authRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin-auth', adminAuthRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/group', groupRoutes); // Keep only one registration
-app.use('/api/cart', cartRoutes);
-app.use('/api/wallet', walletRoutes);
-app.use('/api/live-users', liveUserRoutes);
-
-// NEW API routes
-app.use('/api/webhook', webhookRoutes);
-// REMOVED DUPLICATE: app.use('/api/groupbuy', groupBuyRoutes);
 
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {

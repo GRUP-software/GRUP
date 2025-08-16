@@ -31,13 +31,19 @@ export const checkout = async (req, res) => {
         })
       }
 
-      const itemTotal = product.price * item.quantity
+      // Use stored selling unit price if available, otherwise fall back to product price
+      let itemPrice = item.unitPrice || product.price
+      if (item.sellingUnit && product.sellingUnits?.enabled) {
+        itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || product.price
+      }
+
+      const itemTotal = itemPrice * item.quantity
       totalPrice += itemTotal
 
       cartItems.push({
         productId: product._id,
         quantity: item.quantity,
-        price: product.price, // Store price at time of purchase
+        price: itemPrice, // Store the actual selling unit price at time of purchase
       })
     }
 

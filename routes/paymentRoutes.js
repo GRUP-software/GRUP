@@ -5,6 +5,7 @@ import {
   handlePaystackWebhook,
   verifyPayment,
   getUserPaymentHistory,
+  testCreateGroupBuy,
 } from "../controllers/paymentController.js"
 
 const router = express.Router()
@@ -20,5 +21,8 @@ router.get("/verify/:reference", verifyToken, verifyPayment)
 
 // Route to get user's payment history
 router.get("/history", verifyToken, getUserPaymentHistory)
+
+// Test route to manually create group buys (for debugging)
+router.post("/test-groupbuy/:paymentHistoryId", verifyToken, testCreateGroupBuy)
 
 export default router

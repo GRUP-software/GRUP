@@ -1,3 +1,4 @@
+import mongoose from "mongoose"
 import GroupBuy from "../models/GroupBuy.js"
 import Order from "../models/order.js"
 import Wallet from "../models/Wallet.js"
@@ -148,18 +149,22 @@ export const getAllGroupBuys = async (req, res) => {
       groupBuyObj.participantCount = groupBuy.getParticipantCount()
       groupBuyObj.isExpired = groupBuy.isExpired()
 
-      // Add user-specific data if userId provided
-      if (userId) {
-        const userParticipation = groupBuy.getParticipant(userId)
-        if (userParticipation) {
-          groupBuyObj.userParticipation = {
-            quantity: userParticipation.quantity,
-            amount: userParticipation.amount,
-            joinedAt: userParticipation.joinedAt,
-            purchaseCount: userParticipation.paymentHistories.length,
-          }
-        }
-      }
+             // Add user-specific data if userId provided
+       if (userId) {
+         const userParticipation = groupBuy.getParticipant(userId)
+         if (userParticipation) {
+           groupBuyObj.userParticipation = {
+             userQuantity: userParticipation.quantity,
+             userAmount: userParticipation.amount,
+             userTotalSpent: userParticipation.amount,
+             userContributionPercentage: groupBuy.minimumViableUnits > 0 
+               ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
+               : 0,
+             userJoinedAt: userParticipation.joinedAt,
+             userPurchaseCount: userParticipation.paymentHistories.length,
+           }
+         }
+       }
 
       return groupBuyObj
     })
@@ -180,49 +185,153 @@ export const getAllGroupBuys = async (req, res) => {
   }
 }
 
-// Get user's group buys with enhanced data
+// Get user's group buys with enhanced data and sorting
 export const getUserGroupBuys = async (req, res) => {
   try {
     const userId = req.user.id
-    const { status, page = 1, limit = 10 } = req.query
+    
+    // Ensure userId is properly converted to ObjectId for consistent comparison
+    const userIdObj = new mongoose.Types.ObjectId(userId)
+    
+    const { status, page = 1, limit = 50, sortBy = "createdAt", sortOrder = "desc" } = req.query
 
     // Build filter
-    const filter = { "participants.userId": userId }
+    const filter = { "participants.userId": userIdObj }
     if (status) filter.status = status
 
+    // Build sort object
+    const sort = {}
+    sort[sortBy] = sortOrder === "desc" ? -1 : 1
+    
     const groupBuys = await GroupBuy.find(filter)
-      .populate("productId", "title price images category slug")
-      .sort({ createdAt: -1 })
+      .populate("productId", "title price images category slug unitTag")
+      .populate("participants.userId", "firstName lastName email")
+      .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit)
 
     const total = await GroupBuy.countDocuments(filter)
 
-    // Enhanced response with user-specific data
+    // Enhanced response with user-specific data and progress information
     const userGroupBuys = groupBuys.map((groupBuy) => {
-      const userParticipation = groupBuy.getParticipant(userId)
+      const userParticipation = groupBuy.getParticipant(userIdObj)
+      
+      const progressPercentage = groupBuy.getProgressPercentage()
+      const isExpired = groupBuy.isExpired()
+      const timeRemaining = Math.max(0, groupBuy.expiresAt - new Date())
+      const participantCount = groupBuy.getParticipantCount()
+      const spotsRemaining = Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold)
 
-      return {
-        _id: groupBuy._id,
-        productId: groupBuy.productId,
-        status: groupBuy.status,
-        unitsSold: groupBuy.unitsSold,
-        minimumViableUnits: groupBuy.minimumViableUnits,
-        totalAmountCollected: groupBuy.totalAmountCollected,
-        participants: groupBuy.participants,
-        expiresAt: groupBuy.expiresAt,
-        createdAt: groupBuy.createdAt,
-        // User-specific data
-        userQuantity: userParticipation?.quantity || 0,
-        userAmount: userParticipation?.amount || 0,
-        userJoinedAt: userParticipation?.joinedAt,
-        userPurchaseCount: userParticipation?.paymentHistories.length || 0,
+      // Determine display status
+      let displayStatus = groupBuy.status
+      let statusLabel = ""
+      let statusColor = ""
+
+      if (groupBuy.status === "active") {
+        if (isExpired) {
+          displayStatus = "failed"
+          statusLabel = "Expired"
+          statusColor = "red"
+        } else if (progressPercentage >= 100) {
+          displayStatus = "successful"
+          statusLabel = "Successful"
+          statusColor = "green"
+        } else {
+          statusLabel = "Forming"
+          statusColor = "yellow"
+        }
+      } else if (groupBuy.status === "successful") {
+        statusLabel = "Successful"
+        statusColor = "green"
+      } else if (groupBuy.status === "failed") {
+        statusLabel = "Failed"
+        statusColor = "red"
+      } else if (groupBuy.status === "manual_review") {
+        statusLabel = "Under Review"
+        statusColor = "orange"
+      } else if (groupBuy.status === "refunded") {
+        statusLabel = "Refunded"
+        statusColor = "gray"
       }
+
+             return {
+         _id: groupBuy._id,
+         productId: groupBuy.productId,
+         status: groupBuy.status,
+         displayStatus,
+         statusLabel,
+         statusColor,
+         
+         // GROUP BUY OVERALL DATA:
+         unitsSold: groupBuy.unitsSold,
+         minimumViableUnits: groupBuy.minimumViableUnits,
+         totalAmountCollected: groupBuy.totalAmountCollected,
+         progressPercentage: Math.round(progressPercentage),
+         
+                   // CURRENT USER'S ACTUAL PARTICIPATION DATA:
+          userQuantity: userParticipation?.quantity || 0,
+          userAmount: userParticipation?.amount || 0,
+          userTotalSpent: userParticipation?.amount || 0, // Alternative field name as requested
+          userContributionPercentage: groupBuy.minimumViableUnits > 0 
+            ? Math.round((userParticipation?.quantity || 0) / groupBuy.minimumViableUnits * 100)
+            : 0,
+         userJoinedAt: userParticipation?.joinedAt,
+         userPurchaseCount: userParticipation?.paymentHistories.length || 0,
+         
+         // Additional progress information
+         timeRemaining,
+         isExpired,
+         participantCount,
+         spotsRemaining,
+         isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
+         canAcceptMore: groupBuy.canAcceptMoreParticipants(),
+         expiresAt: groupBuy.expiresAt,
+         createdAt: groupBuy.createdAt,
+         updatedAt: groupBuy.updatedAt,
+       }
     })
 
+    // Get statistics for the user - calculate totals from ALL group buys, not just paginated results
+    const allUserGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj })
+      .populate("productId", "title price images category slug unitTag")
+      .populate("participants.userId", "firstName lastName email")
+    
+    let totalSpent = 0
+    let totalUnits = 0
+    
+    allUserGroupBuys.forEach(groupBuy => {
+      const userParticipation = groupBuy.getParticipant(userIdObj)
+      if (userParticipation) {
+        totalSpent += userParticipation.amount
+        totalUnits += userParticipation.quantity
+      }
+    })
+    
+    const stats = {
+      total: total,
+      forming: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: "active",
+        expiresAt: { $gt: new Date() }
+      }),
+      successful: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: "successful" 
+      }),
+      failed: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: { $in: ["failed", "manual_review"] } 
+      }),
+      totalSpent: totalSpent,
+      totalUnits: totalUnits,
+    }
+
+
+    
     res.json({
       success: true,
       data: userGroupBuys,
+      stats,
       pagination: {
         page: Number.parseInt(page),
         limit: Number.parseInt(limit),
@@ -257,18 +366,22 @@ export const getGroupBuyById = async (req, res) => {
       isExpired: groupBuy.isExpired(),
     }
 
-    // Add user-specific data if user is authenticated
-    if (userId) {
-      const userParticipation = groupBuy.getParticipant(userId)
-      if (userParticipation) {
-        groupBuyData.userParticipation = {
-          quantity: userParticipation.quantity,
-          amount: userParticipation.amount,
-          joinedAt: userParticipation.joinedAt,
-          purchaseCount: userParticipation.paymentHistories.length,
-        }
-      }
-    }
+         // Add user-specific data if user is authenticated
+     if (userId) {
+       const userParticipation = groupBuy.getParticipant(userId)
+       if (userParticipation) {
+         groupBuyData.userParticipation = {
+           userQuantity: userParticipation.quantity,
+           userAmount: userParticipation.amount,
+           userTotalSpent: userParticipation.amount,
+           userContributionPercentage: groupBuy.minimumViableUnits > 0 
+             ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
+             : 0,
+           userJoinedAt: userParticipation.joinedAt,
+           userPurchaseCount: userParticipation.paymentHistories.length,
+         }
+       }
+     }
 
     res.json({
       success: true,
@@ -312,6 +425,71 @@ export const getGroupBuyStats = async (req, res) => {
   } catch (error) {
     logger.error("Get group buy stats error:", error)
     res.status(500).json({ message: "Error fetching group buy statistics", error: error.message })
+  }
+}
+
+// Get user's group buy statistics
+export const getUserGroupBuyStats = async (req, res) => {
+  try {
+    const userId = req.user.id
+    
+    // Ensure userId is properly converted to ObjectId for consistent comparison
+    const userIdObj = new mongoose.Types.ObjectId(userId)
+
+    const stats = {
+      total: await GroupBuy.countDocuments({ "participants.userId": userIdObj }),
+      forming: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: "active",
+        expiresAt: { $gt: new Date() }
+      }),
+      successful: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: "successful" 
+      }),
+      failed: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: { $in: ["failed", "manual_review"] } 
+      }),
+      expired: await GroupBuy.countDocuments({ 
+        "participants.userId": userIdObj, 
+        status: "active",
+        expiresAt: { $lt: new Date() }
+      }),
+    }
+
+    // Get total amount spent and units purchased
+    const userGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj })
+      .populate("participants.userId", "firstName lastName")
+
+    let totalSpent = 0
+    let totalUnits = 0
+    let totalContribution = 0
+
+    userGroupBuys.forEach(groupBuy => {
+      const userParticipation = groupBuy.getParticipant(userIdObj)
+      if (userParticipation) {
+        totalSpent += userParticipation.amount
+        totalUnits += userParticipation.quantity
+        totalContribution += groupBuy.minimumViableUnits > 0 
+          ? (userParticipation.quantity / groupBuy.minimumViableUnits * 100)
+          : 0
+      }
+    })
+
+    stats.totalSpent = totalSpent
+    stats.totalUnits = totalUnits
+    stats.averageContribution = userGroupBuys.length > 0 ? Math.round(totalContribution / userGroupBuys.length) : 0
+
+
+    
+    res.json({
+      success: true,
+      stats,
+    })
+  } catch (error) {
+    logger.error("Get user group buy stats error:", error)
+    res.status(500).json({ message: "Error fetching user group buy stats", error: error.message })
   }
 }
 
@@ -615,5 +793,59 @@ export const updateGroupBuyMVU = async (req, res) => {
   } catch (error) {
     logger.error("Update group buy MVU error:", error)
     res.status(500).json({ message: "Error updating group buy MVU", error: error.message })
+  }
+}
+
+// Get group buy status for a specific product
+export const getGroupBuyStatus = async (req, res) => {
+  try {
+    const { productId } = req.params
+
+    const groupBuy = await GroupBuy.findOne({
+      productId,
+      status: { $in: ["active", "successful"] },
+      expiresAt: { $gt: new Date() },
+    }).populate("productId", "title price images description unitTag slug")
+
+    if (!groupBuy) {
+      const product = await Product.findById(productId)
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" })
+      }
+
+      // Return default status for products without active group buys
+      return res.json({
+        success: true,
+        hasActiveGroupBuy: false,
+        data: {
+          productId: product,
+          status: "inactive",
+          unitsSold: 0,
+          minimumViableUnits: product.minimumViableUnits || 20,
+          progressPercentage: 0,
+          timeRemaining: 0,
+          participantCount: 0,
+          spotsRemaining: product.minimumViableUnits || 20,
+        },
+      })
+    }
+
+    const enrichedGroupBuy = {
+      ...groupBuy.toObject(),
+      progressPercentage: groupBuy.getProgressPercentage(),
+      timeRemaining: Math.max(0, groupBuy.expiresAt - new Date()),
+      participantCount: groupBuy.getParticipantCount(),
+      spotsRemaining: Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold),
+      hasActiveGroupBuy: true,
+    }
+
+    res.json({
+      success: true,
+      hasActiveGroupBuy: true,
+      data: enrichedGroupBuy,
+    })
+  } catch (error) {
+    logger.error("Get group buy status error:", error)
+    res.status(500).json({ message: "Error fetching group buy status", error: error.message })
   }
 }

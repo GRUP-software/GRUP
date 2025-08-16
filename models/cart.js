@@ -5,6 +5,7 @@ const cartItemSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
   quantity: { type: Number, required: true },
   variant: { type: String },
+  unitPrice: { type: Number }, // Store the calculated unit price
   sellingUnit: {
     optionName: { type: String }, 
     displayName: { type: String }, 

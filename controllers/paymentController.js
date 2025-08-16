@@ -96,6 +96,7 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
 export const processGroupBuys = async (paymentHistory) => {
   const groupBuys = []
   console.log(`🔄 Processing GroupBuys for PaymentHistory: ${paymentHistory._id}`)
+  console.log(`📦 PaymentHistory cartItems:`, JSON.stringify(paymentHistory.cartItems, null, 2))
 
   try {
     for (const item of paymentHistory.cartItems) {
@@ -388,16 +389,19 @@ export const initializePayment = async (req, res) => {
         return res.status(400).json({ message: `Insufficient stock for ${product.title}` })
       }
 
-      // Use product.price (no delivery fees)
-      const itemPrice = product.price
-      const itemTotal = itemPrice * quantity
+      // Use stored selling unit price if available, otherwise fall back to product price
+      let itemPrice = item.unitPrice || product.price
+      if (item.sellingUnit && product.sellingUnits?.enabled) {
+        itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || product.price
+      }
 
+      const itemTotal = itemPrice * quantity
       totalPrice += itemTotal
 
       cartItems.push({
         productId: product._id,
         quantity: quantity,
-        price: itemPrice,
+        price: itemPrice, // Store the actual selling unit price
       })
     }
 
@@ -525,6 +529,7 @@ export const handlePaystackWebhook = async (req, res) => {
     console.log("🔔 Paystack Webhook Received")
     console.log("Event Type:", event.event)
     console.log("Reference:", event.data?.reference)
+    console.log("Full webhook body:", JSON.stringify(event, null, 2))
 
     const hash = crypto
       .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
@@ -597,6 +602,50 @@ export const handlePaystackWebhook = async (req, res) => {
   } catch (error) {
     console.error("❌ Webhook error:", error)
     res.status(500).json({ message: "Webhook processing failed" })
+  }
+}
+
+// Test endpoint to manually create group buys (for debugging)
+export const testCreateGroupBuy = async (req, res) => {
+  try {
+    const { paymentHistoryId } = req.params
+    
+    console.log(`🧪 Testing group buy creation for PaymentHistory: ${paymentHistoryId}`)
+    
+    const paymentHistory = await PaymentHistory.findById(paymentHistoryId)
+    if (!paymentHistory) {
+      return res.status(404).json({ message: "PaymentHistory not found" })
+    }
+    
+    console.log(`📦 Found PaymentHistory:`, {
+      id: paymentHistory._id,
+      status: paymentHistory.status,
+      cartItems: paymentHistory.cartItems,
+      userId: paymentHistory.userId
+    })
+    
+    const groupBuys = await processGroupBuys(paymentHistory)
+    
+    res.json({
+      success: true,
+      message: "Test group buy creation completed",
+      paymentHistoryId: paymentHistory._id,
+      groupBuysCreated: groupBuys.length,
+      groupBuys: groupBuys.map(gb => ({
+        id: gb._id,
+        productId: gb.productId,
+        status: gb.status,
+        unitsSold: gb.unitsSold,
+        minimumViableUnits: gb.minimumViableUnits
+      }))
+    })
+  } catch (error) {
+    console.error("❌ Test group buy creation error:", error)
+    res.status(500).json({ 
+      message: "Test failed", 
+      error: error.message,
+      stack: error.stack 
+    })
   }
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Users, Package, Clock, ShoppingCart, Share2, Zap, ChevronDown } from "lucide-react"
 import GroupProgressCard from "./GroupProgressCard"
 
@@ -19,8 +19,8 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
   useEffect(() => {
     fetchGroupProgress()
 
-    if (product.sellingUnits?.enabled && product.sellingUnits.options?.length > 0) {
-      const activeOptions = product.sellingUnits.options.filter((opt: any) => opt.isActive)
+    if (product.sellingUnitsData?.enabled && product.sellingUnitsData.options?.length > 0) {
+      const activeOptions = product.sellingUnitsData.options.filter((opt: any) => opt.isActive)
       if (activeOptions.length > 0) {
         setSelectedSellingUnit(activeOptions[0])
       }
@@ -45,18 +45,23 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
 
   const handleJoinGroup = () => {
     if (onAddToCart) {
-      onAddToCart(product._id, quantity, selectedVariant, selectedSellingUnit)
+      const sellingUnitData = selectedSellingUnit
+        ? {
+            optionName: selectedSellingUnit.name,
+            displayName: selectedSellingUnit.displayName,
+            baseUnitQuantity: selectedSellingUnit.baseUnitQuantity,
+            baseUnitName: product.sellingUnitsData?.baseUnitName || "unit",
+            pricePerUnit: selectedSellingUnit.calculatedPrice,
+            totalBaseUnits: selectedSellingUnit.baseUnitQuantity * quantity,
+          }
+        : null
+
+      onAddToCart(product._id, quantity, selectedVariant, sellingUnitData)
     }
   }
 
   const getCurrentPrice = () => {
-    if (selectedSellingUnit) {
-      if (selectedSellingUnit.priceType === "manual" && selectedSellingUnit.customPrice > 0) {
-        return selectedSellingUnit.customPrice
-      }
-      return (product.sellingUnits.baseUnitPrice || 0) * selectedSellingUnit.baseUnitQuantity
-    }
-    return product.basePrice || product.price
+    return product.price // Always show base product price
   }
 
   const getDisplayUnit = () => {
@@ -67,10 +72,11 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
   }
 
   const getBaseUnitDisplay = () => {
-    if (selectedSellingUnit && product.sellingUnits?.enabled) {
+    if (selectedSellingUnit && product.sellingUnitsData?.enabled) {
       const totalBaseUnits = selectedSellingUnit.baseUnitQuantity * quantity
-      const unitName = totalBaseUnits === 1 ? product.sellingUnits.baseUnitName : product.sellingUnits.baseUnit
-      return `${totalBaseUnits} ${unitName}`
+      const unitName = product.sellingUnitsData.baseUnitName || "unit"
+      const pluralUnit = totalBaseUnits === 1 ? unitName : `${unitName}s`
+      return `${totalBaseUnits} ${pluralUnit}`
     }
     return null
   }
@@ -93,9 +99,9 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
 
   const hasActiveGroup = groupProgress && groupProgress.status === "forming"
   const isGroupSecured = groupProgress && groupProgress.status === "secured"
-  const hasSellingUnits = product.sellingUnits?.enabled && product.sellingUnits.options?.length > 0
+  const hasSellingUnits = product.sellingUnitsData?.enabled && product.sellingUnitsData.options?.length > 0
   const hasVariants = product.variants?.length > 0
-  const activeSellingUnits = hasSellingUnits ? product.sellingUnits.options.filter((opt: any) => opt.isActive) : []
+  const activeSellingUnits = hasSellingUnits ? product.sellingUnitsData.options.filter((opt: any) => opt.isActive) : []
 
   return (
     <div className="group border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
@@ -164,16 +170,13 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
                 className="w-full p-3 border rounded-md appearance-none bg-white pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {activeSellingUnits.map((option: any, index: number) => {
-                  const optionPrice =
-                    option.priceType === "manual" && option.customPrice > 0
-                      ? option.customPrice
-                      : (product.sellingUnits.baseUnitPrice || 0) * option.baseUnitQuantity
+                  const optionPrice = option.calculatedPrice || 0
 
                   return (
                     <option key={index} value={option.name}>
                       {option.displayName} - ₦{optionPrice.toLocaleString()}
                       {option.baseUnitQuantity > 1 &&
-                        ` (${option.baseUnitQuantity} ${product.sellingUnits.baseUnitName}s)`}
+                        ` (${option.baseUnitQuantity} ${product.sellingUnitsData.baseUnitName}s)`}
                     </option>
                   )
                 })}

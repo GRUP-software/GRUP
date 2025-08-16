@@ -3,11 +3,13 @@ import { verifyToken } from "../middleware/authMiddleware.js"
 import {
   getActiveGroupBuys,
   getUserGroupBuys,
+  getUserGroupBuyStats,
   getManualReviewGroupBuys,
   getGroupBuyStats,
   getGroupBuyByProduct,
   getAllGroupBuys,
   getGroupBuyById,
+  getGroupBuyStatus,
   reviewGroupBuy,
   updateGroupBuyMVU,
 } from "../controllers/groupBuyController.js"
@@ -24,6 +26,9 @@ router.get("/all", getAllGroupBuys)
 // Get user's group buy participations
 router.get("/my-groups", verifyToken, getUserGroupBuys)
 
+// Get user's group buy statistics
+router.get("/my-stats", verifyToken, getUserGroupBuyStats)
+
 // Get group buy statistics
 router.get("/stats", getGroupBuyStats)
 
@@ -32,6 +37,9 @@ router.get("/manual-review", verifyToken, getManualReviewGroupBuys)
 
 // Get group buy for specific product
 router.get("/product/:productId", getGroupBuyByProduct)
+
+// Get group buy status for specific product
+router.get("/group-status/:productId", getGroupBuyStatus)
 
 // Debug endpoint to check database state
 router.get("/debug", async (req, res) => {

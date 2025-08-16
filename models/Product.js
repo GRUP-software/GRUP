@@ -37,22 +37,20 @@ const productSchema = new Schema(
     ],
     sellingUnits: {
       enabled: { type: Boolean, default: false },
-      baseUnit: { type: String }, // e.g., "250g portions", "paints", "pieces"
-      baseUnitName: { type: String }, // e.g., "250g portion", "paint", "piece"
+      baseUnitName: { type: String }, // e.g., "paint", "250g portion"
       baseUnitPrice: { type: Number }, // Price per base unit
       options: [
         {
-          name: { type: String }, // Removed required to prevent validation errors
-          displayName: { type: String }, // Removed required to prevent validation errors
-          baseUnitQuantity: { type: Number, default: 1 }, // Added default value
+          name: { type: String }, // e.g., "1_paint", "half_bag"
+          displayName: { type: String }, // e.g., "1 Paint", "Half Bag"
+          baseUnitQuantity: { type: Number, default: 1 }, // How many base units
           priceType: {
             type: String,
-            enum: ["manual", "calculated"],
+            enum: ["calculated", "manual"],
             default: "calculated",
           },
-          customPrice: { type: Number, default: 0 }, // Manual price override
-          image: { type: String }, // Optional image for this selling unit option
-          description: { type: String }, // Optional description
+          customPrice: { type: Number, default: 0 }, // For manual pricing
+          image: { type: String }, // Image for this option
           isActive: { type: Boolean, default: true },
         },
       ],
@@ -63,6 +61,26 @@ const productSchema = new Schema(
   },
 )
 
+productSchema.methods.calculateSellingUnitPrice = function (optionName) {
+  if (!this.sellingUnits.enabled) return this.price
+
+  const option = this.sellingUnits.options.find((opt) => opt.name === optionName)
+  if (!option) return this.price
+
+  if (option.priceType === "manual" && option.customPrice > 0) {
+    return option.customPrice
+  }
+
+  // Calculate based on base unit price and quantity
+  const basePrice = this.sellingUnits.baseUnitPrice || this.price / 1
+  return Math.round(basePrice * option.baseUnitQuantity)
+}
+
+productSchema.methods.getActiveSellingUnits = function () {
+  if (!this.sellingUnits.enabled) return []
+  return this.sellingUnits.options.filter((option) => option.isActive)
+}
+
 // Generate slug from title before saving
 productSchema.pre("save", function (next) {
   if (this.isModified("title") || !this.slug) {
@@ -70,29 +88,6 @@ productSchema.pre("save", function (next) {
   }
   next()
 })
-
-productSchema.methods.getSellingUnitPrice = function (optionIndex) {
-  if (!this.sellingUnits.enabled || !this.sellingUnits.options[optionIndex]) {
-    return this.price
-  }
-
-  const option = this.sellingUnits.options[optionIndex]
-
-  if (option.priceType === "manual" && option.customPrice > 0) {
-    return option.customPrice
-  }
-
-  // Calculate price based on base unit price and quantity
-  return this.sellingUnits.baseUnitPrice * option.baseUnitQuantity
-}
-
-productSchema.methods.getActiveSellingUnits = function () {
-  if (!this.sellingUnits.enabled) {
-    return []
-  }
-
-  return this.sellingUnits.options.filter((option) => option.isActive)
-}
 
 const Product = mongoose.model("Product", productSchema)
 export default Product

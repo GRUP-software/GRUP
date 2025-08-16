@@ -17,14 +17,16 @@ const calculateSellingUnitPrice = (product, sellingUnit) => {
 
 const formatCartItems = (cartItems) => {
   return cartItems.map((item) => {
-    let itemPrice = item.product.price
+    // Use stored unitPrice if available, otherwise fall back to product price
+    let itemPrice = item.unitPrice || item.product.price
     let displayInfo = {
       displayName: `${item.quantity} ${item.product.unitTag}`,
       baseUnitDisplay: null,
     }
 
     if (item.sellingUnit && item.product.sellingUnits?.enabled) {
-      itemPrice = item.sellingUnit.pricePerUnit
+      // For selling units, use the stored pricePerUnit from sellingUnit
+      itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || item.product.price
       displayInfo = {
         displayName: `${item.quantity} ${item.sellingUnit.displayName}`,
         baseUnitDisplay: `${item.sellingUnit.totalBaseUnits} ${item.sellingUnit.baseUnitName}${item.sellingUnit.totalBaseUnits > 1 ? "s" : ""}`,
@@ -63,10 +65,12 @@ export const getCart = async (req, res) => {
 
     for (const item of cart.items) {
       if (item.product) {
-        let itemPrice = item.product.price
+        // Use stored unitPrice if available, otherwise fall back to product price
+        let itemPrice = item.unitPrice || item.product.price
 
         if (item.sellingUnit && item.product.sellingUnits?.enabled) {
-          itemPrice = item.sellingUnit.pricePerUnit
+          // For selling units, use the stored pricePerUnit from sellingUnit
+          itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || item.product.price
         }
 
         const itemTotal = itemPrice * item.quantity
@@ -135,10 +139,16 @@ export const addToCart = async (req, res) => {
     }
 
     let sellingUnitData = null
+    let itemUnitPrice = product.price // Default to product price
+
     if (sellingUnit && product.sellingUnits?.enabled) {
       const unitPrice = calculateSellingUnitPrice(product, sellingUnit)
+
       const baseUnitQuantity = Number(sellingUnit.baseUnitQuantity) || 0
       const validQuantity = Number(quantity) || 1
+
+      // Store the calculated unit price for this selling unit
+      itemUnitPrice = unitPrice
 
       sellingUnitData = {
         optionName: sellingUnit.name,
@@ -152,8 +162,17 @@ export const addToCart = async (req, res) => {
 
     const existingItemIndex = cart.items.findIndex((item) => {
       const productMatch = item.product.toString() === productId
-      const variantMatch = item.variant === variant
-      const sellingUnitMatch = item.sellingUnit?.optionName === sellingUnitData?.optionName
+      
+      // Normalize variant comparison - treat null and undefined as equivalent
+      const normalizedRequestVariant = variant || null
+      const normalizedItemVariant = item.variant || null
+      const variantMatch = normalizedRequestVariant === normalizedItemVariant
+      
+      // Normalize selling unit comparison - treat null and undefined as equivalent
+      const normalizedRequestSellingUnit = sellingUnitData?.optionName || null
+      const normalizedItemSellingUnit = item.sellingUnit?.optionName || null
+      const sellingUnitMatch = normalizedRequestSellingUnit === normalizedItemSellingUnit
+      
       return productMatch && variantMatch && sellingUnitMatch
     })
 
@@ -167,6 +186,7 @@ export const addToCart = async (req, res) => {
       }
 
       cart.items[existingItemIndex].quantity = newQuantity
+      cart.items[existingItemIndex].unitPrice = itemUnitPrice
       if (cart.items[existingItemIndex].sellingUnit) {
         const baseUnitQuantity = Number(cart.items[existingItemIndex].sellingUnit.baseUnitQuantity) || 0
         const validNewQuantity = Number(newQuantity) || 0
@@ -185,6 +205,7 @@ export const addToCart = async (req, res) => {
         quantity,
         variant,
         sellingUnit: sellingUnitData,
+        unitPrice: itemUnitPrice, // Store the calculated unit price
       }
       cart.items.push(newItem)
     }
@@ -196,9 +217,11 @@ export const addToCart = async (req, res) => {
 
     let totalPrice = 0
     for (const item of updatedCart.items) {
-      let itemPrice = item.product.price
-      if (item.sellingUnit) {
-        itemPrice = item.sellingUnit.pricePerUnit
+      // Use stored unitPrice if available, otherwise fall back to product price
+      let itemPrice = item.unitPrice || item.product.price
+      if (item.sellingUnit && item.product.sellingUnits?.enabled) {
+        // For selling units, use the stored pricePerUnit from sellingUnit
+        itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || item.product.price
       }
       totalPrice += itemPrice * item.quantity
     }
@@ -230,6 +253,8 @@ export const updateCartQuantity = async (req, res) => {
     const { productId, quantity, variant, sellingUnitName } = req.body
     const userId = req.user.id
 
+    console.log("[v0] Update cart request:", { productId, quantity, variant, sellingUnitName })
+
     if (!productId) {
       return res.status(400).json({ message: "Product ID is required" })
     }
@@ -241,16 +266,61 @@ export const updateCartQuantity = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" })
     }
 
+    console.log("[v0] Cart items for matching:")
+    cart.items.forEach((item, index) => {
+      console.log(`[v0] Item ${index}:`, {
+        productId: item.product.toString(),
+        variant: item.variant,
+        sellingUnitName: item.sellingUnit?.optionName,
+        sellingUnitExists: !!item.sellingUnit,
+      })
+    })
+
     const itemIndex = cart.items.findIndex((item) => {
       const productMatch = item.product.toString() === productId
-      const variantMatch = item.variant === variant
-      const sellingUnitMatch = item.sellingUnit?.optionName === sellingUnitName
+      
+      // Normalize variant comparison - treat null and undefined as equivalent
+      const normalizedRequestVariant = variant || null
+      const normalizedItemVariant = item.variant || null
+      const variantMatch = normalizedRequestVariant === normalizedItemVariant
+      
+      // Normalize selling unit comparison - treat null and undefined as equivalent
+      const normalizedRequestSellingUnit = sellingUnitName || null
+      const normalizedItemSellingUnit = item.sellingUnit?.optionName || null
+      const sellingUnitMatch = normalizedRequestSellingUnit === normalizedItemSellingUnit
+
+      console.log("[v0] Matching attempt:", {
+        productMatch,
+        variantMatch,
+        sellingUnitMatch,
+        itemProductId: item.product.toString(),
+        itemVariant: item.variant,
+        itemSellingUnitName: item.sellingUnit?.optionName,
+        normalizedRequestVariant,
+        normalizedItemVariant,
+        normalizedRequestSellingUnit,
+        normalizedItemSellingUnit,
+      })
+
       return productMatch && variantMatch && sellingUnitMatch
     })
 
     if (itemIndex === -1) {
-      return res.status(404).json({ message: "Item not found in cart" })
+      console.log("[v0] No matching item found")
+      return res.status(404).json({
+        message: "Item not found in cart",
+        debug: {
+          searchingFor: { productId, variant, sellingUnitName },
+          availableItems: cart.items.map((item) => ({
+            productId: item.product.toString(),
+            variant: item.variant,
+            sellingUnitName: item.sellingUnit?.optionName,
+          })),
+        },
+      })
     }
+
+    console.log("[v0] Found matching item at index:", itemIndex)
 
     // If quantity is 0 or less, remove item
     if (validQuantity <= 0) {
@@ -269,9 +339,19 @@ export const updateCartQuantity = async (req, res) => {
       }
 
       cart.items[itemIndex].quantity = validQuantity
-      if (cart.items[itemIndex].sellingUnit) {
+
+      if (cart.items[itemIndex].sellingUnit && product.sellingUnits?.enabled) {
+        // Recalculate selling unit price
+        const sellingUnitPrice = calculateSellingUnitPrice(product, cart.items[itemIndex].sellingUnit)
+        cart.items[itemIndex].unitPrice = sellingUnitPrice
+        cart.items[itemIndex].sellingUnit.pricePerUnit = sellingUnitPrice
+
+        // Update total base units
         const baseUnitQuantity = Number(cart.items[itemIndex].sellingUnit.baseUnitQuantity) || 0
         cart.items[itemIndex].sellingUnit.totalBaseUnits = baseUnitQuantity * validQuantity
+      } else {
+        // For non-selling unit products, use base product price
+        cart.items[itemIndex].unitPrice = product.price
       }
     }
 
@@ -282,9 +362,11 @@ export const updateCartQuantity = async (req, res) => {
 
     let totalPrice = 0
     for (const item of updatedCart.items) {
-      let itemPrice = item.product.price
-      if (item.sellingUnit) {
-        itemPrice = item.sellingUnit.pricePerUnit
+      // Use stored unitPrice if available, otherwise fall back to product price
+      let itemPrice = item.unitPrice || item.product.price
+      if (item.sellingUnit && item.product.sellingUnits?.enabled) {
+        // For selling units, use the stored pricePerUnit from sellingUnit
+        itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || item.product.price
       }
       totalPrice += itemPrice * item.quantity
     }
@@ -338,7 +420,22 @@ export const clearCart = async (req, res) => {
 
     await Cart.findOneAndUpdate({ user: userId }, { items: [] }, { upsert: true })
 
-    res.json({ message: "Cart cleared successfully" })
+    // Return updated cart data after clearing
+    const updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
+    
+    const wallet = await Wallet.findOne({ user: userId })
+    const walletBalance = wallet?.balance || 0
+
+    res.json({ 
+      message: "Cart cleared successfully",
+      items: [],
+      totalPrice: 0,
+      itemCount: 0,
+      walletBalance,
+      maxWalletUse: 0,
+      remainingAfterWallet: 0,
+      cartId: updatedCart._id,
+    })
   } catch (error) {
     console.error("Clear cart error:", error)
     res.status(500).json({ message: "Error clearing cart", error: error.message })
