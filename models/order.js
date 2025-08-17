@@ -168,6 +168,57 @@ orderSchema.methods.calculatePriorityScore = function () {
   return this.priorityScore
 }
 
+// Post-save middleware to handle order status notifications
+orderSchema.post("save", async function(doc) {
+  // Check if this is a status change that should trigger notification
+  if (doc._statusChanged && doc._previousStatus) {
+    try {
+      const notificationService = (await import('../services/notificationService.js')).default;
+      
+      // Get status-specific messages
+      const statusMessages = {
+        'all_secured': 'All your group buys have been secured! Your order is now being processed.',
+        'processing': 'Your order is now being processed and prepared for fulfillment.',
+        'packaged': 'Your order has been packaged and is ready for fulfillment.',
+        'awaiting_fulfillment_choice': 'Please choose your fulfillment method (pickup or delivery).',
+        'ready_for_pickup': 'Your order is ready for pickup!',
+        'out_for_delivery': 'Your order is out for delivery!',
+        'delivered': 'Your order has been delivered successfully!',
+        'picked_up': 'Your order has been picked up successfully!',
+        'cancelled': 'Your order has been cancelled.',
+        'groups_under_review': 'Some of your group buys are under admin review.'
+      };
+      
+      const message = statusMessages[doc.currentStatus] || `Order status updated to: ${doc.currentStatus}`;
+      
+      await notificationService.notifyOrderStatusUpdate(
+        doc.user,
+        {
+          orderId: doc._id,
+          trackingNumber: doc.trackingNumber
+        },
+        doc.currentStatus,
+        message
+      );
+      
+      // Clear the flag
+      doc._statusChanged = false;
+      doc._previousStatus = null;
+    } catch (error) {
+      console.error('Failed to send order status notification:', error);
+    }
+  }
+});
+
+// Pre-save middleware to detect status changes
+orderSchema.pre("save", function(next) {
+  if (this.isModified('currentStatus')) {
+    this._statusChanged = true;
+    this._previousStatus = this._original?.currentStatus || this.currentStatus;
+  }
+  next();
+});
+
 // Index for efficient queries
 orderSchema.index({ user: 1, createdAt: -1 })
 orderSchema.index({ currentStatus: 1, priorityScore: -1 })

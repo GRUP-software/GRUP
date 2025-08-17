@@ -150,6 +150,14 @@ groupBuySchema.methods.addOrUpdateParticipant = function (userId, quantity, amou
   if (this.unitsSold >= this.minimumViableUnits && this.status === "active") {
     this.status = "successful"
     console.log(`GroupBuy ${this._id} reached MVU and marked as successful`)
+    
+    // Set a flag to indicate notifications should be sent
+    this._shouldSendNotifications = true;
+    this._notificationData = {
+      productId: this.productId,
+      participants: this.participants.map(p => p.userId),
+      groupBuyId: this._id
+    };
   }
 
   this.updatedAt = new Date()
@@ -244,6 +252,36 @@ groupBuySchema.pre("save", function (next) {
   }
 
   next()
+})
+
+// Post-save middleware to handle notifications
+groupBuySchema.post("save", async function(doc) {
+  // Check if notifications should be sent
+  if (doc._shouldSendNotifications && doc._notificationData) {
+    try {
+      const notificationService = (await import('../services/notificationService.js')).default;
+      const Product = (await import('./Product.js')).default;
+      
+      // Get product details for notification
+      const product = await Product.findById(doc._notificationData.productId);
+      const productName = product?.title || 'Product';
+      
+      // Notify all participants
+      for (const participantId of doc._notificationData.participants) {
+        await notificationService.notifyGroupBuySecured(
+          participantId,
+          productName,
+          doc._notificationData.groupBuyId
+        );
+      }
+      
+      // Clear the flag and data
+      doc._shouldSendNotifications = false;
+      doc._notificationData = null;
+    } catch (error) {
+      console.error('Failed to send group buy secured notifications:', error);
+    }
+  }
 })
 
 // Static method to create group buy with admin-set MVU

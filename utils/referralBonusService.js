@@ -142,6 +142,18 @@ export const processReferralBonus = async (userId) => {
 
     console.log(`✅ Referral bonus of ₦${bonusAmount} processed for user ${userId}`)
 
+    // Send referral bonus notification
+    try {
+      const notificationService = (await import('../services/notificationService.js')).default;
+      await notificationService.notifyReferralBonus(
+        userId,
+        bonusAmount,
+        `${eligibility.totalReferrals} users`
+      );
+    } catch (error) {
+      console.error('Failed to send referral bonus notification:', error);
+    }
+
     return {
       success: true,
       bonusAmount,

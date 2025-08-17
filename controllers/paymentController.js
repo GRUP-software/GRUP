@@ -393,13 +393,55 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
 
     await transaction.save();
 
+    // Send wallet update notification
+    try {
+      const notificationService = (await import('../services/notificationService.js')).default;
+      await notificationService.notifyWalletUpdate(
+        paymentHistory.userId,
+        originalBalance,
+        newWalletBalance,
+        'Order payment',
+        transaction._id
+      );
+    } catch (error) {
+      console.error('Failed to send wallet update notification:', error);
+    }
+
     // Mark payment as paid
     paymentHistory.status = "paid"
     await paymentHistory.save()
 
     // Clear user's cart
-    await Cart.findOneAndUpdate({ user: paymentHistory.userId }, { items: [] })
+    try {
+      const existingCart = await Cart.findOne({ user: paymentHistory.userId })
+      if (existingCart) {
+        existingCart.items = []
+        await existingCart.save()
+      }
+    } catch (cartError) {
+      console.error("Failed to clear cart:", cartError.message)
+    }
 
+    // Send payment success notification
+    try {
+      const notificationService = (await import('../services/notificationService.js')).default;
+      await notificationService.notifyPaymentSuccess(
+        paymentHistory.userId, 
+        paymentHistory.amount, 
+        'wallet', 
+        order._id
+      );
+      
+      // Send order creation notification (receipt)
+      await notificationService.notifyOrderCreated(paymentHistory.userId, {
+        orderId: order._id,
+        trackingNumber: order.trackingNumber,
+        totalAmount: paymentHistory.amount,
+        groupBuysJoined: groupBuys.length
+      });
+    } catch (error) {
+      console.error('Failed to send payment success notification:', error);
+    }
 
     res.json({
       success: true,
@@ -1019,6 +1061,38 @@ export const handlePaystackWebhook = async (req, res) => {
         }
       }
 
+      // Clear user's cart
+      try {
+        const existingCart = await Cart.findOne({ user: paymentHistory.userId })
+        if (existingCart) {
+          existingCart.items = []
+          await existingCart.save()
+        }
+      } catch (cartError) {
+        console.error("Failed to clear cart:", cartError.message)
+      }
+
+      // Send payment success notification
+      try {
+        const notificationService = (await import('../services/notificationService.js')).default;
+        await notificationService.notifyPaymentSuccess(
+          paymentHistory.userId, 
+          paymentHistory.amount, 
+          'paystack', 
+          order._id
+        );
+        
+        // Send order creation notification (receipt)
+        await notificationService.notifyOrderCreated(paymentHistory.userId, {
+          orderId: order._id,
+          trackingNumber: order.trackingNumber,
+          totalAmount: paymentHistory.amount,
+          groupBuysJoined: groupBuys.length
+        });
+      } catch (error) {
+        console.error('Failed to send payment success notification:', error);
+      }
+
       
     }
 
@@ -1028,6 +1102,8 @@ export const handlePaystackWebhook = async (req, res) => {
     res.status(500).json({ message: "Webhook processing failed" })
   }
 }
+
+
 
 // Test endpoint to manually create group buys (for debugging)
 export const testCreateGroupBuy = async (req, res) => {

@@ -36,6 +36,10 @@ import referralRoutes from './routes/referralRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+
+// Import notification service
+import notificationService from './services/notificationService.js';
 // REMOVED DUPLICATE: import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
 // Import controllers
@@ -183,6 +187,7 @@ app.use('/api/referral', referralRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/notifications', notificationRoutes);
 // REMOVED DUPLICATE: app.use('/api/groupbuy', groupBuyRoutes);
 
 // Socket.IO connection handling
@@ -221,6 +226,9 @@ io.on('connection', (socket) => {
 
 // Make io available to routes
 app.set('io', io);
+
+// Set up notification service with Socket.IO
+notificationService.setIO(io);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -339,6 +347,15 @@ const startServer = async () => {
     
     // Start group buy expiry job
     startGroupBuyExpiryJob();
+    
+    // Start group buy monitoring service
+    try {
+      const groupBuyMonitoringService = (await import('./services/groupBuyMonitoringService.js')).default;
+      groupBuyMonitoringService.startMonitoring();
+      logger.info('Group buy monitoring service started successfully');
+    } catch (error) {
+      logger.error('Failed to start group buy monitoring service:', error);
+    }
     
     // Scheduled jobs
     cron.schedule('0 * * * *', async () => {
