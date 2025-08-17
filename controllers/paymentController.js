@@ -10,10 +10,23 @@ import { nanoid } from "nanoid"
 import mongoose from "mongoose"
 import Product from "../models/Product.js" // Import Product model
 
+// Import formatCartItems function from cartController
+const formatCartItems = (cartItems) => {
+  return cartItems.map((item) => ({
+    _id: item._id,
+    product: item.product,
+    quantity: item.quantity,
+    price: item.price,
+    variant: item.variant,
+    sellingUnit: item.sellingUnit,
+    itemPrice: item.unitPrice || item.price,
+  }))
+}
+
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
   try {
-    console.log(`Creating order for PaymentHistory: ${paymentHistory._id}`)
+
 
     const trackingNumber = generateTrackingNumber()
 
@@ -51,7 +64,7 @@ const createOrderFromPayment = async (paymentHistory) => {
     paymentHistory.orderId = order._id
     await paymentHistory.save()
 
-    console.log(`✅ Order created: ${trackingNumber} for PaymentHistory: ${paymentHistory._id}`)
+    
     return order
   } catch (error) {
     console.error("❌ Error creating order from payment:", error)
@@ -62,7 +75,7 @@ const createOrderFromPayment = async (paymentHistory) => {
 // Helper function to link order items to group buys
 const linkOrderToGroupBuys = async (order, groupBuys) => {
   try {
-    console.log(`Linking order ${order.trackingNumber} to ${groupBuys.length} GroupBuys`)
+    
 
     // Create a map of productId to groupBuy for quick lookup
     const productGroupBuyMap = {}
@@ -85,7 +98,7 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
       order.checkAllGroupsSecured()
       order.calculatePriorityScore()
       await order.save()
-      console.log(`✅ Order ${order.trackingNumber} linked to GroupBuys`)
+
     }
   } catch (error) {
     console.error("❌ Error linking order to group buys:", error)
@@ -95,14 +108,11 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
 // Enhanced helper function to process group buys after successful payment with race condition protection
 export const processGroupBuys = async (paymentHistory) => {
   const groupBuys = []
-  console.log(`🔄 Processing GroupBuys for PaymentHistory: ${paymentHistory._id}`)
-  console.log(`📦 PaymentHistory cartItems:`, JSON.stringify(paymentHistory.cartItems, null, 2))
+  
 
   try {
     for (const item of paymentHistory.cartItems) {
-      console.log(
-        `Processing item: Product ${item.productId}, Quantity: ${item.quantity}, Amount: ${item.price * item.quantity}`,
-      )
+
 
       const itemAmount = item.price * item.quantity
 
@@ -111,7 +121,7 @@ export const processGroupBuys = async (paymentHistory) => {
       const paymentHistoryId = new mongoose.Types.ObjectId(paymentHistory._id)
       const productId = new mongoose.Types.ObjectId(item.productId)
 
-      console.log(`🔍 Processing for User: ${userId}, Product: ${productId}, Amount: ${itemAmount}`)
+      
 
       let groupBuy = null
       let isNewGroupBuy = false
@@ -125,12 +135,12 @@ export const processGroupBuys = async (paymentHistory) => {
         })
 
         if (groupBuy) {
-          console.log(`✅ Found existing GroupBuy: ${groupBuy._id}`)
+
 
           // Update existing GroupBuy using the model method
           groupBuy.addOrUpdateParticipant(userId, item.quantity, itemAmount, paymentHistoryId)
           await groupBuy.save()
-          console.log(`✅ Updated existing GroupBuy: ${groupBuy._id}`)
+          
         }
       } catch (error) {
         console.error(`❌ Error finding/updating existing GroupBuy:`, error)
@@ -140,7 +150,7 @@ export const processGroupBuys = async (paymentHistory) => {
       // If no existing GroupBuy found, create new one
       if (!groupBuy) {
         try {
-          console.log(`🆕 Creating new GroupBuy for product: ${productId}`)
+
 
           const product = await Product.findById(productId)
           if (!product) {
@@ -148,7 +158,7 @@ export const processGroupBuys = async (paymentHistory) => {
           }
 
           const productMVU = product.minimumViableUnits ?? 20;
-          console.log(`📊 Using product MVU: ${productMVU} for product: ${product.title}`)
+          
 
           // Validate participant data before creating GroupBuy
           const participantData = {
@@ -170,12 +180,7 @@ export const processGroupBuys = async (paymentHistory) => {
             throw new Error("Participant amount must be a positive number")
           }
 
-          console.log(`🔍 Creating participant with validated data:`, {
-            userId: participantData.userId.toString(),
-            quantity: participantData.quantity,
-            amount: participantData.amount,
-            paymentHistoriesCount: participantData.paymentHistories.length,
-          })
+          
 
           const groupBuyData = {
             productId: productId,
@@ -190,18 +195,7 @@ export const processGroupBuys = async (paymentHistory) => {
             updatedAt: new Date(),
           }
 
-          console.log(`🔍 Creating GroupBuy with validated data:`, {
-            productId: groupBuyData.productId.toString(),
-            minimumViableUnits: groupBuyData.minimumViableUnits, // Log the actual MVU being used
-            unitsSold: groupBuyData.unitsSold,
-            totalAmountCollected: groupBuyData.totalAmountCollected,
-            participantsCount: groupBuyData.participants.length,
-            firstParticipant: {
-              userId: groupBuyData.participants[0].userId.toString(),
-              quantity: groupBuyData.participants[0].quantity,
-              amount: groupBuyData.participants[0].amount,
-            },
-          })
+
 
           groupBuy = new GroupBuy(groupBuyData)
 
@@ -214,7 +208,7 @@ export const processGroupBuys = async (paymentHistory) => {
 
           await groupBuy.save()
           isNewGroupBuy = true
-          console.log(`✅ Created new GroupBuy: ${groupBuy._id} with MVU: ${productMVU}`)
+          
         } catch (error) {
           console.error(`❌ Error creating new GroupBuy:`, {
             message: error.message,
@@ -224,7 +218,7 @@ export const processGroupBuys = async (paymentHistory) => {
 
           // Handle potential duplicate key error (race condition)
           if (error.code === 11000) {
-            console.log(`🔄 Duplicate GroupBuy creation detected, retrying find...`)
+
 
             groupBuy = await GroupBuy.findOne({
               productId: productId,
@@ -233,7 +227,7 @@ export const processGroupBuys = async (paymentHistory) => {
             })
 
             if (groupBuy) {
-              console.log(`✅ Found GroupBuy created by concurrent request: ${groupBuy._id}`)
+
               groupBuy.addOrUpdateParticipant(userId, item.quantity, itemAmount, paymentHistoryId)
               await groupBuy.save()
             } else {
@@ -248,9 +242,7 @@ export const processGroupBuys = async (paymentHistory) => {
       if (groupBuy) {
         groupBuys.push(groupBuy)
 
-        console.log(
-          `✅ GroupBuy processed: ${groupBuy._id}, Status: ${groupBuy.status}, Units: ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits}`,
-        )
+
 
         // Emit WebSocket event for real-time updates
         const io = global.io
@@ -274,10 +266,10 @@ export const processGroupBuys = async (paymentHistory) => {
     if (groupBuys.length > 0) {
       paymentHistory.groupBuysCreated = groupBuys.map((gb) => gb._id)
       await paymentHistory.save()
-      console.log(`✅ Updated PaymentHistory with ${groupBuys.length} GroupBuy references`)
+
     }
 
-    console.log(`✅ Processed ${groupBuys.length} GroupBuys for PaymentHistory: ${paymentHistory._id}`)
+
     return groupBuys
   } catch (error) {
     console.error(`❌ Error in processGroupBuys:`, {
@@ -290,89 +282,558 @@ export const processGroupBuys = async (paymentHistory) => {
 }
 
 // Helper function to process wallet-only payments
-const processWalletOnlyPayment = async (paymentHistory, res) => {
+const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
+  let wallet = null;
+  let originalBalance = 0;
+  let transaction = null;
+  
   try {
-    console.log(`Processing wallet-only payment for PaymentHistory: ${paymentHistory._id}`)
 
-    // Deduct from wallet
-    const wallet = await Wallet.findOne({ user: paymentHistory.userId })
+
+    // Validate wallet balance with optimistic locking
+    wallet = await Wallet.findOne({ user: paymentHistory.userId });
     if (!wallet) {
-      return res.status(400).json({ message: "Wallet not found for user." })
+      console.error(`❌ Wallet not found for user: ${paymentHistory.userId}`);
+      return res.status(400).json({ 
+        message: "Wallet not found",
+        details: "Your wallet account could not be found. Please contact support if this issue persists.",
+        userId: paymentHistory.userId
+      });
     }
 
-    // Additional security check: ensure wallet balance is sufficient for the amount recorded as used
-    if (wallet.balance < paymentHistory.walletUsed) {
-      return res.status(400).json({ message: "Insufficient wallet balance" })
+    // Store original balance for rollback
+    originalBalance = wallet.balance;
+
+
+
+    // Validate wallet use amount
+    if (walletUse <= 0) {
+      return res.status(400).json({ 
+        message: "Invalid wallet amount",
+        details: "Wallet amount must be greater than zero",
+        walletUse: walletUse,
+        totalAmount: paymentHistory.amount
+      });
+    }
+    
+    if (walletUse > paymentHistory.amount) {
+      return res.status(400).json({ 
+        message: "Invalid wallet amount",
+        details: "Wallet amount cannot exceed the total order amount",
+        walletUse: walletUse,
+        totalAmount: paymentHistory.amount,
+        maxAllowed: paymentHistory.amount
+      });
     }
 
-    wallet.balance -= paymentHistory.walletUsed
+    // Check if wallet balance is sufficient
+    if (wallet.balance < walletUse) {
+
+      return res.status(400).json({ 
+        message: "Insufficient wallet balance",
+        details: `Your wallet balance (₦${wallet.balance}) is insufficient for this transaction (₦${walletUse})`,
+        wallet: {
+          currentBalance: wallet.balance,
+          requiredAmount: walletUse,
+          shortfall: walletUse - wallet.balance
+        },
+        suggestions: [
+          "Add more funds to your wallet",
+          "Use a smaller wallet amount",
+          "Pay the full amount via Paystack"
+        ]
+      });
+    }
+
+    // Update payment history with wallet usage
+    paymentHistory.walletUsed = walletUse
+    paymentHistory.paystackAmount = 0
+    await paymentHistory.save()
+
+    // Deduct the amount from wallet
+    const newWalletBalance = wallet.balance - walletUse
+    wallet.balance = newWalletBalance
     await wallet.save()
 
-    // Create wallet transaction record
-    await Transaction.create({
+    // Process group buys first
+    const groupBuys = await processGroupBuys(paymentHistory)
+
+    // Create Order
+    const order = await createOrderFromPayment(paymentHistory)
+    await linkOrderToGroupBuys(order, groupBuys)
+
+    // Create wallet transaction record with proper validation (now order exists)
+    const transactionData = {
       wallet: wallet._id,
-      type: "debit",
-      amount: paymentHistory.walletUsed,
-      reason: "ORDER_PAYMENT",
-      description: `Wallet used for payment ${paymentHistory.referenceId}`,
       user: paymentHistory.userId,
-    })
+      type: "debit",
+      amount: walletUse,
+      reason: "ORDER",
+      description: `Wallet used for payment ${paymentHistory.referenceId}`,
+      metadata: {
+        paymentHistoryId: paymentHistory._id,
+        orderId: order._id,
+        groupBuyId: groupBuys?.[0]?._id, // First group buy if any
+        isWalletOnlyPayment: true
+      }
+    };
+
+    // Validate transaction data before creating
+    const transaction = new Transaction(transactionData);
+    const validationError = transaction.validateSync();
+    if (validationError) {
+      console.error('❌ Transaction validation failed:', validationError.errors);
+      return res.status(500).json({ 
+        message: "Transaction creation failed",
+        details: "Failed to create transaction record due to validation errors",
+        error: validationError.message,
+        validationErrors: validationError.errors
+      });
+    }
+
+    await transaction.save();
 
     // Mark payment as paid
     paymentHistory.status = "paid"
     await paymentHistory.save()
 
-    // Process group buys FIRST
-    const groupBuys = await processGroupBuys(paymentHistory)
-
-    // Create Order AFTER group buys are processed
-    const order = await createOrderFromPayment(paymentHistory)
-
-    // Link order to group buys
-    await linkOrderToGroupBuys(order, groupBuys)
-
-    // Clear user's cart ONLY AFTER successful order creation
+    // Clear user's cart
     await Cart.findOneAndUpdate({ user: paymentHistory.userId }, { items: [] })
 
-    console.log(`✅ Wallet-only payment completed for ${order.trackingNumber}`)
 
     res.json({
       success: true,
       message: "Payment completed successfully using wallet",
-      paymentHistoryId: paymentHistory._id,
+      paymentId: paymentHistory._id,
       orderId: order._id,
       trackingNumber: order.trackingNumber,
       groupBuysJoined: groupBuys.length,
-      walletUsed: paymentHistory.walletUsed,
+      walletUsed: walletUse,
       totalAmount: paymentHistory.amount,
+      newWalletBalance: newWalletBalance,
+      groupBuys: groupBuys.map(gb => ({
+        id: gb._id,
+        productId: gb.productId,
+        status: gb.status,
+        unitsSold: gb.unitsSold,
+        minimumViableUnits: gb.minimumViableUnits
+      }))
     })
   } catch (error) {
-    console.error("❌ Wallet payment processing error:", error)
-    res.status(500).json({ message: "Payment processing failed", error: error.message })
+    // Rollback wallet deduction if payment failed
+    if (wallet && originalBalance > 0) {
+      try {
+        wallet.balance = originalBalance;
+        await wallet.save();
+        
+        // Delete transaction record if it was created
+        if (transaction && transaction._id) {
+          await Transaction.findByIdAndDelete(transaction._id);
+        }
+        
+        // Reset payment history status
+        paymentHistory.status = "pending";
+        paymentHistory.walletUsed = 0;
+        await paymentHistory.save();
+      } catch (rollbackError) {
+        console.error("❌ Failed to rollback wallet deduction:", rollbackError);
+      }
+    }
+    
+    console.error("❌ Wallet-only payment processing error:", error)
+    res.status(500).json({ 
+      message: "Payment processing failed", 
+      error: error.message,
+      details: "Your wallet has been restored to its original balance. Please try again."
+    })
+  }
+}
+
+// Process partial wallet + Paystack payment
+const processPartialWalletPayment = async (paymentHistory, walletUse, callback_url, res) => {
+  try {
+
+
+    // Validate wallet balance (but don't deduct yet!)
+    const wallet = await Wallet.findOne({ user: paymentHistory.userId })
+    if (!wallet) {
+      return res.status(400).json({ message: "Wallet not found for user." })
+    }
+
+    // Validate wallet use amount
+    if (walletUse <= 0 || walletUse > paymentHistory.amount) {
+      return res.status(400).json({ message: "Invalid wallet use amount for partial payment" })
+    }
+
+    // Check if wallet balance is sufficient (validation only)
+    if (wallet.balance < walletUse) {
+      return res.status(400).json({ 
+        message: "Insufficient wallet balance",
+        details: `Your wallet balance (₦${wallet.balance}) is insufficient for this transaction (₦${walletUse})`,
+        wallet: {
+          currentBalance: wallet.balance,
+          requiredAmount: walletUse,
+          shortfall: walletUse - wallet.balance
+        },
+        suggestions: [
+          "Add more funds to your wallet",
+          "Use a smaller wallet amount",
+          "Pay the full amount via Paystack"
+        ]
+      })
+    }
+
+    // 🔧 FIX: Simple wallet balance validation (no sessions needed for validation)
+    // The actual wallet deduction will happen in the webhook after Paystack success
+    if (wallet.balance < walletUse) {
+      return res.status(400).json({ 
+        message: "Insufficient wallet balance",
+        details: `Your wallet balance (₦${wallet.balance}) is insufficient for this transaction (₦${walletUse})`,
+        wallet: {
+          currentBalance: wallet.balance,
+          requiredAmount: walletUse,
+          shortfall: walletUse - wallet.balance
+        },
+        suggestions: [
+          "Add more funds to your wallet",
+          "Use a smaller wallet amount",
+          "Pay the full amount via Paystack"
+        ]
+      })
+    }
+
+    // Calculate remaining amount for Paystack
+    const paystackAmount = paymentHistory.amount - walletUse
+
+    // Update payment history with wallet usage info (but don't deduct yet!)
+    paymentHistory.walletUsed = walletUse
+    paymentHistory.paystackAmount = paystackAmount
+    paymentHistory.status = "pending" // Keep as pending until Paystack succeeds
+    await paymentHistory.save()
+
+
+
+    // Initialize Paystack payment for remaining amount
+    const paystackData = {
+      email: paymentHistory.userId.email || "customer@grup.com",
+      amount: Math.round(paystackAmount * 100), // Convert to kobo
+      reference: paymentHistory.referenceId,
+      callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
+      metadata: {
+        userId: paymentHistory.userId,
+        paymentHistoryId: paymentHistory._id.toString(),
+        walletUsed: walletUse,
+        totalAmount: paymentHistory.amount,
+        cartId: paymentHistory.cartId,
+        custom_fields: [
+          {
+            display_name: "Payment ID",
+            variable_name: "payment_id",
+            value: paymentHistory._id.toString(),
+          },
+          {
+            display_name: "Wallet Use",
+            variable_name: "wallet_use",
+            value: walletUse.toString(),
+          },
+        ],
+      },
+    }
+
+
+
+    // Check if Paystack secret key is configured
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("❌ PAYSTACK_SECRET_KEY is not configured")
+      return res.status(500).json({
+        success: false,
+        message: "Payment service configuration error",
+        details: "Payment gateway is not properly configured. Please contact support.",
+        error: "PAYSTACK_SECRET_KEY not found"
+      })
+    }
+
+    const response = await fetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(paystackData),
+    })
+
+    if (!response.ok) {
+      console.error(`❌ Paystack API error: ${response.status} ${response.statusText}`)
+      const errorText = await response.text()
+      console.error(`❌ Paystack error details: ${errorText}`)
+      
+      return res.status(500).json({
+        success: false,
+        message: "Payment service temporarily unavailable",
+        details: "Unable to connect to payment gateway. Please try again later.",
+        error: `Paystack API error: ${response.status}`,
+        suggestions: [
+          "Check your internet connection",
+          "Try again in a few minutes",
+          "Contact support if the issue persists"
+        ]
+      })
+    }
+
+    const data = await response.json()
+
+    if (data.status) {
+      // Update payment history with Paystack reference
+      paymentHistory.paystackReference = data.data.reference
+      await paymentHistory.save()
+
+
+
+      res.json({
+        success: true,
+        message: "Partial wallet payment initialized, redirecting to Paystack",
+        authorization_url: data.data.authorization_url,
+        reference: paymentHistory.referenceId,
+        paymentHistoryId: paymentHistory._id,
+        walletUse: walletUse,
+        paystackAmount: paystackAmount,
+        totalAmount: paymentHistory.amount,
+        currentWalletBalance: wallet.balance, // Show current balance (not deducted yet)
+        message: "Wallet balance will be deducted after Paystack payment succeeds"
+      })
+    } else {
+      // No wallet deduction needed since we didn't deduct anything
+
+      
+      res.status(400).json({
+        success: false,
+        message: "Failed to initialize Paystack payment",
+        details: "Unable to connect to payment gateway. Please try again or contact support.",
+        error: data.message,
+        walletDeduction: "none", // Clarify no wallet was deducted
+        suggestions: [
+          "Check your internet connection",
+          "Try again in a few minutes",
+          "Contact support if the issue persists"
+        ]
+      })
+    }
+  } catch (error) {
+    console.error("❌ Partial wallet payment processing error:", error)
+    res.status(500).json({ 
+      message: "Payment processing failed",
+      details: "An unexpected error occurred while processing your payment. Please try again.",
+      error: error.message,
+      suggestions: [
+        "Refresh the page and try again",
+        "Check your payment details",
+        "Contact support if the issue persists"
+      ]
+    })
+  }
+}
+
+// Process Paystack-only payment (existing logic)
+const processPaystackOnlyPayment = async (paymentHistory, callback_url, res) => {
+  try {
+
+
+    // Initialize Paystack payment
+    const paystackData = {
+      email: paymentHistory.userId.email || "customer@grup.com",
+      amount: Math.round(paymentHistory.amount * 100), // Convert to kobo
+      reference: paymentHistory.referenceId,
+      callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
+      metadata: {
+        userId: paymentHistory.userId,
+        paymentHistoryId: paymentHistory._id.toString(),
+        walletUsed: 0,
+        custom_fields: [
+          {
+            display_name: "Payment ID",
+            variable_name: "payment_id",
+            value: paymentHistory._id.toString(),
+          },
+        ],
+      },
+    }
+
+
+
+    // Check if Paystack secret key is configured
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("❌ PAYSTACK_SECRET_KEY is not configured")
+      return res.status(500).json({
+        success: false,
+        message: "Payment service configuration error",
+        details: "Payment gateway is not properly configured. Please contact support.",
+        error: "PAYSTACK_SECRET_KEY not found"
+      })
+    }
+
+    const response = await fetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(paystackData),
+    })
+
+    if (!response.ok) {
+      console.error(`❌ Paystack API error: ${response.status} ${response.statusText}`)
+      const errorText = await response.text()
+      console.error(`❌ Paystack error details: ${errorText}`)
+      
+      return res.status(500).json({
+        success: false,
+        message: "Payment service temporarily unavailable",
+        details: "Unable to connect to payment gateway. Please try again later.",
+        error: `Paystack API error: ${response.status}`,
+        suggestions: [
+          "Check your internet connection",
+          "Try again in a few minutes",
+          "Contact support if the issue persists"
+        ]
+      })
+    }
+
+    const data = await response.json()
+
+    if (data.status) {
+      // Update payment history with Paystack reference
+      paymentHistory.paystackReference = data.data.reference
+      await paymentHistory.save()
+
+
+
+      res.json({
+        success: true,
+        authorization_url: data.data.authorization_url,
+        reference: paymentHistory.referenceId,
+        paymentHistoryId: paymentHistory._id,
+        amount: paymentHistory.amount,
+        walletUsed: 0,
+        totalAmount: paymentHistory.amount,
+        message: "Payment initialized successfully"
+      })
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Failed to initialize payment",
+        details: "Unable to connect to payment gateway. Please try again or contact support.",
+        error: data.message,
+        suggestions: [
+          "Check your internet connection",
+          "Try again in a few minutes",
+          "Contact support if the issue persists"
+        ]
+      })
+    }
+  } catch (error) {
+    console.error("❌ Paystack-only payment processing error:", error)
+    res.status(500).json({ 
+      message: "Payment processing failed",
+      details: "An unexpected error occurred while processing your payment. Please try again.",
+      error: error.message,
+      suggestions: [
+        "Refresh the page and try again",
+        "Check your payment details",
+        "Contact support if the issue persists"
+      ]
+    })
   }
 }
 
 export const initializePayment = async (req, res) => {
   try {
-    const { deliveryAddress, phone, useWallet, cartId, callback_url } = req.body
+    const { 
+      deliveryAddress, 
+      phone, 
+      useWallet, 
+      cartId, 
+      callback_url,
+      paymentMethod = 'paystack_only', // New: payment method parameter
+      walletUse = 0 // New: explicit wallet amount
+    } = req.body
     const userId = req.user.id
 
-    console.log(`🚀 Payment initialization started for user: ${userId}`)
 
-    if (!deliveryAddress || !deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.state || !phone) {
-      return res.status(400).json({ message: "Delivery address (street, city, state) and phone number are required" })
+
+    // Validate delivery address
+    if (!deliveryAddress) {
+      return res.status(400).json({ 
+        message: "Delivery address is required",
+        details: "Please provide a complete delivery address including street, city, and state"
+      })
+    }
+    
+    if (!deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.state) {
+      const missingFields = []
+      if (!deliveryAddress.street) missingFields.push("street")
+      if (!deliveryAddress.city) missingFields.push("city") 
+      if (!deliveryAddress.state) missingFields.push("state")
+      
+      return res.status(400).json({ 
+        message: `Incomplete delivery address`,
+        details: `Missing required fields: ${missingFields.join(", ")}`,
+        required: ["street", "city", "state"]
+      })
+    }
+    
+    // Validate phone number
+    if (!phone) {
+      return res.status(400).json({ 
+        message: "Phone number is required",
+        details: "Please provide a valid phone number for delivery contact"
+      })
+    }
+    
+    // Validate phone number format (basic validation)
+    const phoneRegex = /^(\+234|0)[789][01]\d{8}$/
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ 
+        message: "Invalid phone number format",
+        details: "Please provide a valid Nigerian phone number (e.g., 08012345678 or +2348012345678)"
+      })
     }
 
+    // Validate cart
+    if (!cartId) {
+      return res.status(400).json({ 
+        message: "Cart ID is required",
+        details: "Please provide a valid cart ID to proceed with checkout"
+      })
+    }
+    
     const cart = await Cart.findById(cartId).populate("items.product")
-    if (!cart || cart.user.toString() !== userId) {
-      return res.status(404).json({ message: "Cart not found or does not belong to user" })
+    if (!cart) {
+      return res.status(404).json({ 
+        message: "Cart not found",
+        details: "The specified cart does not exist or may have been deleted",
+        cartId: cartId
+      })
+    }
+    
+    if (cart.user.toString() !== userId) {
+      return res.status(403).json({ 
+        message: "Access denied",
+        details: "This cart belongs to another user. You can only checkout your own cart",
+        cartId: cartId,
+        cartOwner: cart.user.toString(),
+        currentUser: userId
+      })
     }
 
     if (cart.items.length === 0) {
-      return res.status(400).json({ message: "Cannot checkout with an empty cart" })
+      return res.status(400).json({ 
+        message: "Empty cart",
+        details: "Cannot checkout with an empty cart. Please add items to your cart before proceeding",
+        cartId: cartId
+      })
     }
 
-    console.log(`📦 Cart found with ${cart.items.length} items`)
+
 
     let totalPrice = 0
     const cartItems = []
@@ -382,11 +843,25 @@ export const initializePayment = async (req, res) => {
       const quantity = item.quantity
 
       if (!product) {
-        return res.status(400).json({ message: "Invalid product in cart" })
+        return res.status(400).json({ 
+          message: "Invalid product in cart",
+          details: "One or more products in your cart are no longer available or have been removed",
+          cartItemId: item._id,
+          productId: item.product
+        })
       }
 
       if (product.stock < quantity) {
-        return res.status(400).json({ message: `Insufficient stock for ${product.title}` })
+        return res.status(400).json({ 
+          message: `Insufficient stock for ${product.title}`,
+          details: `Only ${product.stock} units available, but you're trying to purchase ${quantity}`,
+          product: {
+            id: product._id,
+            title: product.title,
+            availableStock: product.stock,
+            requestedQuantity: quantity
+          }
+        })
       }
 
       // Use stored selling unit price if available, otherwise fall back to product price
@@ -405,35 +880,21 @@ export const initializePayment = async (req, res) => {
       })
     }
 
-    console.log(`💰 Total amount calculated: ₦${totalPrice}`)
 
-    // Handle wallet offset
-    let walletUsed = 0
-    let paystackAmount = totalPrice
-
-    if (useWallet) {
-      const wallet = await Wallet.findOne({ user: userId })
-      if (wallet && wallet.balance > 0) {
-        walletUsed = Math.min(wallet.balance, totalPrice)
-        paystackAmount = totalPrice - walletUsed
-        console.log(`💳 Wallet usage: ₦${walletUsed}, Remaining: ₦${paystackAmount}`)
-      }
-    }
 
     // Generate unique reference
     const referenceId = `GRP_${nanoid(10)}_${Date.now()}`
-    console.log(`🔗 Generated reference: ${referenceId}`)
 
-    // Create PaymentHistory (not Order)
+
+    // Create PaymentHistory
     const paymentHistory = new PaymentHistory({
       userId,
       referenceId,
       cartItems,
       amount: totalPrice,
-      walletUsed,
-      paystackAmount,
+      walletUsed: 0, // Will be set based on payment method
+      paystackAmount: totalPrice, // Will be set based on payment method
       status: "pending",
-      // Store delivery info in metadata
       metadata: {
         deliveryAddress: {
           street: deliveryAddress.street,
@@ -441,84 +902,37 @@ export const initializePayment = async (req, res) => {
           state: deliveryAddress.state,
           phone: phone,
         },
+        paymentMethod: paymentMethod,
       },
     })
 
     await paymentHistory.save()
-    console.log(`📝 PaymentHistory created: ${paymentHistory._id}`)
 
-    // If no Paystack payment needed (fully paid by wallet)
-    if (paystackAmount === 0) {
-      // Process payment immediately using existing wallet-only logic
-      return await processWalletOnlyPayment(paymentHistory, res)
-    }
 
-    // Initialize Paystack payment
-    const paystackData = {
-      email: req.user.email || "customer@grup.com",
-      amount: Math.round(paystackAmount * 100), // Convert to kobo
-      reference: referenceId,
-      callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
-      metadata: {
-        userId: userId,
-        paymentHistoryId: paymentHistory._id.toString(),
-        walletUsed,
-        custom_fields: [
-          {
-            display_name: "Payment ID",
-            variable_name: "payment_id",
-            value: paymentHistory._id.toString(),
-          },
-        ],
-      },
-    }
+    // Route based on payment method
+    if (paymentMethod === 'wallet_only') {
 
-    console.log(`💳 Initializing Paystack payment: ₦${paystackAmount} (${paystackData.amount} kobo)`)
-
-    const response = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(paystackData),
-    })
-
-    const data = await response.json()
-
-    if (data.status) {
-      // Update payment history with Paystack reference
-      paymentHistory.paystackReference = data.data.reference
-      await paymentHistory.save()
-
-      // Clear cart after successful payment initialization
-      await Cart.findByIdAndDelete(cartId)
-
-      console.log(`✅ Paystack payment initialized: ${data.data.reference}`)
-
-      res.status(200).json({
-        success: true,
-        authorization_url: data.data.authorization_url,
-        reference: referenceId,
-        paymentHistoryId: paymentHistory._id,
-        amount: paystackAmount,
-        walletUsed,
-        totalAmount: totalPrice,
-        message: "Payment initialized successfully",
-      })
+      return await processWalletOnlyPayment(paymentHistory, walletUse, res)
+    } else if (paymentMethod === 'wallet_and_paystack') {
+      
+      return await processPartialWalletPayment(paymentHistory, walletUse, callback_url, res)
     } else {
-      // Clean up failed payment history
-      await PaymentHistory.findByIdAndDelete(paymentHistory._id)
-      console.error(`❌ Paystack initialization failed:`, data.message)
-      res.status(400).json({
-        success: false,
-        message: "Failed to initialize payment",
-        error: data.message,
-      })
+      // Default: paystack_only
+      
+      return await processPaystackOnlyPayment(paymentHistory, callback_url, res)
     }
   } catch (error) {
     console.error("❌ Payment initialization error:", error)
-    res.status(500).json({ message: "Error initializing payment", error: error.message })
+    res.status(500).json({ 
+      message: "Payment initialization failed",
+      details: "An unexpected error occurred while initializing your payment. Please try again.",
+      error: error.message,
+      suggestions: [
+        "Refresh the page and try again",
+        "Check your payment details",
+        "Contact support if the issue persists"
+      ]
+    })
   }
 }
 
@@ -526,10 +940,7 @@ export const handlePaystackWebhook = async (req, res) => {
   try {
     const event = req.body
 
-    console.log("🔔 Paystack Webhook Received")
-    console.log("Event Type:", event.event)
-    console.log("Reference:", event.data?.reference)
-    console.log("Full webhook body:", JSON.stringify(event, null, 2))
+
 
     const hash = crypto
       .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
@@ -544,7 +955,8 @@ export const handlePaystackWebhook = async (req, res) => {
     if (event.event === "charge.success") {
       const { reference, metadata } = event.data
 
-      console.log(`✅ Processing successful charge: ${reference}`)
+      console.log("🔔 Paystack webhook received for reference:", reference)
+      console.log("🔔 Event data:", event.data)
 
       // Find PaymentHistory by reference (not Order)
       const paymentHistory = await PaymentHistory.findOne({ referenceId: reference })
@@ -554,20 +966,38 @@ export const handlePaystackWebhook = async (req, res) => {
         return res.status(404).json({ message: "Payment history not found" })
       }
 
+      console.log("📦 Found PaymentHistory:", {
+        id: paymentHistory._id,
+        status: paymentHistory.status,
+        walletUsed: paymentHistory.walletUsed,
+        cartItems: paymentHistory.cartItems?.length || 0
+      })
+
       if (paymentHistory.status === "paid") {
-        console.log(`⚠️ PaymentHistory ${paymentHistory._id} already processed`)
+        console.log("✅ Payment already processed")
         return res.status(200).json({ message: "Payment already processed" })
       }
-
-      console.log(`📝 Processing PaymentHistory: ${paymentHistory._id}`)
 
       paymentHistory.status = "paid"
       paymentHistory.paystackReference = reference
       await paymentHistory.save()
 
-      // Handle wallet deduction if applicable
+      // Process group buys first
+      console.log("🔄 Processing group buys for payment history:", paymentHistory._id)
+      const groupBuys = await processGroupBuys(paymentHistory)
+      console.log("✅ Group buys processed:", groupBuys.length, "created/joined")
+
+      // Create Order AFTER payment confirmation
+      console.log("📋 Creating order for payment history:", paymentHistory._id)
+      const order = await createOrderFromPayment(paymentHistory)
+      console.log("✅ Order created:", order._id)
+
+      // Link order to group buys
+      await linkOrderToGroupBuys(order, groupBuys)
+      console.log("🔗 Order linked to group buys")
+
+      // Handle wallet deduction if applicable (now order and groupBuys exist)
       if (paymentHistory.walletUsed > 0) {
-        console.log(`💳 Deducting ${paymentHistory.walletUsed} from wallet`)
         const wallet = await Wallet.findOne({ user: paymentHistory.userId })
         if (wallet) {
           wallet.balance -= paymentHistory.walletUsed
@@ -575,27 +1005,21 @@ export const handlePaystackWebhook = async (req, res) => {
 
           await Transaction.create({
             wallet: wallet._id,
+            user: paymentHistory.userId,
             type: "debit",
             amount: paymentHistory.walletUsed,
-            reason: "ORDER_PAYMENT",
+            reason: "ORDER",
             description: `Wallet used for payment ${paymentHistory.referenceId}`,
-            user: paymentHistory.userId,
+            metadata: {
+              paymentHistoryId: paymentHistory._id,
+              orderId: order._id,
+              groupBuyId: groupBuys?.[0]?._id, // First group buy if any
+            }
           })
         }
       }
 
-      // Process group buys after successful payment
-      console.log(`🔄 Starting GroupBuy processing for PaymentHistory: ${paymentHistory._id}`)
-      const groupBuys = await processGroupBuys(paymentHistory)
-      console.log(`✅ GroupBuy processing completed. Created/joined ${groupBuys.length} GroupBuys`)
-
-      // Create Order AFTER payment confirmation
-      const order = await createOrderFromPayment(paymentHistory)
-
-      // Link order to group buys
-      await linkOrderToGroupBuys(order, groupBuys)
-
-      console.log(`✅ Webhook processed successfully - Order: ${order.trackingNumber}`)
+      
     }
 
     res.status(200).json({ message: "Webhook processed" })
@@ -614,7 +1038,16 @@ export const testCreateGroupBuy = async (req, res) => {
     
     const paymentHistory = await PaymentHistory.findById(paymentHistoryId)
     if (!paymentHistory) {
-      return res.status(404).json({ message: "PaymentHistory not found" })
+      return res.status(404).json({ 
+        message: "PaymentHistory not found",
+        details: "The specified payment history could not be found in our system",
+        paymentHistoryId: paymentHistoryId,
+        suggestions: [
+          "Check the payment history ID for accuracy",
+          "Ensure the payment was made recently",
+          "Contact support if you believe this is an error"
+        ]
+      })
     }
     
     console.log(`📦 Found PaymentHistory:`, {
@@ -642,9 +1075,15 @@ export const testCreateGroupBuy = async (req, res) => {
   } catch (error) {
     console.error("❌ Test group buy creation error:", error)
     res.status(500).json({ 
-      message: "Test failed", 
+      message: "Test failed",
+      details: "An error occurred while testing group buy creation. Please check the logs for more details.",
       error: error.message,
-      stack: error.stack 
+      stack: error.stack,
+      suggestions: [
+        "Check the payment history status",
+        "Verify the cart items are valid",
+        "Contact support if the issue persists"
+      ]
     })
   }
 }
@@ -656,7 +1095,16 @@ export const verifyPayment = async (req, res) => {
 
     const paymentHistory = await PaymentHistory.findOne({ referenceId: reference })
     if (!paymentHistory) {
-      return res.status(404).json({ message: "Payment not found" })
+      return res.status(404).json({ 
+        message: "Payment not found",
+        details: "The payment reference you provided could not be found in our system",
+        reference: reference,
+        suggestions: [
+          "Check the payment reference for typos",
+          "Ensure the payment was made recently",
+          "Contact support if you believe this is an error"
+        ]
+      })
     }
 
     // Verify with Paystack
@@ -677,7 +1125,16 @@ export const verifyPayment = async (req, res) => {
     })
   } catch (error) {
     console.error("Payment verification error:", error)
-    res.status(500).json({ message: "Payment verification failed", error: error.message })
+    res.status(500).json({ 
+      message: "Payment verification failed",
+      details: "An error occurred while verifying your payment. Please try again.",
+      error: error.message,
+      suggestions: [
+        "Try again in a few minutes",
+        "Check your internet connection",
+        "Contact support if the issue persists"
+      ]
+    })
   }
 }
 
@@ -707,6 +1164,15 @@ export const getUserPaymentHistory = async (req, res) => {
     })
   } catch (error) {
     console.error("Get payment history error:", error)
-    res.status(500).json({ message: "Error fetching payment history", error: error.message })
+    res.status(500).json({ 
+      message: "Error fetching payment history",
+      details: "An error occurred while retrieving your payment history. Please try again.",
+      error: error.message,
+      suggestions: [
+        "Refresh the page and try again",
+        "Check your internet connection",
+        "Contact support if the issue persists"
+      ]
+    })
   }
 }

@@ -108,7 +108,11 @@ export const handlePaystackWebhook = async (req, res) => {
       logger.warn("Invalid Paystack webhook signature")
       console.log(`❌ Signature mismatch - Expected: ${hash}, Received: ${req.headers["x-paystack-signature"]}`)
       // Temporarily allow invalid signatures for debugging
-      // return res.status(400).json({ message: "Invalid signature" })
+      // return res.status(400).json({ 
+      //   message: "Invalid webhook signature",
+      //   details: "The webhook signature verification failed. This could indicate a security issue.",
+      //   error: "SIGNATURE_MISMATCH"
+      // })
     }
 
     const event = req.body
@@ -122,7 +126,11 @@ export const handlePaystackWebhook = async (req, res) => {
     res.status(200).json({ message: "Webhook processed successfully" })
   } catch (error) {
     logger.error("Paystack webhook error:", error)
-    res.status(500).json({ message: "Webhook processing failed" })
+    res.status(500).json({ 
+      message: "Webhook processing failed",
+      details: "An error occurred while processing the payment webhook. The payment may still be processed.",
+      error: error.message
+    })
   }
 }
 
@@ -131,14 +139,17 @@ const handleSuccessfulCharge = async (data) => {
     const { reference, amount, status, metadata } = data
 
     // Find payment history by reference
-    const paymentHistory = await PaymentHistory.findOne({ referenceId: reference })
+    const paymentHistory = await PaymentHistory.findOne({ referenceId: reference });
     if (!paymentHistory) {
       logger.error(`Payment history not found for reference: ${reference}`)
+      console.error(`❌ Payment history not found for reference: ${reference}`)
+      console.error(`🔍 Available references in database:`, await PaymentHistory.distinct('referenceId'))
       return
     }
 
     if (paymentHistory.status === "paid") {
       logger.info(`Payment ${reference} already processed`)
+      console.log(`⚠️ Payment ${reference} already processed - skipping duplicate webhook`)
       return
     }
 
@@ -146,34 +157,53 @@ const handleSuccessfulCharge = async (data) => {
     const expectedAmount = Math.round(paymentHistory.paystackAmount * 100) // Convert to kobo
     if (amount !== expectedAmount) {
       logger.error(`Amount mismatch for ${reference}. Expected: ${expectedAmount}, Received: ${amount}`)
+      console.error(`❌ Amount mismatch for ${reference}:`)
+      console.error(`   Expected: ${expectedAmount} kobo (₦${paymentHistory.paystackAmount})`)
+      console.error(`   Received: ${amount} kobo (₦${amount / 100})`)
+      console.error(`   Difference: ${Math.abs(amount - expectedAmount)} kobo`)
       return
     }
 
     // Process wallet deduction if applicable
     if (paymentHistory.walletUsed > 0) {
-      const wallet = await Wallet.findOne({ user: paymentHistory.userId })
-      if (!wallet || wallet.balance < paymentHistory.walletUsed) {
+      const wallet = await Wallet.findOne({ user: paymentHistory.userId });
+      if (!wallet) {
+        logger.error(`Wallet not found for user ${paymentHistory.userId}`)
+        console.error(`❌ Wallet not found for user ${paymentHistory.userId}`)
+        return
+      }
+      
+      if (wallet.balance < paymentHistory.walletUsed) {
         logger.error(`Insufficient wallet balance for user ${paymentHistory.userId}`)
+        console.error(`❌ Insufficient wallet balance for user ${paymentHistory.userId}:`)
+        console.error(`   Current balance: ₦${wallet.balance}`)
+        console.error(`   Required amount: ₦${paymentHistory.walletUsed}`)
+        console.error(`   Shortfall: ₦${paymentHistory.walletUsed - wallet.balance}`)
         return
       }
 
       wallet.balance -= paymentHistory.walletUsed
-      await wallet.save()
+      await wallet.save();
 
       // Create wallet transaction record
       await Transaction.create({
         wallet: wallet._id,
+        user: paymentHistory.userId,
         type: "debit",
         amount: paymentHistory.walletUsed,
         reason: "ORDER",
         description: `Wallet payment for order ${reference}`,
-      })
+        metadata: {
+          paymentHistoryId: paymentHistory._id,
+          isWebhookProcessed: true
+        }
+      });
     }
 
     // Mark payment as paid
     paymentHistory.status = "paid"
     paymentHistory.paystackData = data
-    await paymentHistory.save()
+    await paymentHistory.save();
 
     // Process group buys
     console.log(`🔄 Starting group buy processing for payment: ${paymentHistory._id}`)
@@ -194,7 +224,9 @@ const handleSuccessfulCharge = async (data) => {
     await linkOrderToGroupBuys(order, groupBuys)
 
     logger.info(`Payment ${reference} processed successfully. Group buys created: ${groupBuys.length}`)
-
+    
+    console.log(`✅ Webhook processed successfully`);
+    
     // Emit WebSocket event
     const io = global.io
     if (io) {
@@ -204,8 +236,10 @@ const handleSuccessfulCharge = async (data) => {
         groupBuysJoined: groupBuys.length,
       })
     }
+    
   } catch (error) {
-    logger.error("Error handling successful charge:", error)
+    logger.error(`❌ Webhook processing failed for ${data.reference}:`, error);
+    throw error;
   }
 }
 

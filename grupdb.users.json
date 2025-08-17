@@ -1,0 +1,353 @@
+[{
+  "_id": {
+    "$oid": "688043e917a62ffecaf586a0"
+  },
+  "name": "fresh",
+  "email": "debbeeor@gmail.com",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6881799b38051270a8b3349b"
+  },
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "$2b$10$nq0WxbimJ67a/ETWL5hET.WBDQHHK84zSK9KjPdwYTfcHUndzXOve",
+  "referredBy": null,
+  "createdAt": {
+    "$date": "2025-07-24T00:08:59.714Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T00:08:59.714Z"
+  },
+  "referralCode": "b3349b",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68817beb759da8e40a50c8cf"
+  },
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "$2b$10$te7/7.7l2CMP322U5W3AAOj9IHzqYfDUuJ1STwjV3quZaD5dStXaG",
+  "referredBy": {
+    "$oid": "6881799b38051270a8b3349b"
+  },
+  "createdAt": {
+    "$date": "2025-07-24T00:18:51.459Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T00:18:51.459Z"
+  },
+  "referralCode": "50c8cf",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68818662d3ea78b146ba5817"
+  },
+  "name": "Jeremy samuel",
+  "email": "john@gmail.com",
+  "password": "$2b$10$VQ6Q6wKyJwnNTi13sb5D2ubfejydG34TKUKAYZlnh7J3rv6iQNKjW",
+  "referredBy": null,
+  "createdAt": {
+    "$date": "2025-07-24T01:03:30.386Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T01:03:30.386Z"
+  },
+  "referralCode": "ba5817",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "688186a5d3ea78b146ba581c"
+  },
+  "name": "Jamie vardy",
+  "email": "jane@gmail.com",
+  "password": "$2b$10$tydBVzh6JmtW80aWMh5qZe7ydTcwMYP7EISfBKQMmYiCmDjF.ianu",
+  "referredBy": null,
+  "createdAt": {
+    "$date": "2025-07-24T01:04:37.476Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T01:04:37.476Z"
+  },
+  "referralCode": "ba581c",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68818afc180fc9a385567ce4"
+  },
+  "name": "Johnny cagel",
+  "email": "johnny@gmail.com",
+  "password": "$2b$10$880FY5XJfLEVBimvPS1ageocqmg.LclAxP01Nugqjh6.OqCih2v5a",
+  "referredBy": null,
+  "createdAt": {
+    "$date": "2025-07-24T01:23:08.566Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T01:23:08.566Z"
+  },
+  "referralCode": "567ce4",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6882564f0c07569dde0c2dc3"
+  },
+  "name": "John Doen",
+  "email": "adiazi@gmail.com",
+  "password": "$2b$10$.aRpvEHhybYFP/e53UAH0unH5H6fc.CrHRLCRG7N9N.uBIHo.XhU.",
+  "referredBy": null,
+  "createdAt": {
+    "$date": "2025-07-24T15:50:39.191Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T15:50:39.191Z"
+  },
+  "referralCode": "0c2dc3",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "688256880c07569dde0c2dc8"
+  },
+  "name": "John adiazi",
+  "email": "jil@gmail.com",
+  "password": "$2b$10$WXmWUeV/vycDbhN/pJLZGu0TqlL4giSICZluAoZIHfRI1.6UoT9Ae",
+  "referredBy": {
+    "$oid": "6882564f0c07569dde0c2dc3"
+  },
+  "createdAt": {
+    "$date": "2025-07-24T15:51:36.343Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T15:51:36.343Z"
+  },
+  "referralCode": "0c2dc8",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68825c867133239705230825"
+  },
+  "name": "james",
+  "email": "adi@gmail.com",
+  "password": "$2b$10$PyC7YDVmuBgZL.VDR12T0.7zqaDqO2DHtbQ1bL0RLonqUkgogu32O",
+  "referredBy": null,
+  "referredUsers": [
+    {
+      "$oid": "68825cbd713323970523082a"
+    },
+    {
+      "$oid": "68825d0e713323970523083a"
+    },
+    {
+      "$oid": "68825d36713323970523084a"
+    }
+  ],
+  "hasReceivedReferralBonus": true,
+  "createdAt": {
+    "$date": "2025-07-24T16:17:10.997Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T16:20:06.818Z"
+  },
+  "referralCode": "230825",
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "68825cbd713323970523082a"
+  },
+  "name": "Jack up",
+  "email": "jillian@gmail.com",
+  "password": "$2b$10$lpBEstfEXFB/T3vRsuLA.u98KqVX5xdMp.c7DkC4JDpiDB9bUN1Y6",
+  "referredBy": {
+    "$oid": "68825c867133239705230825"
+  },
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-24T16:18:05.850Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T16:18:05.850Z"
+  },
+  "referralCode": "23082a",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68825d0e713323970523083a"
+  },
+  "name": "Jack",
+  "email": "jilli@gmail.com",
+  "password": "$2b$10$qVskFMvXCuyvKEbWpt3NxOMGqnnTMU3vnKyqS6/lmD7CzgqjI6cb.",
+  "referredBy": {
+    "$oid": "68825c867133239705230825"
+  },
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-24T16:19:26.601Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T16:19:26.601Z"
+  },
+  "referralCode": "23083a",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68825d36713323970523084a"
+  },
+  "name": "Jacky",
+  "email": "jillia@gmail.com",
+  "password": "$2b$10$bi8bsjYw/hG.qLv4TW2KgeMn/BIYTfNpHs99k5BdHdacV5NZqVBQi",
+  "referredBy": {
+    "$oid": "68825c867133239705230825"
+  },
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-24T16:20:06.825Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T16:20:06.825Z"
+  },
+  "referralCode": "23084a",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "688264717133239705230864"
+  },
+  "name": "jamesia",
+  "email": "adizz@gmail.com",
+  "password": "$2b$10$A.7pKadhsMZUaxdByji0U.EBtEnpccbYj3HxtmcpGOVFKV6b84blK",
+  "referredBy": null,
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-24T16:50:57.357Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T16:50:57.357Z"
+  },
+  "referralCode": "230864",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "688264b406db502880ee3a6c"
+  },
+  "name": "jamesian",
+  "email": "adizzi@gmail.com",
+  "password": "$2b$10$5WTcQ/7v6ISjxdzK1VW1QuyCUd5USVxskXYQDhCXH9OfCMrqbVznG",
+  "referredBy": null,
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-24T16:52:04.612Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-24T16:52:04.612Z"
+  },
+  "referralCode": "ee3a6c",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6888d7846faaca0fbc202932"
+  },
+  "name": "fresh",
+  "email": "adiazi@grup.com",
+  "password": "$2b$10$t1gOiwexET4M/8s6X3LEpuVrV6XBjqP8wrlbRSdwgYgKaNNTypu9e",
+  "referredBy": null,
+  "referredUsers": [
+    {
+      "$oid": "68890ecf19a20ae9807b8a34"
+    },
+    {
+      "$oid": "68890f0519a20ae9807b8a3d"
+    },
+    {
+      "$oid": "68890f3019a20ae9807b8a46"
+    }
+  ],
+  "hasReceivedReferralBonus": true,
+  "createdAt": {
+    "$date": "2025-07-29T14:15:32.031Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-29T18:13:04.992Z"
+  },
+  "referralCode": "202932",
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "68890ecf19a20ae9807b8a34"
+  },
+  "name": "UGOCHUKWU ADIAZI",
+  "email": "ortezzyadiazi@gmail.com",
+  "password": "$2b$10$7oup9qara/RXxyxAl0LZpeOzNYH9KTe/i3m99BqSo/wCDbKuIZ0AC",
+  "referredBy": {
+    "$oid": "6888d7846faaca0fbc202932"
+  },
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-29T18:11:27.280Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-29T18:11:27.280Z"
+  },
+  "referralCode": "7b8a34",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68890f0519a20ae9807b8a3d"
+  },
+  "name": "ugo neb",
+  "email": "ugonebe@gmail.com",
+  "password": "$2b$10$hGzi5FxHA6n.CGZGORe2L.Ybc7R0cF7RGF13uzdIPCiWuZa9gnWDW",
+  "referredBy": {
+    "$oid": "6888d7846faaca0fbc202932"
+  },
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-29T18:12:21.068Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-29T18:12:21.068Z"
+  },
+  "referralCode": "7b8a3d",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68890f3019a20ae9807b8a46"
+  },
+  "name": "Adiazi ugochukw precious",
+  "email": "adiaziprecious@gmail.com",
+  "password": "$2b$10$4HCbCp8h86.oe0PZ05tYFOIfDnZsZx63ExT/btubTOIaePZEM9Hha",
+  "referredBy": {
+    "$oid": "6888d7846faaca0fbc202932"
+  },
+  "referredUsers": [],
+  "hasReceivedReferralBonus": false,
+  "createdAt": {
+    "$date": "2025-07-29T18:13:04.995Z"
+  },
+  "updatedAt": {
+    "$date": "2025-07-29T18:13:04.995Z"
+  },
+  "referralCode": "7b8a46",
+  "__v": 0
+}]

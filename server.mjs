@@ -32,6 +32,7 @@ import liveUserRoutes from './routes/liveUserRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
+import referralRoutes from './routes/referralRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
@@ -178,6 +179,7 @@ app.use('/api/group', groupRoutes); // Keep only one registration
 app.use('/api/cart', cartRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
+app.use('/api/referral', referralRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);

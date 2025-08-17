@@ -31,14 +31,12 @@ export const corsOptions = {
       process.env.FRONTEND_URL,
     ].filter(Boolean)
 
-    console.log("CORS check - Origin:", origin)
-    console.log("Allowed origins:", allowedOrigins)
+
 
     if (allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-      console.log("CORS blocked origin:", origin)
-      console.log("Allowed origins:", allowedOrigins)
+
       callback(null, true) // Allow all for now to fix admin panel
     }
   },

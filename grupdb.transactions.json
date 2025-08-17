@@ -1,0 +1,76 @@
+[{
+  "_id": {
+    "$oid": "6880449017a62ffecaf586e4"
+  },
+  "wallet": {
+    "$oid": "688043fd17a62ffecaf586aa"
+  },
+  "type": "debit",
+  "amount": 1200,
+  "reason": "ORDER",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68817beb759da8e40a50c8d3"
+  },
+  "wallet": {
+    "$oid": "6881799b38051270a8b3349d"
+  },
+  "type": "credit",
+  "amount": 500,
+  "reason": "REFERRAL_BONUS",
+  "description": "Referral bonus for inviting jane@example.com",
+  "createdAt": {
+    "$date": "2025-07-24T00:18:51.423Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "688256880c07569dde0c2dcc"
+  },
+  "wallet": {
+    "$oid": "6882564f0c07569dde0c2dc5"
+  },
+  "type": "credit",
+  "amount": 500,
+  "reason": "REFERRAL_BONUS",
+  "description": "Referral bonus for inviting jil@gmail.com",
+  "createdAt": {
+    "$date": "2025-07-24T15:51:36.334Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68825d36713323970523084e"
+  },
+  "wallet": {
+    "$oid": "68825c877133239705230827"
+  },
+  "type": "credit",
+  "amount": 500,
+  "reason": "REFERRAL_BONUS",
+  "description": "Referral bonus for inviting 3 users",
+  "createdAt": {
+    "$date": "2025-07-24T16:20:06.812Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68890f3019a20ae9807b8a4a"
+  },
+  "wallet": {
+    "$oid": "6888d7846faaca0fbc202934"
+  },
+  "type": "credit",
+  "amount": 500,
+  "reason": "REFERRAL_BONUS",
+  "description": "Referral bonus for inviting 3 users",
+  "createdAt": {
+    "$date": "2025-07-29T18:13:04.987Z"
+  },
+  "__v": 0
+}]

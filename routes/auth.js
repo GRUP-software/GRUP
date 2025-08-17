@@ -4,6 +4,7 @@ import User from "../models/User.js"
 import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
 import { verifyToken } from "../middleware/authMiddleware.js"
+import { addReferral } from "../utils/referralBonusService.js"
 
 const router = express.Router()
 const JWT_SECRET =
@@ -26,48 +27,27 @@ router.post("/signup", async (req, res) => {
 
     const newUser = new User({ name, email, password })
 
-    // Handle referral logic
+    // Handle referral logic using the new service
     if (referralCode) {
       const referrer = await User.findOne({ referralCode })
       if (referrer) {
         newUser.referredBy = referrer._id
-
-        // Initialize referredUsers array if it doesn't exist
-        if (!referrer.referredUsers) {
-          referrer.referredUsers = []
-        }
-
-        // Add to referredUsers if not already added
-        if (!referrer.referredUsers.includes(newUser._id)) {
-          referrer.referredUsers.push(newUser._id)
-        }
-
-        // Check if referrer now has 3 or more referrals and hasn't received bonus yet
-        if (referrer.referredUsers.length >= 3 && !referrer.hasReceivedReferralBonus) {
-          let wallet = await Wallet.findOne({ user: referrer._id })
-          if (!wallet) {
-            wallet = await Wallet.create({ user: referrer._id, balance: 500 })
-          } else {
-            wallet.balance += 500
-            await wallet.save()
-          }
-
-          await Transaction.create({
-            wallet: wallet._id,
-            type: "credit",
-            amount: 500,
-            reason: "REFERRAL_BONUS",
-            description: `Referral bonus for inviting 3 users`,
-          })
-
-          referrer.hasReceivedReferralBonus = true
-        }
-
-        await referrer.save()
       }
     }
 
     await newUser.save()
+
+    // Handle referral logic using the service
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode })
+      if (referrer) {
+        const referralResult = await addReferral(referrer._id, newUser._id)
+        
+        if (referralResult.success && referralResult.bonusProcessed) {
+          console.log(`✅ Referral bonus of ₦${referralResult.bonusAmount} given to ${referrer.email} for ${referralResult.totalReferrals} referrals`)
+        }
+      }
+    }
 
     // Create new user's wallet
     await Wallet.create({ user: newUser._id, balance: 0 })

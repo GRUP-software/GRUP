@@ -4,6 +4,7 @@ import Transaction from "../models/Transaction.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { nanoid } from "nanoid"
+import { addReferral } from "../utils/referralBonusService.js"
 
 export const signup = async (req, res) => {
   const { name, email, password, referralCode } = req.body
@@ -15,6 +16,17 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10)
     const generatedReferralCode = nanoid(8)
 
+    // Find referrer if referral code is provided
+    let referrer = null
+    let referredBy = null
+    
+    if (referralCode) {
+      referrer = await User.findOne({ referralCode })
+      if (referrer) {
+        referredBy = referrer._id
+      }
+    }
+
     const wallet = new Wallet({ balance: 0 })
     await wallet.save()
 
@@ -23,50 +35,18 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       referralCode: generatedReferralCode,
-      referredBy: referralCode || null,
+      referredBy: referredBy, // Set to ObjectId or null
       wallet: wallet._id,
     })
 
     await user.save()
 
-    // Handle referral logic - only process after user is saved
-    if (referralCode) {
-      const referrer = await User.findOne({ referralCode })
-      if (referrer) {
-        // Initialize referredUsers array if it doesn't exist
-        if (!referrer.referredUsers) {
-          referrer.referredUsers = []
-        }
-
-        // Add to referredUsers if not already added
-        if (!referrer.referredUsers.includes(user._id)) {
-          referrer.referredUsers.push(user._id)
-        }
-
-        // Check if referrer now has 3 or more referrals and hasn't received bonus yet
-        if (referrer.referredUsers.length >= 3 && !referrer.hasReceivedReferralBonus) {
-          let refWallet = await Wallet.findById(referrer.wallet)
-          if (!refWallet) {
-            refWallet = await Wallet.create({ user: referrer._id, balance: 500 })
-            referrer.wallet = refWallet._id
-          } else {
-            refWallet.balance += 500
-            await refWallet.save()
-          }
-
-          // Create transaction record
-          await Transaction.create({
-            wallet: refWallet._id,
-            type: "credit",
-            amount: 500,
-            reason: "REFERRAL_BONUS",
-            description: `Referral bonus for inviting 3 users`,
-          })
-
-          referrer.hasReceivedReferralBonus = true
-        }
-
-        await referrer.save()
+    // Handle referral logic using the service
+    if (referrer) {
+      const referralResult = await addReferral(referrer._id, user._id)
+      
+      if (referralResult.success && referralResult.bonusProcessed) {
+        console.log(`✅ Referral bonus of ₦${referralResult.bonusAmount} given to ${referrer.email} for ${referralResult.totalReferrals} referrals`)
       }
     }
 
@@ -82,6 +62,7 @@ export const signup = async (req, res) => {
       },
     })
   } catch (err) {
+    console.error("Signup error:", err)
     res.status(500).json({ message: "Signup failed", error: err.message })
   }
 }

@@ -253,7 +253,7 @@ export const updateCartQuantity = async (req, res) => {
     const { productId, quantity, variant, sellingUnitName } = req.body
     const userId = req.user.id
 
-    console.log("[v0] Update cart request:", { productId, quantity, variant, sellingUnitName })
+
 
     if (!productId) {
       return res.status(400).json({ message: "Product ID is required" })
@@ -266,14 +266,9 @@ export const updateCartQuantity = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" })
     }
 
-    console.log("[v0] Cart items for matching:")
+
     cart.items.forEach((item, index) => {
-      console.log(`[v0] Item ${index}:`, {
-        productId: item.product.toString(),
-        variant: item.variant,
-        sellingUnitName: item.sellingUnit?.optionName,
-        sellingUnitExists: !!item.sellingUnit,
-      })
+
     })
 
     const itemIndex = cart.items.findIndex((item) => {
@@ -289,24 +284,13 @@ export const updateCartQuantity = async (req, res) => {
       const normalizedItemSellingUnit = item.sellingUnit?.optionName || null
       const sellingUnitMatch = normalizedRequestSellingUnit === normalizedItemSellingUnit
 
-      console.log("[v0] Matching attempt:", {
-        productMatch,
-        variantMatch,
-        sellingUnitMatch,
-        itemProductId: item.product.toString(),
-        itemVariant: item.variant,
-        itemSellingUnitName: item.sellingUnit?.optionName,
-        normalizedRequestVariant,
-        normalizedItemVariant,
-        normalizedRequestSellingUnit,
-        normalizedItemSellingUnit,
-      })
+
 
       return productMatch && variantMatch && sellingUnitMatch
     })
 
     if (itemIndex === -1) {
-      console.log("[v0] No matching item found")
+
       return res.status(404).json({
         message: "Item not found in cart",
         debug: {
@@ -320,7 +304,7 @@ export const updateCartQuantity = async (req, res) => {
       })
     }
 
-    console.log("[v0] Found matching item at index:", itemIndex)
+
 
     // If quantity is 0 or less, remove item
     if (validQuantity <= 0) {
@@ -397,6 +381,7 @@ export const updateCartQuantity = async (req, res) => {
 export const removeFromCart = async (req, res) => {
   try {
     const { productId } = req.params
+    const { variant, sellingUnitName } = req.query
     const userId = req.user.id
 
     const cart = await Cart.findOne({ user: userId })
@@ -404,10 +389,47 @@ export const removeFromCart = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" })
     }
 
-    cart.items = cart.items.filter((item) => item.product.toString() !== productId)
+    // Filter out the specific item based on productId, variant, and sellingUnit
+    cart.items = cart.items.filter((item) => {
+      const productMatch = item.product.toString() === productId
+      const variantMatch = (item.variant || null) === (variant || null)
+      const sellingUnitMatch = (item.sellingUnit?.optionName || null) === (sellingUnitName || null)
+      
+      // Remove item only if ALL criteria match
+      return !(productMatch && variantMatch && sellingUnitMatch)
+    })
+
     await cart.save()
 
-    res.json({ message: "Item removed from cart" })
+    // Return updated cart data
+    const updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
+    
+    let totalPrice = 0
+    for (const item of updatedCart.items) {
+      let itemPrice = item.unitPrice || item.product.price
+      if (item.sellingUnit && item.product.sellingUnits?.enabled) {
+        itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || item.product.price
+      }
+      totalPrice += itemPrice * item.quantity
+    }
+
+    const formattedItems = formatCartItems(updatedCart.items)
+
+    // Get wallet balance
+    const wallet = await Wallet.findOne({ user: userId })
+    const walletBalance = wallet?.balance || 0
+    const maxWalletUse = Math.min(walletBalance, totalPrice)
+
+    res.json({
+      message: "Item removed from cart",
+      items: formattedItems,
+      totalPrice,
+      itemCount: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
+      walletBalance,
+      maxWalletUse,
+      remainingAfterWallet: totalPrice - maxWalletUse,
+      cartId: updatedCart._id,
+    })
   } catch (error) {
     console.error("Remove from cart error:", error)
     res.status(500).json({ message: "Error removing from cart", error: error.message })

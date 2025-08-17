@@ -180,6 +180,7 @@ export const processLoyaltyRewards = async () => {
           // Create transaction record
           await Transaction.create({
             wallet: user.wallet._id,
+            user: user._id,
             type: "credit",
             amount: rewardAmount,
             reason: "LOYALTY_REWARD",
