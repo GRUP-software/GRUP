@@ -997,8 +997,7 @@ export const handlePaystackWebhook = async (req, res) => {
     if (event.event === "charge.success") {
       const { reference, metadata } = event.data
 
-      console.log("🔔 Paystack webhook received for reference:", reference)
-      console.log("🔔 Event data:", event.data)
+      
 
       // Find PaymentHistory by reference (not Order)
       const paymentHistory = await PaymentHistory.findOne({ referenceId: reference })
@@ -1008,15 +1007,7 @@ export const handlePaystackWebhook = async (req, res) => {
         return res.status(404).json({ message: "Payment history not found" })
       }
 
-      console.log("📦 Found PaymentHistory:", {
-        id: paymentHistory._id,
-        status: paymentHistory.status,
-        walletUsed: paymentHistory.walletUsed,
-        cartItems: paymentHistory.cartItems?.length || 0
-      })
-
       if (paymentHistory.status === "paid") {
-        console.log("✅ Payment already processed")
         return res.status(200).json({ message: "Payment already processed" })
       }
 
@@ -1025,18 +1016,13 @@ export const handlePaystackWebhook = async (req, res) => {
       await paymentHistory.save()
 
       // Process group buys first
-      console.log("🔄 Processing group buys for payment history:", paymentHistory._id)
       const groupBuys = await processGroupBuys(paymentHistory)
-      console.log("✅ Group buys processed:", groupBuys.length, "created/joined")
 
       // Create Order AFTER payment confirmation
-      console.log("📋 Creating order for payment history:", paymentHistory._id)
       const order = await createOrderFromPayment(paymentHistory)
-      console.log("✅ Order created:", order._id)
 
       // Link order to group buys
       await linkOrderToGroupBuys(order, groupBuys)
-      console.log("🔗 Order linked to group buys")
 
       // Handle wallet deduction if applicable (now order and groupBuys exist)
       if (paymentHistory.walletUsed > 0) {
@@ -1105,64 +1091,7 @@ export const handlePaystackWebhook = async (req, res) => {
 
 
 
-// Test endpoint to manually create group buys (for debugging)
-export const testCreateGroupBuy = async (req, res) => {
-  try {
-    const { paymentHistoryId } = req.params
-    
-    console.log(`🧪 Testing group buy creation for PaymentHistory: ${paymentHistoryId}`)
-    
-    const paymentHistory = await PaymentHistory.findById(paymentHistoryId)
-    if (!paymentHistory) {
-      return res.status(404).json({ 
-        message: "PaymentHistory not found",
-        details: "The specified payment history could not be found in our system",
-        paymentHistoryId: paymentHistoryId,
-        suggestions: [
-          "Check the payment history ID for accuracy",
-          "Ensure the payment was made recently",
-          "Contact support if you believe this is an error"
-        ]
-      })
-    }
-    
-    console.log(`📦 Found PaymentHistory:`, {
-      id: paymentHistory._id,
-      status: paymentHistory.status,
-      cartItems: paymentHistory.cartItems,
-      userId: paymentHistory.userId
-    })
-    
-    const groupBuys = await processGroupBuys(paymentHistory)
-    
-    res.json({
-      success: true,
-      message: "Test group buy creation completed",
-      paymentHistoryId: paymentHistory._id,
-      groupBuysCreated: groupBuys.length,
-      groupBuys: groupBuys.map(gb => ({
-        id: gb._id,
-        productId: gb.productId,
-        status: gb.status,
-        unitsSold: gb.unitsSold,
-        minimumViableUnits: gb.minimumViableUnits
-      }))
-    })
-  } catch (error) {
-    console.error("❌ Test group buy creation error:", error)
-    res.status(500).json({ 
-      message: "Test failed",
-      details: "An error occurred while testing group buy creation. Please check the logs for more details.",
-      error: error.message,
-      stack: error.stack,
-      suggestions: [
-        "Check the payment history status",
-        "Verify the cart items are valid",
-        "Contact support if the issue persists"
-      ]
-    })
-  }
-}
+
 
 // Verify payment
 export const verifyPayment = async (req, res) => {

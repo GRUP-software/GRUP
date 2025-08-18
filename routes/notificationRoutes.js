@@ -128,9 +128,6 @@ router.delete('/:notificationId', verifyToken, async (req, res) => {
   }
 });
 
-// Create test notification (for testing purposes)
-
-
 // Health check endpoint for notifications
 router.get('/health', (req, res) => {
   res.json({
@@ -142,9 +139,7 @@ router.get('/health', (req, res) => {
       getUnreadCount: 'GET /unread-count',
       markAsRead: 'PATCH /:id/read',
       markAllAsRead: 'PATCH /mark-all-read',
-      deleteNotification: 'DELETE /:id',
-      createTest: 'POST /test',
-      testRealtime: 'POST /test-realtime'
+      deleteNotification: 'DELETE /:id'
     }
   });
 });

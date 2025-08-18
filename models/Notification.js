@@ -114,3 +114,4 @@ notificationSchema.statics.cleanupOldNotifications = async function(daysOld = 30
 const Notification = mongoose.model('Notification', notificationSchema);
 
 export default Notification;
+

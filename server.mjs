@@ -36,10 +36,6 @@ import referralRoutes from './routes/referralRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
-
-// Import notification service
-import notificationService from './services/notificationService.js';
 // REMOVED DUPLICATE: import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
 // Import controllers
@@ -90,15 +86,7 @@ app.use('/admin', (req, res, next) => {
 // Security middleware - apply after CORS
 app.use(securityMiddleware);
 
-// Add CORS debugging middleware
-app.use((req, res, next) => {
-  if (req.path.startsWith('/admin')) {
-    console.log('Admin Request - Origin:', req.headers.origin || 'no-origin');
-    console.log('Admin Request - Method:', req.method);
-    console.log('Admin Request - Path:', req.path);
-  }
-  next();
-});
+
 
 // __dirname support for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -117,8 +105,7 @@ app.use('/uploads', (req, res, next) => {
     return res.status(200).end();
   }
   
-  // Log the request for debugging
-  console.log(`Image request: ${req.method} ${req.url} from origin: ${req.headers.origin || 'no-origin'}`);
+
   
   next();
 }, express.static(path.join(__dirname, 'uploads'), {
@@ -165,12 +152,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api', (req, res, next) => {
-  console.log(`[v0] API Request: ${req.method} ${req.path}`);
-  console.log(`[v0] Full URL: ${req.originalUrl}`);
-  console.log(`[v0] Headers:`, req.headers);
-  next();
-});
+
 
 // API routes - NO RATE LIMITING
 app.use('/api/auth', authRoutes);
@@ -187,7 +169,6 @@ app.use('/api/referral', referralRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);
-app.use('/api/notifications', notificationRoutes);
 // REMOVED DUPLICATE: app.use('/api/groupbuy', groupBuyRoutes);
 
 // Socket.IO connection handling
@@ -227,9 +208,6 @@ io.on('connection', (socket) => {
 // Make io available to routes
 app.set('io', io);
 
-// Set up notification service with Socket.IO
-notificationService.setIO(io);
-
 // Health check endpoint
 app.get('/health', async (req, res) => {
   const dbHealth = await checkDatabaseHealth();
@@ -243,32 +221,7 @@ app.get('/health', async (req, res) => {
   });
 });
 
-// CORS test endpoint
-app.get('/api/cors-test', (req, res) => {
-  res.json({
-    message: 'CORS is working!',
-    origin: req.headers.origin,
-    method: req.method,
-    timestamp: new Date().toISOString()
-  });
-});
 
-// Image test endpoint to verify CORS
-app.get('/api/test-image/:filename', (req, res) => {
-  const { filename } = req.params;
-  const imagePath = path.join(__dirname, 'uploads', filename);
-  
-  // Set CORS headers explicitly
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-  
-  res.sendFile(imagePath, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Image not found' });
-    }
-  });
-});
 
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {
@@ -347,15 +300,6 @@ const startServer = async () => {
     
     // Start group buy expiry job
     startGroupBuyExpiryJob();
-    
-    // Start group buy monitoring service
-    try {
-      const groupBuyMonitoringService = (await import('./services/groupBuyMonitoringService.js')).default;
-      groupBuyMonitoringService.startMonitoring();
-      logger.info('Group buy monitoring service started successfully');
-    } catch (error) {
-      logger.error('Failed to start group buy monitoring service:', error);
-    }
     
     // Scheduled jobs
     cron.schedule('0 * * * *', async () => {

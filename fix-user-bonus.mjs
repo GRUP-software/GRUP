@@ -84,3 +84,4 @@ async function fixUserBonus() {
 }
 
 fixUserBonus();
+

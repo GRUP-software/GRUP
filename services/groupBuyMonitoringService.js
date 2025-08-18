@@ -219,3 +219,4 @@ class GroupBuyMonitoringService {
 
 const groupBuyMonitoringService = new GroupBuyMonitoringService();
 export default groupBuyMonitoringService;
+

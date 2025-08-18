@@ -53,7 +53,7 @@ router.post("/signup", async (req, res) => {
     await Wallet.create({ user: newUser._id, balance: 0 })
 
     const token = generateToken(newUser)
-    const referralLink = `http://localhost:4000/register?ref=${newUser.referralCode}`
+    const referralLink = `${process.env.FRONTEND_URL || 'http://localhost:4000'}/register?ref=${newUser.referralCode}`
 
     res.status(201).json({
       token,
@@ -82,7 +82,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = generateToken(user)
-    const referralLink = `http://localhost:4000/register?ref=${user.referralCode}`
+    const referralLink = `${process.env.FRONTEND_URL || 'http://localhost:4000'}/register?ref=${user.referralCode}`
 
     res.status(200).json({
       token,

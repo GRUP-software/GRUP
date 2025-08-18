@@ -61,3 +61,4 @@ const updatedReferralTransactions = await Transaction.find({
 console.log('🎁 Updated referral bonus transactions:', updatedReferralTransactions.length);
 
 process.exit(0);
+

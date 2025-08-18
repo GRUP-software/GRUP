@@ -41,45 +41,7 @@ router.get("/product/:productId", getGroupBuyByProduct)
 // Get group buy status for specific product
 router.get("/group-status/:productId", getGroupBuyStatus)
 
-// Debug endpoint to check database state
-router.get("/debug", async (req, res) => {
-  try {
-    const GroupBuy = (await import("../models/GroupBuy.js")).default
-    const PaymentHistory = (await import("../models/PaymentHistory.js")).default
-    const Order = (await import("../models/order.js")).default
 
-    const groupBuysCount = await GroupBuy.countDocuments()
-    const paymentHistoriesCount = await PaymentHistory.countDocuments()
-    const ordersCount = await Order.countDocuments()
-
-    const recentGroupBuys = await GroupBuy.find({})
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("productId", "title price")
-
-    const recentPaymentHistories = await PaymentHistory.find({}).sort({ createdAt: -1 }).limit(5)
-
-    const recentOrders = await Order.find({}).sort({ createdAt: -1 }).limit(5)
-
-    res.json({
-      success: true,
-      debug: {
-        groupBuysCount,
-        paymentHistoriesCount,
-        ordersCount,
-        recentGroupBuys,
-        recentPaymentHistories,
-        recentOrders,
-      },
-    })
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Debug query failed",
-      error: error.message,
-    })
-  }
-})
 
 // Get single group buy by ID (MUST be after specific routes)
 router.get("/:id", getGroupBuyById)

@@ -20,3 +20,4 @@ users.forEach(user => {
 });
 
 process.exit(0);
+
