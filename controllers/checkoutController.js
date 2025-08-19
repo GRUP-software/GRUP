@@ -26,6 +26,18 @@ export const checkout = async (req, res) => {
     let totalPrice = 0
     const cartItems = []
 
+    console.log("🔍 Checkout Debug - Cart items:")
+    cart.items.forEach((item, index) => {
+      console.log(`   Item ${index + 1}:`, {
+        productId: item.product._id,
+        quantity: item.quantity,
+        sellingUnit: item.sellingUnit,
+        unitPrice: item.unitPrice,
+        hasSellingUnit: !!item.sellingUnit,
+        baseUnitQuantity: item.sellingUnit?.baseUnitQuantity
+      })
+    })
+
     for (const item of cart.items) {
       const product = await Product.findById(item.product._id)
       if (!product) {
@@ -47,11 +59,15 @@ export const checkout = async (req, res) => {
       const itemTotal = itemPrice * item.quantity
       totalPrice += itemTotal
 
-      cartItems.push({
+      const cartItemData = {
         productId: product._id,
         quantity: item.quantity,
         price: itemPrice, // Store the actual selling unit price at time of purchase
-      })
+        sellingUnit: item.sellingUnit, // Include selling unit data for group buy calculations
+      }
+      
+      console.log("🔍 Checkout Debug - Cart item being saved:", cartItemData)
+      cartItems.push(cartItemData)
     }
 
     // Generate unique reference

@@ -119,6 +119,11 @@ const adminJs = new AdminJS({
             type: 'number',
             isVisible: { list: true, edit: true, show: true, filter: true, new: true },
           },
+          minimumViableUnits: {
+            type: 'number',
+            isVisible: { list: true, edit: true, show: true, filter: true, new: true },
+            description: 'Minimum units needed for group buy success (e.g., 25 paints)'
+          },
           shareLink: {
             isVisible: {
               list: false,

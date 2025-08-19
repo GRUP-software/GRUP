@@ -3,7 +3,7 @@ import logger from '../utils/logger.js';
 
 class NotificationService {
   constructor() {
-    this.io = null;
+    this.io = null;                                          
   }
 
   setIO(io) {

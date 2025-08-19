@@ -9,6 +9,7 @@ import crypto from "crypto"
 import { nanoid } from "nanoid"
 import mongoose from "mongoose"
 import Product from "../models/Product.js" // Import Product model
+import { calculateBaseUnitQuantity } from "../utils/sellingUnitHelper.js"
 
 // Import formatCartItems function from cartController
 const formatCartItems = (cartItems) => {
@@ -137,8 +138,20 @@ export const processGroupBuys = async (paymentHistory) => {
         if (groupBuy) {
 
 
-          // Update existing GroupBuy using the model method
-          groupBuy.addOrUpdateParticipant(userId, item.quantity, itemAmount, paymentHistoryId)
+                // Calculate correct group buy quantity based on selling units
+      const groupBuyQuantity = calculateBaseUnitQuantity(item)
+      
+      console.log(`🔍 Group Buy Debug for product ${productId}:`)
+      console.log(`   Cart item:`, JSON.stringify(item, null, 2))
+      console.log(`   Selling unit data:`, item.sellingUnit)
+      console.log(`   Cart quantity: ${item.quantity}`)
+      console.log(`   Base unit quantity: ${item.sellingUnit?.baseUnitQuantity || 'N/A'}`)
+      console.log(`   Calculated base units: ${groupBuyQuantity}`)
+      console.log(`   Item amount: ${itemAmount}`)
+      console.log(`   Using quantity for group buy: ${groupBuyQuantity}`)
+
+      // Update existing GroupBuy using the model method
+      groupBuy.addOrUpdateParticipant(userId, groupBuyQuantity, itemAmount, paymentHistoryId)
           await groupBuy.save()
           
         }
@@ -160,10 +173,13 @@ export const processGroupBuys = async (paymentHistory) => {
           const productMVU = product.minimumViableUnits ?? 20;
           
 
+          // Calculate correct group buy quantity based on selling units
+          const groupBuyQuantity = calculateBaseUnitQuantity(item)
+
           // Validate participant data before creating GroupBuy
           const participantData = {
             userId: userId,
-            quantity: Number(item.quantity),
+            quantity: Number(groupBuyQuantity), // Use calculated base unit quantity
             amount: Number(itemAmount),
             paymentHistories: [paymentHistoryId],
             joinedAt: new Date(),
@@ -185,7 +201,7 @@ export const processGroupBuys = async (paymentHistory) => {
           const groupBuyData = {
             productId: productId,
             minimumViableUnits: productMVU, // Use product's MVU instead of hardcoded 20
-            unitsSold: Number(item.quantity),
+            unitsSold: Number(groupBuyQuantity), // Use calculated base unit quantity
             totalAmountCollected: Number(itemAmount),
             status: "active",
             expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
@@ -228,7 +244,10 @@ export const processGroupBuys = async (paymentHistory) => {
 
             if (groupBuy) {
 
-              groupBuy.addOrUpdateParticipant(userId, item.quantity, itemAmount, paymentHistoryId)
+              // Calculate correct group buy quantity based on selling units
+              const groupBuyQuantity = calculateBaseUnitQuantity(item)
+
+              groupBuy.addOrUpdateParticipant(userId, groupBuyQuantity, itemAmount, paymentHistoryId)
               await groupBuy.save()
             } else {
               throw new Error(`Failed to create or find GroupBuy for product ${productId}`)
@@ -880,6 +899,18 @@ export const initializePayment = async (req, res) => {
     let totalPrice = 0
     const cartItems = []
 
+    console.log("🔍 Initialize Payment Debug - Cart items:")
+    cart.items.forEach((item, index) => {
+      console.log(`   Item ${index + 1}:`, {
+        productId: item.product._id,
+        quantity: item.quantity,
+        sellingUnit: item.sellingUnit,
+        unitPrice: item.unitPrice,
+        hasSellingUnit: !!item.sellingUnit,
+        baseUnitQuantity: item.sellingUnit?.baseUnitQuantity
+      })
+    })
+
     for (const item of cart.items) {
       const product = item.product
       const quantity = item.quantity
@@ -915,11 +946,15 @@ export const initializePayment = async (req, res) => {
       const itemTotal = itemPrice * quantity
       totalPrice += itemTotal
 
-      cartItems.push({
+      const cartItemData = {
         productId: product._id,
         quantity: quantity,
         price: itemPrice, // Store the actual selling unit price
-      })
+        sellingUnit: item.sellingUnit, // Include selling unit data for group buy calculations
+      }
+      
+      console.log("🔍 Initialize Payment Debug - Cart item being saved:", cartItemData)
+      cartItems.push(cartItemData)
     }
 
 

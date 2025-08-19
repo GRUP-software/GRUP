@@ -39,6 +39,14 @@ const paymentHistorySchema = new mongoose.Schema(
           required: true,
           min: 0,
         },
+        sellingUnit: {
+          optionName: String,
+          displayName: String,
+          baseUnitQuantity: Number,
+          baseUnitName: String,
+          pricePerUnit: Number,
+          totalBaseUnits: Number,
+        },
       },
     ],
     amount: {

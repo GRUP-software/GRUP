@@ -2,6 +2,7 @@ import Cart from "../models/cart.js"
 import Product from "../models/Product.js"
 import Wallet from "../models/Wallet.js"
 import GroupBuy from "../models/GroupBuy.js"
+import { calculateBaseUnitQuantity } from "../utils/sellingUnitHelper.js"
 
 const calculateSellingUnitPrice = (product, sellingUnit) => {
   if (!sellingUnit || !product.sellingUnits?.enabled) {
