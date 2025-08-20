@@ -13,7 +13,7 @@ class NotificationService {
   async createNotification(notificationData) {
     try {
       const notification = await Notification.createNotification(notificationData)
-
+      
       if (this.io && notification.userId) {
         this.io.to(`user_${notification.userId}`).emit("notification:new", {
           notification: notification.toJSON(),
@@ -65,7 +65,7 @@ class NotificationService {
       category: "order",
       title: "Order Created Successfully!",
       message: `Order #${orderData.trackingNumber} has been created. Total: ₦${orderData.totalAmount?.toLocaleString()}`,
-      data: {
+      data: { 
         orderId: orderData.orderId,
         trackingNumber: orderData.trackingNumber,
         totalAmount: orderData.totalAmount,
@@ -84,7 +84,7 @@ class NotificationService {
       category: "order",
       title: `Order Status: ${status}`,
       message: `Order #${orderData.trackingNumber}: ${message}`,
-      data: {
+      data: { 
         orderId: orderData.orderId,
         trackingNumber: orderData.trackingNumber,
         status,
@@ -258,7 +258,7 @@ class NotificationService {
   async notifyGroupBuyExpired(userId, productName, groupBuyId, status, message) {
     const notificationType = status === "successful" ? "success" : "error"
     const title = status === "successful" ? "Group Buy Successful!" : "Group Buy Expired"
-
+    
     return await this.createNotification({
       userId,
       type: notificationType,
@@ -305,7 +305,7 @@ class NotificationService {
   async notifyWalletUpdate(userId, oldBalance, newBalance, reason, transactionId = null) {
     const difference = newBalance - oldBalance
     const isCredit = difference > 0
-
+    
     return await this.createNotification({
       userId,
       type: isCredit ? "success" : "info",
@@ -346,7 +346,7 @@ class NotificationService {
         total,
         pages: Math.ceil(total / limit),
       },
-    }
+      }
   }
 
   // Mark notification as read
@@ -367,7 +367,7 @@ class NotificationService {
   // Mark all notifications as read
   async markAllAsRead(userId) {
     const result = await Notification.markAllAsRead(userId)
-
+    
     if (this.io) {
       this.io.to(`user_${userId}`).emit("notification:all_read")
     }

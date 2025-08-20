@@ -1,0 +1,85 @@
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+const config = {
+  // Environment
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  
+  // Server
+  PORT: process.env.PORT || 5000,
+  
+  // Database
+  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/grup',
+  
+  // JWT
+  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+  
+  // Cloudinary Configuration
+  CLOUDINARY: {
+    CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || 'dafkhnw7p',
+    API_KEY: process.env.CLOUDINARY_API_KEY || '946915641663984',
+    API_SECRET: process.env.CLOUDINARY_API_SECRET || 'MU6_2U6tpzbJ-VbnqfQ-_OEQeWc',
+    FOLDER: process.env.CLOUDINARY_FOLDER || 'grup'
+  },
+  
+  // Paystack Configuration
+  PAYSTACK: {
+    SECRET_KEY: process.env.PAYSTACK_SECRET_KEY || '',
+    PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY || ''
+  },
+  
+  // Socket.IO
+  SOCKET_CORS_ORIGIN: process.env.SOCKET_CORS_ORIGIN || 'http://localhost:3000',
+  
+  // Logging
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info'
+};
+
+// Environment-specific configurations
+const environmentConfigs = {
+  development: {
+    ...config,
+    CLOUDINARY: {
+      ...config.CLOUDINARY,
+      FOLDER: `${config.CLOUDINARY.FOLDER}/development`
+    }
+  },
+  
+  testing: {
+    ...config,
+    CLOUDINARY: {
+      ...config.CLOUDINARY,
+      FOLDER: `${config.CLOUDINARY.FOLDER}/testing`
+    }
+  },
+  
+  staging: {
+    ...config,
+    CLOUDINARY: {
+      ...config.CLOUDINARY,
+      FOLDER: `${config.CLOUDINARY.FOLDER}/staging`
+    }
+  },
+  
+  production: {
+    ...config,
+    CLOUDINARY: {
+      ...config.CLOUDINARY,
+      FOLDER: `${config.CLOUDINARY.FOLDER}/production`
+    }
+  }
+};
+
+// Get current environment configuration
+const getCurrentConfig = () => {
+  const env = config.NODE_ENV;
+  return environmentConfigs[env] || environmentConfigs.development;
+};
+
+// Export current configuration
+export default getCurrentConfig();
+
+// Export all configurations for testing
+export { environmentConfigs, getCurrentConfig };

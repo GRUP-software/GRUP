@@ -34,6 +34,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import referralRoutes from './routes/referralRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
@@ -166,6 +167,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);

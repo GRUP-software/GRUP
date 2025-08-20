@@ -183,8 +183,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🖼️ Grup Admin Image Upload</h1>
-            <p>Upload images that will be available in the AdminJS product manager</p>
+            <h1>🌤️ Grup Admin Cloudinary Upload</h1>
+            <p>Upload images to Cloudinary that will be available in the AdminJS product manager</p>
         </div>
 
         <!-- Debug Info -->
@@ -233,7 +233,7 @@
                 <h3 style="margin: 10px 0; color: #007bff;">Click to Upload or Drag & Drop</h3>
                 <p style="font-size: 16px; color: #666; margin: 10px 0;">
                     Supports: JPEG, PNG, GIF, WebP<br>
-                    <strong>Max 5MB each • Up to 10 images at once</strong>
+                    <strong>Max 10MB each • Up to 10 images at once • Stored in Cloudinary</strong>
                 </p>
                 <div style="margin-top: 15px;">
                     <span style="background: #007bff; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px;">
@@ -255,8 +255,8 @@
             </div>
 
             <div id="urlResults" class="url-list" style="display: none;">
-                <h4>✅ Images Uploaded Successfully!</h4>
-                <p style="color: #28a745; font-weight: bold;">These images are now available in the AdminJS product manager.</p>
+                <h4>✅ Images Uploaded to Cloudinary Successfully!</h4>
+                <p style="color: #28a745; font-weight: bold;">These images are now stored in Cloudinary and available in the AdminJS product manager.</p>
                 <div id="urlList"></div>
                 <div style="margin-top: 15px; padding: 10px; background: #e8f5e8; border-radius: 5px;">
                     <strong>🎯 Next Steps:</strong>
@@ -471,11 +471,11 @@
             const uploadBtn = document.getElementById('uploadBtn');
             const uploadBtnText = document.getElementById('uploadBtnText');
             uploadBtn.disabled = true;
-            uploadBtnText.innerHTML = '<span class="loading"></span> Uploading & Saving to Gallery...';
+            uploadBtnText.innerHTML = '<span class="loading"></span> Uploading to Cloudinary...';
 
             try {
                 const apiBase = getApiBase();
-                const response = await fetch(`${apiBase}/api/admin/upload-images`, {
+                const response = await fetch(`${apiBase}/api/upload/admin/multiple`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${authToken}`
@@ -486,13 +486,15 @@
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    uploadCount += data.count || selectedFiles.length;
+                    uploadCount += data.data.totalCount || selectedFiles.length;
                     document.getElementById('uploadCount').textContent = uploadCount;
                     
-                    showMessage(`✅ ${data.count || selectedFiles.length} images uploaded and saved to gallery!`, 'success');
+                    showMessage(`✅ ${data.data.totalCount || selectedFiles.length} images uploaded to Cloudinary!`, 'success');
                     
-                    if (data.imageUrls) {
-                        displayUrls(data.imageUrls);
+                    // Extract URLs from Cloudinary response
+                    const imageUrls = data.data.images.map(img => img.cloudinary.url);
+                    if (imageUrls.length > 0) {
+                        displayUrls(imageUrls);
                     }
                     
                     clearSelection();
