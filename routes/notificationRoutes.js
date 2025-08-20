@@ -100,6 +100,27 @@ router.patch('/mark-all-read', verifyToken, async (req, res) => {
   }
 });
 
+// Clear all notifications for user (must come before /:notificationId route)
+router.delete('/clear-all', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const result = await notificationService.clearAllNotifications(userId);
+    
+    res.json({
+      success: true,
+      message: 'All notifications cleared successfully',
+      data: { deletedCount: result.deletedCount }
+    });
+  } catch (error) {
+    console.error('Error clearing all notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear all notifications'
+    });
+  }
+});
+
 // Delete notification
 router.delete('/:notificationId', verifyToken, async (req, res) => {
   try {
@@ -142,6 +163,35 @@ router.get('/health', (req, res) => {
       deleteNotification: 'DELETE /:id'
     }
   });
+});
+
+// Test endpoint to create a sample notification
+router.post('/test', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const testNotification = await notificationService.createNotification({
+      userId,
+      type: 'info',
+      category: 'system',
+      title: 'Test Notification',
+      message: 'This is a test notification to verify the system is working!',
+      data: { test: true, timestamp: new Date().toISOString() },
+      priority: 'medium'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Test notification created successfully',
+      data: { notification: testNotification }
+    });
+  } catch (error) {
+    console.error('Error creating test notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create test notification'
+    });
+  }
 });
 
 export default router;

@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['payment', 'group_buy', 'referral', 'wallet', 'cart', 'system', 'order'],
+    enum: ['payment', 'group_buy', 'referral', 'wallet', 'system', 'order'],
     default: 'system'
   },
   title: {
@@ -114,4 +114,5 @@ notificationSchema.statics.cleanupOldNotifications = async function(daysOld = 30
 const Notification = mongoose.model('Notification', notificationSchema);
 
 export default Notification;
+
 

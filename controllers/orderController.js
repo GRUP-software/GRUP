@@ -1,4 +1,5 @@
 import Order from "../models/order.js"
+import notificationService from "../services/notificationService.js"
 
 export const getUserOrders = async (req, res) => {
   try {
@@ -210,7 +211,7 @@ export const getOrdersForAdmin = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { trackingNumber } = req.params
-    const { status, message } = req.body
+    const { status, message, notifyCustomer = true } = req.body
 
     const validStatuses = [
       "groups_forming",
@@ -233,10 +234,14 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     const order = await Order.findOne({ trackingNumber })
+      .populate("user", "name email")
+      .populate("items.product", "title")
+
     if (!order) {
       return res.status(404).json({ message: "Order not found" })
     }
 
+    const previousStatus = order.currentStatus
     order.currentStatus = status
     order.progress.push({
       status,
@@ -251,10 +256,35 @@ export const updateOrderStatus = async (req, res) => {
 
     await order.save()
 
+    // Send detailed notification to customer if requested
+    if (notifyCustomer) {
+      const customMessage = message || `Your order ${trackingNumber} status has been updated to ${status}.`
+
+      await notificationService.notifyOrderStatusUpdate(
+        order.user._id,
+        {
+          orderId: order._id,
+          trackingNumber: order.trackingNumber,
+        },
+        status,
+        customMessage,
+      )
+
+      // Send additional notification for tracking number if this is the first status update
+      if (previousStatus === "groups_forming" && status !== "groups_forming") {
+        await notificationService.notifyTrackingNumberAssigned(order.user._id, {
+          orderId: order._id,
+          trackingNumber: order.trackingNumber,
+        })
+      }
+    }
+
     res.json({
       message: "Order status updated successfully",
       trackingNumber: order.trackingNumber,
       newStatus: status,
+      previousStatus,
+      customerNotified: notifyCustomer,
       order,
     })
   } catch (err) {

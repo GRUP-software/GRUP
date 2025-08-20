@@ -168,56 +168,90 @@ orderSchema.methods.calculatePriorityScore = function () {
   return this.priorityScore
 }
 
-// Post-save middleware to handle order status notifications
-orderSchema.post("save", async function(doc) {
+orderSchema.post("save", async (doc) => {
   // Check if this is a status change that should trigger notification
-  if (doc._statusChanged && doc._previousStatus) {
+  if (doc.isModified("currentStatus") || doc._statusChanged) {
     try {
-      const notificationService = (await import('../services/notificationService.js')).default;
-      
-      // Get status-specific messages
+      const notificationService = (await import("../services/notificationService.js")).default
+
+      // Get status-specific messages with more detail
       const statusMessages = {
-        'all_secured': 'All your group buys have been secured! Your order is now being processed.',
-        'processing': 'Your order is now being processed and prepared for fulfillment.',
-        'packaged': 'Your order has been packaged and is ready for fulfillment.',
-        'awaiting_fulfillment_choice': 'Please choose your fulfillment method (pickup or delivery).',
-        'ready_for_pickup': 'Your order is ready for pickup!',
-        'out_for_delivery': 'Your order is out for delivery!',
-        'delivered': 'Your order has been delivered successfully!',
-        'picked_up': 'Your order has been picked up successfully!',
-        'cancelled': 'Your order has been cancelled.',
-        'groups_under_review': 'Some of your group buys are under admin review.'
-      };
-      
-      const message = statusMessages[doc.currentStatus] || `Order status updated to: ${doc.currentStatus}`;
-      
+        groups_forming: "Your order has been created! Group buys are now forming for your items.",
+        all_secured: "Excellent! All your group buys have been secured. Your order will be processed within 24 hours.",
+        processing: "Your order is now being processed and prepared for fulfillment.",
+        packaged:
+          "Your order has been packaged and is ready for fulfillment. You'll receive pickup/delivery options soon.",
+        awaiting_fulfillment_choice: "Please choose your preferred fulfillment method (pickup or delivery) to proceed.",
+        ready_for_pickup: "Your order is ready for pickup at our location! Bring your tracking number.",
+        out_for_delivery: "Your order is out for delivery and should arrive soon!",
+        delivered: "Your order has been delivered successfully! Thank you for shopping with us.",
+        picked_up: "Thank you for picking up your order! We hope you enjoy your purchase.",
+        cancelled: "Your order has been cancelled. Any payments will be refunded to your wallet.",
+        groups_under_review: "Some group buys in your order are under admin review. We'll update you within 24 hours.",
+      }
+
+      const message = statusMessages[doc.currentStatus] || `Order status updated to: ${doc.currentStatus}`
+
       await notificationService.notifyOrderStatusUpdate(
         doc.user,
         {
           orderId: doc._id,
-          trackingNumber: doc.trackingNumber
+          trackingNumber: doc.trackingNumber,
         },
         doc.currentStatus,
-        message
-      );
-      
-      // Clear the flag
-      doc._statusChanged = false;
-      doc._previousStatus = null;
+        message,
+      )
+
+      // Special handling for ready_for_pickup status
+      if (doc.currentStatus === "ready_for_pickup") {
+        await notificationService.notifyOrderReadyForPickup(
+          doc.user,
+          {
+            orderId: doc._id,
+            trackingNumber: doc.trackingNumber,
+          },
+          "Main Store Location - 123 Commerce Street", // You can make this configurable
+        )
+      }
     } catch (error) {
-      console.error('Failed to send order status notification:', error);
+      console.error("Failed to send order status notification:", error)
     }
   }
-});
+
+  // Notify when all groups are secured
+  if (doc.isModified("allGroupsSecured") && doc.allGroupsSecured) {
+    try {
+      const notificationService = (await import("../services/notificationService.js")).default
+
+      await notificationService.createNotification({
+        userId: doc.user,
+        category: "order",
+        type: "success",
+        title: "All Group Buys Secured! 🎉",
+        message: `Great news! All group buys for order ${doc.trackingNumber} have been secured. Your order will be processed soon.`,
+        actionUrl: `/orders/track/${doc.trackingNumber}`,
+        metadata: {
+          orderId: doc._id,
+          trackingNumber: doc.trackingNumber,
+          totalAmount: doc.totalAmount,
+          itemCount: doc.items.length,
+          timestamp: new Date(),
+        },
+      })
+    } catch (error) {
+      console.error("Failed to send group secured notification:", error)
+    }
+  }
+})
 
 // Pre-save middleware to detect status changes
-orderSchema.pre("save", function(next) {
-  if (this.isModified('currentStatus')) {
-    this._statusChanged = true;
-    this._previousStatus = this._original?.currentStatus || this.currentStatus;
+orderSchema.pre("save", function (next) {
+  if (this.isModified("currentStatus")) {
+    this._statusChanged = true
+    this._previousStatus = this._original?.currentStatus || this.currentStatus
   }
-  next();
-});
+  next()
+})
 
 // Index for efficient queries
 orderSchema.index({ user: 1, createdAt: -1 })

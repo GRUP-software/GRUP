@@ -250,15 +250,7 @@ export const addToCart = async (req, res) => {
     const walletBalance = wallet?.balance || 0
     const maxWalletUse = Math.min(walletBalance, totalPrice)
 
-    // Import notification service
-    const notificationService = (await import('../services/notificationService.js')).default;
-    
-    // Send cart notification
-    try {
-      await notificationService.showCartUpdate(userId, 'added', product.title);
-    } catch (error) {
-      console.error('Failed to send cart notification:', error);
-    }
+    // Cart notifications removed - too noisy for users
 
     res.status(200).json({
       message: "Item added to cart successfully",
@@ -429,19 +421,7 @@ export const removeFromCart = async (req, res) => {
 
     await cart.save()
 
-    // Send cart removal notification
-    try {
-      const notificationService = (await import('../services/notificationService.js')).default;
-      const Product = (await import('../models/Product.js')).default;
-      
-      // Get product details for notification
-      const product = await Product.findById(productId);
-      const productName = product?.title || 'Product';
-      
-      await notificationService.showCartUpdate(userId, 'removed', productName);
-    } catch (error) {
-      console.error('Failed to send cart removal notification:', error);
-    }
+    // Cart removal notifications removed - too noisy for users
 
     // Return updated cart data
     const updatedCart = await Cart.findOne({ user: userId }).populate("items.product")

@@ -5,6 +5,7 @@ import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
 import Product from "../models/Product.js"
 import logger from "../utils/logger.js"
+import notificationService from "../services/notificationService.js"
 
 // Get all active group buys
 export const getActiveGroupBuys = async (req, res) => {
@@ -149,22 +150,23 @@ export const getAllGroupBuys = async (req, res) => {
       groupBuyObj.participantCount = groupBuy.getParticipantCount()
       groupBuyObj.isExpired = groupBuy.isExpired()
 
-             // Add user-specific data if userId provided
-       if (userId) {
-         const userParticipation = groupBuy.getParticipant(userId)
-         if (userParticipation) {
-           groupBuyObj.userParticipation = {
-             userQuantity: userParticipation.quantity,
-             userAmount: userParticipation.amount,
-             userTotalSpent: userParticipation.amount,
-             userContributionPercentage: groupBuy.minimumViableUnits > 0 
-               ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
-               : 0,
-             userJoinedAt: userParticipation.joinedAt,
-             userPurchaseCount: userParticipation.paymentHistories.length,
-           }
-         }
-       }
+      // Add user-specific data if userId provided
+      if (userId) {
+        const userParticipation = groupBuy.getParticipant(userId)
+        if (userParticipation) {
+          groupBuyObj.userParticipation = {
+            userQuantity: userParticipation.quantity,
+            userAmount: userParticipation.amount,
+            userTotalSpent: userParticipation.amount,
+            userContributionPercentage:
+              groupBuy.minimumViableUnits > 0
+                ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
+                : 0,
+            userJoinedAt: userParticipation.joinedAt,
+            userPurchaseCount: userParticipation.paymentHistories.length,
+          }
+        }
+      }
 
       return groupBuyObj
     })
@@ -189,10 +191,10 @@ export const getAllGroupBuys = async (req, res) => {
 export const getUserGroupBuys = async (req, res) => {
   try {
     const userId = req.user.id
-    
+
     // Ensure userId is properly converted to ObjectId for consistent comparison
     const userIdObj = new mongoose.Types.ObjectId(userId)
-    
+
     const { status, page = 1, limit = 50, sortBy = "createdAt", sortOrder = "desc" } = req.query
 
     // Build filter
@@ -202,7 +204,7 @@ export const getUserGroupBuys = async (req, res) => {
     // Build sort object
     const sort = {}
     sort[sortBy] = sortOrder === "desc" ? -1 : 1
-    
+
     const groupBuys = await GroupBuy.find(filter)
       .populate("productId", "title price images category slug unitTag")
       .populate("participants.userId", "firstName lastName email")
@@ -215,7 +217,7 @@ export const getUserGroupBuys = async (req, res) => {
     // Enhanced response with user-specific data and progress information
     const userGroupBuys = groupBuys.map((groupBuy) => {
       const userParticipation = groupBuy.getParticipant(userIdObj)
-      
+
       const progressPercentage = groupBuy.getProgressPercentage()
       const isExpired = groupBuy.isExpired()
       const timeRemaining = Math.max(0, groupBuy.expiresAt - new Date())
@@ -254,80 +256,79 @@ export const getUserGroupBuys = async (req, res) => {
         statusColor = "gray"
       }
 
-             return {
-         _id: groupBuy._id,
-         productId: groupBuy.productId,
-         status: groupBuy.status,
-         displayStatus,
-         statusLabel,
-         statusColor,
-         
-         // GROUP BUY OVERALL DATA:
-         unitsSold: groupBuy.unitsSold,
-         minimumViableUnits: groupBuy.minimumViableUnits,
-         totalAmountCollected: groupBuy.totalAmountCollected,
-         progressPercentage: Math.round(progressPercentage),
-         
-                   // CURRENT USER'S ACTUAL PARTICIPATION DATA:
-          userQuantity: userParticipation?.quantity || 0,
-          userAmount: userParticipation?.amount || 0,
-          userTotalSpent: userParticipation?.amount || 0, // Alternative field name as requested
-          userContributionPercentage: groupBuy.minimumViableUnits > 0 
-            ? Math.round((userParticipation?.quantity || 0) / groupBuy.minimumViableUnits * 100)
+      return {
+        _id: groupBuy._id,
+        productId: groupBuy.productId,
+        status: groupBuy.status,
+        displayStatus,
+        statusLabel,
+        statusColor,
+
+        // GROUP BUY OVERALL DATA:
+        unitsSold: groupBuy.unitsSold,
+        minimumViableUnits: groupBuy.minimumViableUnits,
+        totalAmountCollected: groupBuy.totalAmountCollected,
+        progressPercentage: Math.round(progressPercentage),
+
+        // CURRENT USER'S ACTUAL PARTICIPATION DATA:
+        userQuantity: userParticipation?.quantity || 0,
+        userAmount: userParticipation?.amount || 0,
+        userTotalSpent: userParticipation?.amount || 0, // Alternative field name as requested
+        userContributionPercentage:
+          groupBuy.minimumViableUnits > 0
+            ? Math.round(((userParticipation?.quantity || 0) / groupBuy.minimumViableUnits) * 100)
             : 0,
-         userJoinedAt: userParticipation?.joinedAt,
-         userPurchaseCount: userParticipation?.paymentHistories.length || 0,
-         
-         // Additional progress information
-         timeRemaining,
-         isExpired,
-         participantCount,
-         spotsRemaining,
-         isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
-         canAcceptMore: groupBuy.canAcceptMoreParticipants(),
-         expiresAt: groupBuy.expiresAt,
-         createdAt: groupBuy.createdAt,
-         updatedAt: groupBuy.updatedAt,
-       }
+        userJoinedAt: userParticipation?.joinedAt,
+        userPurchaseCount: userParticipation?.paymentHistories.length || 0,
+
+        // Additional progress information
+        timeRemaining,
+        isExpired,
+        participantCount,
+        spotsRemaining,
+        isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
+        canAcceptMore: groupBuy.canAcceptMoreParticipants(),
+        expiresAt: groupBuy.expiresAt,
+        createdAt: groupBuy.createdAt,
+        updatedAt: groupBuy.updatedAt,
+      }
     })
 
     // Get statistics for the user - calculate totals from ALL group buys, not just paginated results
     const allUserGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj })
       .populate("productId", "title price images category slug unitTag")
       .populate("participants.userId", "firstName lastName email")
-    
+
     let totalSpent = 0
     let totalUnits = 0
-    
-    allUserGroupBuys.forEach(groupBuy => {
+
+    allUserGroupBuys.forEach((groupBuy) => {
       const userParticipation = groupBuy.getParticipant(userIdObj)
       if (userParticipation) {
         totalSpent += userParticipation.amount
         totalUnits += userParticipation.quantity
       }
     })
-    
+
     const stats = {
       total: total,
-      forming: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
+      forming: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
         status: "active",
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       }),
-      successful: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
-        status: "successful" 
+      successful: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
+        status: "successful",
       }),
-      failed: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
-        status: { $in: ["failed", "manual_review"] } 
+      failed: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
+        status: { $in: ["failed", "manual_review"] },
       }),
       totalSpent: totalSpent,
       totalUnits: totalUnits,
     }
 
-
-    
     res.json({
       success: true,
       data: userGroupBuys,
@@ -366,22 +367,23 @@ export const getGroupBuyById = async (req, res) => {
       isExpired: groupBuy.isExpired(),
     }
 
-         // Add user-specific data if user is authenticated
-     if (userId) {
-       const userParticipation = groupBuy.getParticipant(userId)
-       if (userParticipation) {
-         groupBuyData.userParticipation = {
-           userQuantity: userParticipation.quantity,
-           userAmount: userParticipation.amount,
-           userTotalSpent: userParticipation.amount,
-           userContributionPercentage: groupBuy.minimumViableUnits > 0 
-             ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
-             : 0,
-           userJoinedAt: userParticipation.joinedAt,
-           userPurchaseCount: userParticipation.paymentHistories.length,
-         }
-       }
-     }
+    // Add user-specific data if user is authenticated
+    if (userId) {
+      const userParticipation = groupBuy.getParticipant(userId)
+      if (userParticipation) {
+        groupBuyData.userParticipation = {
+          userQuantity: userParticipation.quantity,
+          userAmount: userParticipation.amount,
+          userTotalSpent: userParticipation.amount,
+          userContributionPercentage:
+            groupBuy.minimumViableUnits > 0
+              ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
+              : 0,
+          userJoinedAt: userParticipation.joinedAt,
+          userPurchaseCount: userParticipation.paymentHistories.length,
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -432,48 +434,49 @@ export const getGroupBuyStats = async (req, res) => {
 export const getUserGroupBuyStats = async (req, res) => {
   try {
     const userId = req.user.id
-    
+
     // Ensure userId is properly converted to ObjectId for consistent comparison
     const userIdObj = new mongoose.Types.ObjectId(userId)
 
     const stats = {
       total: await GroupBuy.countDocuments({ "participants.userId": userIdObj }),
-      forming: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
+      forming: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
         status: "active",
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       }),
-      successful: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
-        status: "successful" 
+      successful: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
+        status: "successful",
       }),
-      failed: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
-        status: { $in: ["failed", "manual_review"] } 
+      failed: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
+        status: { $in: ["failed", "manual_review"] },
       }),
-      expired: await GroupBuy.countDocuments({ 
-        "participants.userId": userIdObj, 
+      expired: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
         status: "active",
-        expiresAt: { $lt: new Date() }
+        expiresAt: { $lt: new Date() },
       }),
     }
 
     // Get total amount spent and units purchased
-    const userGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj })
-      .populate("participants.userId", "firstName lastName")
+    const userGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj }).populate(
+      "participants.userId",
+      "firstName lastName",
+    )
 
     let totalSpent = 0
     let totalUnits = 0
     let totalContribution = 0
 
-    userGroupBuys.forEach(groupBuy => {
+    userGroupBuys.forEach((groupBuy) => {
       const userParticipation = groupBuy.getParticipant(userIdObj)
       if (userParticipation) {
         totalSpent += userParticipation.amount
         totalUnits += userParticipation.quantity
-        totalContribution += groupBuy.minimumViableUnits > 0 
-          ? (userParticipation.quantity / groupBuy.minimumViableUnits * 100)
-          : 0
+        totalContribution +=
+          groupBuy.minimumViableUnits > 0 ? (userParticipation.quantity / groupBuy.minimumViableUnits) * 100 : 0
       }
     })
 
@@ -481,8 +484,6 @@ export const getUserGroupBuyStats = async (req, res) => {
     stats.totalUnits = totalUnits
     stats.averageContribution = userGroupBuys.length > 0 ? Math.round(totalContribution / userGroupBuys.length) : 0
 
-
-    
     res.json({
       success: true,
       stats,
@@ -575,6 +576,10 @@ export const reviewGroupBuy = async (req, res) => {
       // Update related orders
       await updateOrdersAfterReview(groupBuy, "approved")
 
+      for (const participant of groupBuy.participants) {
+        await notificationService.notifyGroupBuySecured(participant.userId._id, groupBuy.productId.title, groupBuy._id)
+      }
+
       logger.info(`✅ GroupBuy ${groupBuy._id} approved by admin`)
 
       // Emit WebSocket events
@@ -614,6 +619,16 @@ export const reviewGroupBuy = async (req, res) => {
 
       // Update related orders
       await updateOrdersAfterReview(groupBuy, "rejected")
+
+      for (const participant of groupBuy.participants) {
+        await notificationService.notifyGroupBuyExpired(
+          participant.userId._id,
+          groupBuy.productId.title,
+          groupBuy._id,
+          "failed",
+          "Group buy was not successful. Refund has been processed to your wallet.",
+        )
+      }
 
       logger.info(`❌ GroupBuy ${groupBuy._id} rejected by admin - ${refundResult.refundsProcessed} refunds processed`)
 

@@ -7,12 +7,12 @@ const cartItemSchema = new Schema({
   variant: { type: String },
   unitPrice: { type: Number }, // Store the calculated unit price
   sellingUnit: {
-    optionName: { type: String }, 
-    displayName: { type: String }, 
-    baseUnitQuantity: { type: Number }, 
-    baseUnitName: { type: String }, 
-    pricePerUnit: { type: Number }, 
-    totalBaseUnits: { type: Number }, 
+    optionName: { type: String },
+    displayName: { type: String },
+    baseUnitQuantity: { type: Number },
+    baseUnitName: { type: String },
+    pricePerUnit: { type: Number },
+    totalBaseUnits: { type: Number },
   },
 })
 
@@ -24,4 +24,4 @@ const cartSchema = new Schema(
   { timestamps: true },
 )
 
-export default mongoose.model("Cart", cartSchema)
+export default mongoose.models.Cart || mongoose.model("Cart", cartSchema)

@@ -33,6 +33,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import referralRoutes from './routes/referralRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
@@ -43,6 +44,8 @@ import { userDisconnected, getLiveUserCountUtil } from './controllers/liveUserCo
 
 // Import jobs
 import { startGroupBuyExpiryJob } from './jobs/groupBuyExpiry.js';
+
+import notificationService from './services/notificationService.js';
 
 // Handle uncaught exceptions and unhandled rejections
 handleUncaughtException();
@@ -56,6 +59,8 @@ const io = new Server(server, {
 
 // Make io globally available for WebSocket events
 global.io = io;
+
+notificationService.setIO(io);
 
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', 1);
@@ -86,8 +91,6 @@ app.use('/admin', (req, res, next) => {
 // Security middleware - apply after CORS
 app.use(securityMiddleware);
 
-
-
 // __dirname support for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -104,8 +107,6 @@ app.use('/uploads', (req, res, next) => {
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
-
   
   next();
 }, express.static(path.join(__dirname, 'uploads'), {
@@ -152,8 +153,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-
 // API routes - NO RATE LIMITING
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
@@ -166,6 +165,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/live-users', liveUserRoutes);
 app.use('/api/referral', referralRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);
@@ -220,8 +220,6 @@ app.get('/health', async (req, res) => {
     version: process.env.npm_package_version || '1.0.0'
   });
 });
-
-
 
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {

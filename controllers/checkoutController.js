@@ -63,7 +63,27 @@ export const checkout = async (req, res) => {
         productId: product._id,
         quantity: item.quantity,
         price: itemPrice, // Store the actual selling unit price at time of purchase
-        sellingUnit: item.sellingUnit, // Include selling unit data for group buy calculations
+      }
+
+      // Extract selling unit data if it exists
+      if (
+        item.sellingUnit &&
+        item.sellingUnit !== null &&
+        item.sellingUnit !== undefined &&
+        !(item.sellingUnit.valueOf && item.sellingUnit.valueOf() === null) &&
+        item.sellingUnit.toString() !== "null" &&
+        item.sellingUnit.toString() !== ""
+      ) {
+        cartItemData.sellingUnit = {
+          optionName: item.sellingUnit.optionName,
+          displayName: item.sellingUnit.displayName,
+          baseUnitQuantity: item.sellingUnit.baseUnitQuantity,
+          baseUnitName: item.sellingUnit.baseUnitName,
+          pricePerUnit: item.sellingUnit.pricePerUnit,
+          originalPricePerUnit: item.sellingUnit.originalPricePerUnit,
+          totalBaseUnits: item.sellingUnit.totalBaseUnits,
+          savingsPerUnit: item.sellingUnit.savingsPerUnit,
+        }
       }
       
       console.log("🔍 Checkout Debug - Cart item being saved:", cartItemData)

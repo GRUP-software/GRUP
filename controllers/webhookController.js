@@ -3,9 +3,11 @@ import PaymentHistory from "../models/PaymentHistory.js"
 import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
 import Order from "../models/order.js"
+import Cart from "../models/cart.js" // Import Cart model
 import { generateTrackingNumber } from "../utils/trackingGenerator.js"
 import logger from "../utils/logger.js"
 import { processGroupBuys } from "./paymentController.js"
+import notificationService from "../services/notificationService.js"
 
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
@@ -101,14 +103,14 @@ export const handlePaystackWebhook = async (req, res) => {
     console.log(`🔐 Webhook signature check:`, {
       expected: hash,
       received: req.headers["x-paystack-signature"],
-      matches: hash === req.headers["x-paystack-signature"]
+      matches: hash === req.headers["x-paystack-signature"],
     })
 
     if (hash !== req.headers["x-paystack-signature"]) {
       logger.warn("Invalid Paystack webhook signature")
       console.log(`❌ Signature mismatch - Expected: ${hash}, Received: ${req.headers["x-paystack-signature"]}`)
       // Temporarily allow invalid signatures for debugging
-      // return res.status(400).json({ 
+      // return res.status(400).json({
       //   message: "Invalid webhook signature",
       //   details: "The webhook signature verification failed. This could indicate a security issue.",
       //   error: "SIGNATURE_MISMATCH"
@@ -126,10 +128,10 @@ export const handlePaystackWebhook = async (req, res) => {
     res.status(200).json({ message: "Webhook processed successfully" })
   } catch (error) {
     logger.error("Paystack webhook error:", error)
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Webhook processing failed",
       details: "An error occurred while processing the payment webhook. The payment may still be processed.",
-      error: error.message
+      error: error.message,
     })
   }
 }
@@ -138,12 +140,17 @@ const handleSuccessfulCharge = async (data) => {
   try {
     const { reference, amount, status, metadata } = data
 
-    // Find payment history by reference
-    const paymentHistory = await PaymentHistory.findOne({ referenceId: reference });
+    console.log(`🔍 Webhook Debug:`)
+    console.log(`   Paystack Reference: ${reference}`)
+    console.log(`   Amount: ${amount}`)
+    console.log(`   Status: ${status}`)
+
+    // Find payment history by Paystack reference
+    const paymentHistory = await PaymentHistory.findOne({ paystackReference: reference })
     if (!paymentHistory) {
       logger.error(`Payment history not found for reference: ${reference}`)
       console.error(`❌ Payment history not found for reference: ${reference}`)
-      console.error(`🔍 Available references in database:`, await PaymentHistory.distinct('referenceId'))
+      console.error(`🔍 Available references in database:`, await PaymentHistory.distinct("referenceId"))
       return
     }
 
@@ -166,13 +173,13 @@ const handleSuccessfulCharge = async (data) => {
 
     // Process wallet deduction if applicable
     if (paymentHistory.walletUsed > 0) {
-      const wallet = await Wallet.findOne({ user: paymentHistory.userId });
+      const wallet = await Wallet.findOne({ user: paymentHistory.userId })
       if (!wallet) {
         logger.error(`Wallet not found for user ${paymentHistory.userId}`)
         console.error(`❌ Wallet not found for user ${paymentHistory.userId}`)
         return
       }
-      
+
       if (wallet.balance < paymentHistory.walletUsed) {
         logger.error(`Insufficient wallet balance for user ${paymentHistory.userId}`)
         console.error(`❌ Insufficient wallet balance for user ${paymentHistory.userId}:`)
@@ -183,7 +190,7 @@ const handleSuccessfulCharge = async (data) => {
       }
 
       wallet.balance -= paymentHistory.walletUsed
-      await wallet.save();
+      await wallet.save()
 
       // Create wallet transaction record
       await Transaction.create({
@@ -195,15 +202,15 @@ const handleSuccessfulCharge = async (data) => {
         description: `Wallet payment for order ${reference}`,
         metadata: {
           paymentHistoryId: paymentHistory._id,
-          isWebhookProcessed: true
-        }
-      });
+          isWebhookProcessed: true,
+        },
+      })
     }
 
     // Mark payment as paid
     paymentHistory.status = "paid"
     paymentHistory.paystackData = data
-    await paymentHistory.save();
+    await paymentHistory.save()
 
     // Process group buys
     console.log(`🔄 Starting group buy processing for payment: ${paymentHistory._id}`)
@@ -223,10 +230,54 @@ const handleSuccessfulCharge = async (data) => {
     // Link order to group buys
     await linkOrderToGroupBuys(order, groupBuys)
 
+    try {
+      await Cart.findOneAndUpdate({ user: paymentHistory.userId }, { items: [] })
+      console.log(`✅ Cart cleared for user ${paymentHistory.userId} after successful payment`)
+    } catch (error) {
+      console.error(`❌ Error clearing cart for user ${paymentHistory.userId}:`, error)
+      logger.error(`Cart clearing failed for user ${paymentHistory.userId}:`, error)
+      // Don't fail the entire webhook if cart clearing fails
+    }
+
+    try {
+      // Send payment success notification
+      await notificationService.notifyPaymentSuccess(
+        paymentHistory.userId,
+        paymentHistory.amount,
+        paymentHistory.walletUsed > 0 ? "wallet + paystack" : "paystack",
+        order._id,
+      )
+
+      // Send order creation notification
+      await notificationService.notifyOrderCreated(paymentHistory.userId, {
+        orderId: order._id,
+        trackingNumber: order.trackingNumber,
+        totalAmount: paymentHistory.amount,
+        groupBuysJoined: groupBuys.length,
+      })
+
+      // Send group buy notifications for each group buy joined/created
+      for (const groupBuy of groupBuys) {
+        const Product = (await import("../models/Product.js")).default
+        const product = await Product.findById(groupBuy.productId)
+        if (product) {
+          if (groupBuy.status === "successful") {
+            await notificationService.notifyGroupBuySecured(paymentHistory.userId, product.name, groupBuy._id)
+          }
+        }
+      }
+
+      console.log(`✅ Notifications sent for payment ${reference}`)
+    } catch (notificationError) {
+      console.error(`❌ Error sending notifications for payment ${reference}:`, notificationError)
+      logger.error(`Notification sending failed for payment ${paymentHistory._id}:`, notificationError)
+      // Don't fail the entire webhook if notifications fail
+    }
+
     logger.info(`Payment ${reference} processed successfully. Group buys created: ${groupBuys.length}`)
-    
-    console.log(`✅ Webhook processed successfully`);
-    
+
+    console.log(`✅ Webhook processed successfully`)
+
     // Emit WebSocket event
     const io = global.io
     if (io) {
@@ -236,10 +287,9 @@ const handleSuccessfulCharge = async (data) => {
         groupBuysJoined: groupBuys.length,
       })
     }
-    
   } catch (error) {
-    logger.error(`❌ Webhook processing failed for ${data.reference}:`, error);
-    throw error;
+    logger.error(`❌ Webhook processing failed for ${data.reference}:`, error)
+    throw error
   }
 }
 
@@ -247,7 +297,7 @@ const handleFailedCharge = async (data) => {
   try {
     const { reference } = data
 
-    const paymentHistory = await PaymentHistory.findOne({ referenceId: reference })
+    const paymentHistory = await PaymentHistory.findOne({ paystackReference: reference })
     if (!paymentHistory) {
       logger.error(`Payment history not found for failed charge: ${reference}`)
       return
