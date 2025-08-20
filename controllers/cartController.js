@@ -62,7 +62,14 @@ export const getCart = async (req, res) => {
   try {
     const userId = req.user.id
 
-    const cart = await Cart.findOne({ user: userId }).populate("items.product")
+    let cart = await Cart.findOne({ user: userId }).populate("items.product")
+    
+    // Clean up any cart items with null products
+    if (cart) {
+      cart = await cleanupCartItems(cart)
+      // Re-populate after cleanup
+      cart = await Cart.findOne({ user: userId }).populate("items.product")
+    }
 
     if (!cart) {
       return res.json({
@@ -116,6 +123,20 @@ export const getCart = async (req, res) => {
     console.error("Get cart error:", error)
     res.status(500).json({ message: "Error fetching cart", error: error.message })
   }
+}
+
+// Helper function to clean up cart items with null products
+const cleanupCartItems = async (cart) => {
+  const originalLength = cart.items.length
+  cart.items = cart.items.filter(item => item.product != null)
+  const removedCount = originalLength - cart.items.length
+  
+  if (removedCount > 0) {
+    console.log(`Cleaned up ${removedCount} cart items with null products for user: ${cart.user}`)
+    await cart.save()
+  }
+  
+  return cart
 }
 
 export const addToCart = async (req, res) => {
@@ -231,10 +252,23 @@ export const addToCart = async (req, res) => {
     await cart.save()
 
     // Fetch and return the updated cart data for the frontend
-    const updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
+    let updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
+    
+    // Clean up any cart items with null products
+    if (updatedCart) {
+      updatedCart = await cleanupCartItems(updatedCart)
+      // Re-populate after cleanup
+      updatedCart = await Cart.findOne({ user: userId }).populate("items.product")
+    }
 
     let totalPrice = 0
     for (const item of updatedCart.items) {
+      // Check if product exists and has valid data
+      if (!item.product) {
+        console.warn(`Cart item has null product: ${item._id}`)
+        continue // Skip this item if product is null
+      }
+      
       // Use stored unitPrice if available, otherwise fall back to product price
       let itemPrice = item.unitPrice || item.product.price
       if (item.sellingUnit && item.product.sellingUnits?.enabled) {
@@ -366,6 +400,12 @@ export const updateCartQuantity = async (req, res) => {
 
     let totalPrice = 0
     for (const item of updatedCart.items) {
+      // Check if product exists and has valid data
+      if (!item.product) {
+        console.warn(`Cart item has null product: ${item._id}`)
+        continue // Skip this item if product is null
+      }
+      
       // Use stored unitPrice if available, otherwise fall back to product price
       let itemPrice = item.unitPrice || item.product.price
       if (item.sellingUnit && item.product.sellingUnits?.enabled) {
@@ -428,6 +468,12 @@ export const removeFromCart = async (req, res) => {
     
     let totalPrice = 0
     for (const item of updatedCart.items) {
+      // Check if product exists and has valid data
+      if (!item.product) {
+        console.warn(`Cart item has null product: ${item._id}`)
+        continue // Skip this item if product is null
+      }
+      
       let itemPrice = item.unitPrice || item.product.price
       if (item.sellingUnit && item.product.sellingUnits?.enabled) {
         itemPrice = item.sellingUnit.pricePerUnit || item.unitPrice || item.product.price
