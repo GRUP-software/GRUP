@@ -31,6 +31,34 @@ export const calculateItemTotalPrice = (item) => {
 }
 
 /**
+ * Calculate original price per unit for display purposes
+ * @param {Object} product - Product object with basePrice and sellingUnits
+ * @param {Object} sellingUnit - Selling unit option
+ * @returns {number} - Original price per unit
+ */
+export const calculateOriginalUnitPrice = (product, sellingUnit) => {
+  if (!sellingUnit || !product.sellingUnits?.enabled) {
+    return product.basePrice || product.price
+  }
+
+  if (sellingUnit.priceType === "manual" && sellingUnit.customPrice > 0) {
+    return sellingUnit.customPrice
+  }
+
+  // Use basePrice if available, otherwise fall back to price
+  const originalProductPrice = product.basePrice || product.price
+  
+  // Find the total base units that make up the full product
+  const fullProductBaseUnits = product.sellingUnits.options.reduce((total, opt) => {
+    return Math.max(total, opt.baseUnitQuantity)
+  }, 0)
+  
+  // Calculate original price per base unit
+  const originalBaseUnitPrice = fullProductBaseUnits > 0 ? originalProductPrice / fullProductBaseUnits : originalProductPrice
+  return Math.round(originalBaseUnitPrice * sellingUnit.baseUnitQuantity)
+}
+
+/**
  * Get display information for a selling unit
  * @param {Object} item - Cart item with selling unit data
  * @returns {Object} - Display information

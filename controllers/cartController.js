@@ -2,7 +2,7 @@ import Cart from "../models/cart.js"
 import Product from "../models/Product.js"
 import Wallet from "../models/Wallet.js"
 import GroupBuy from "../models/GroupBuy.js"
-import { calculateBaseUnitQuantity } from "../utils/sellingUnitHelper.js"
+import { calculateBaseUnitQuantity, calculateOriginalUnitPrice } from "../utils/sellingUnitHelper.js"
 
 const calculateSellingUnitPrice = (product, sellingUnit) => {
   if (!sellingUnit || !product.sellingUnits?.enabled) {
@@ -13,7 +13,20 @@ const calculateSellingUnitPrice = (product, sellingUnit) => {
     return sellingUnit.customPrice
   }
 
-  return (product.sellingUnits.baseUnitPrice || 0) * sellingUnit.baseUnitQuantity
+  // Use current product price instead of baseUnitPrice to respect discounts
+  // For rice example: 1 bag = 12 paints, so 1 paint = ₦50,000 / 12 = ₦4,167
+  // Then 1 paint × baseUnitQuantity = final price
+  
+  // Find the total base units that make up the full product
+  // This assumes the product price represents the price for the full product
+  const fullProductBaseUnits = product.sellingUnits.options.reduce((total, option) => {
+    return Math.max(total, option.baseUnitQuantity)
+  }, 0)
+  
+  // Calculate price per base unit from current product price
+  const baseUnitPrice = fullProductBaseUnits > 0 ? product.price / fullProductBaseUnits : product.price
+  
+  return Math.round(baseUnitPrice * sellingUnit.baseUnitQuantity)
 }
 
 const formatCartItems = (cartItems) => {
@@ -151,13 +164,17 @@ export const addToCart = async (req, res) => {
       // Store the calculated unit price for this selling unit
       itemUnitPrice = unitPrice
 
+      const originalUnitPrice = calculateOriginalUnitPrice(product, sellingUnit)
+      
       sellingUnitData = {
         optionName: sellingUnit.name,
         displayName: sellingUnit.displayName,
         baseUnitQuantity: baseUnitQuantity,
         baseUnitName: product.sellingUnits.baseUnitName,
         pricePerUnit: unitPrice,
+        originalPricePerUnit: originalUnitPrice,
         totalBaseUnits: baseUnitQuantity * validQuantity,
+        savingsPerUnit: originalUnitPrice - unitPrice,
       }
     }
 

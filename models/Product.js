@@ -71,8 +71,14 @@ productSchema.methods.calculateSellingUnitPrice = function (optionName) {
     return option.customPrice
   }
 
-  // Calculate based on base unit price and quantity
-  const basePrice = this.sellingUnits.baseUnitPrice || this.price / 1
+  // Use current product price instead of baseUnitPrice to respect discounts
+  // Find the total base units that make up the full product
+  const fullProductBaseUnits = this.sellingUnits.options.reduce((total, opt) => {
+    return Math.max(total, opt.baseUnitQuantity)
+  }, 0)
+  
+  // Calculate price per base unit from current product price
+  const basePrice = fullProductBaseUnits > 0 ? this.price / fullProductBaseUnits : this.price
   return Math.round(basePrice * option.baseUnitQuantity)
 }
 
