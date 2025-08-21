@@ -10,39 +10,31 @@ import Transaction from "../models/Transaction.js"
 // Check if user should receive referral bonus
 export const checkReferralBonusEligibility = async (userId) => {
   try {
-    console.log(`🔍 Checking referral bonus eligibility for user: ${userId}`)
-    
     const user = await User.findById(userId)
     if (!user) return { eligible: false, reason: "User not found" }
 
     const totalReferrals = user.referredUsers?.length || 0
-    console.log(`📊 Total referrals: ${totalReferrals}`)
     
     // Get wallet to check actual transaction records
     const wallet = await Wallet.findOne({ user: userId })
     if (!wallet) return { eligible: false, reason: "Wallet not found" }
     
-    // Count actual bonuses given by checking transaction records
+    // Count actual bonuses given by checking transaction amounts (not count)
     const referralTransactions = await Transaction.find({
       wallet: wallet._id,
       reason: "REFERRAL_BONUS",
       type: "credit"
     })
-    const bonusesActuallyGiven = referralTransactions.length
-    console.log(`📊 Bonuses actually given: ${bonusesActuallyGiven}`)
+    const totalBonusAmountGiven = referralTransactions.reduce((total, tx) => total + tx.amount, 0)
+    const bonusesActuallyGiven = totalBonusAmountGiven / 500 // Convert amount to bonus count
     
     // Calculate how many bonuses should be earned based on total referrals
     // Every 3 referrals = 1 bonus: 3, 6, 9, 12, 15, etc.
     const totalBonusesEarned = Math.floor(totalReferrals / 3)
     const missingBonuses = totalBonusesEarned - bonusesActuallyGiven
     
-    console.log(`📊 Total bonuses that should be earned: ${totalBonusesEarned}`)
-    console.log(`📊 Missing bonuses: ${missingBonuses}`)
-    
     const eligible = missingBonuses > 0
     const bonusAmount = eligible ? (missingBonuses * 500) : 0
-
-    console.log(`🎯 Eligibility result: ${eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}, Bonus amount: ₦${bonusAmount}`)
 
     return {
       eligible,
@@ -70,13 +62,14 @@ export const calculateBonusAmount = async (userId) => {
     
     const totalReferrals = user.referredUsers?.length || 0
     
-    // Count actual bonuses given
+    // Count actual bonuses given by amount (not transaction count)
     const referralTransactions = await Transaction.find({
       wallet: wallet._id,
       reason: "REFERRAL_BONUS",
       type: "credit"
     })
-    const bonusesActuallyGiven = referralTransactions.length
+    const totalBonusAmountGiven = referralTransactions.reduce((total, tx) => total + tx.amount, 0)
+    const bonusesActuallyGiven = totalBonusAmountGiven / 500 // Convert amount to bonus count
     
     // Calculate missing bonuses
     const totalBonusesEarned = Math.floor(totalReferrals / 3)
@@ -89,58 +82,43 @@ export const calculateBonusAmount = async (userId) => {
   }
 }
 
+import { processWalletCredit } from "./walletTransactionService.js"
+import { invalidateWalletCache } from "./cacheManager.js"
+
 // Process referral bonus for a user
 export const processReferralBonus = async (userId) => {
   try {
-    console.log(`🎁 Processing referral bonus for user: ${userId}`)
-    
     const eligibility = await checkReferralBonusEligibility(userId)
-    console.log(`🎁 Eligibility check result:`, eligibility)
-    
+
     if (!eligibility.eligible) {
-      console.log(`❌ Not eligible for bonus: ${eligibility.reason}`)
       return { success: false, message: eligibility.reason }
     }
 
     const user = await User.findById(userId)
+    if (!user) {
+      return { success: false, message: "User not found" }
+    }
+
     const bonusAmount = eligibility.bonusAmount
 
-    // Get or create wallet
-    let wallet = await Wallet.findById(user.wallet)
-    if (!wallet) {
-      wallet = await Wallet.create({ user: userId, balance: 0 })
-      user.wallet = wallet._id
-    }
-    
-    console.log(`💳 Adding ₦${bonusAmount} to wallet balance (current: ${wallet.balance})`)
-    
-    // Add bonus to wallet balance
-    wallet.balance += bonusAmount
-    await wallet.save()
-    
-    console.log(`✅ Wallet balance updated to: ${wallet.balance}`)
-
-    // Create transaction record
-    const transaction = await Transaction.create({
-      wallet: wallet._id,
-      user: userId,
-      type: "credit",
-      amount: bonusAmount,
-      reason: "REFERRAL_BONUS",
-      description: `Referral bonus for inviting ${eligibility.totalReferrals} users`,
-      metadata: {
+    // Process wallet credit with transaction safety
+    const walletResult = await processWalletCredit(
+      userId,
+      bonusAmount,
+      "REFERRAL_BONUS",
+      `Referral bonus for inviting ${eligibility.totalReferrals} users`,
+      {
         referralCount: eligibility.totalReferrals,
       }
-    })
-    
-    console.log(`📝 Transaction created: ${transaction._id}`)
+    )
+
+    // Invalidate wallet cache
+    await invalidateWalletCache(userId)
 
     // Update user referral stats - set lastBonusAt to current total referrals
     user.referralStats.lastBonusAt = eligibility.totalReferrals
     user.referralStats.totalBonusesEarned = (user.referralStats.totalBonusesEarned || 0) + bonusAmount
     await user.save()
-
-    console.log(`✅ Referral bonus of ₦${bonusAmount} processed for user ${userId}`)
 
     // Send referral bonus notification
     try {
@@ -157,7 +135,7 @@ export const processReferralBonus = async (userId) => {
     return {
       success: true,
       bonusAmount,
-      newBalance: wallet.balance,
+      newBalance: walletResult.newBalance,
       totalReferrals: eligibility.totalReferrals,
       message: `Referral bonus of ₦${bonusAmount} added to wallet`
     }
@@ -170,7 +148,7 @@ export const processReferralBonus = async (userId) => {
 // Add referral and check for bonus
 export const addReferral = async (referrerId, referredUserId) => {
   try {
-    console.log(`🔗 Adding referral: ${referredUserId} to referrer: ${referrerId}`)
+
     
     const referrer = await User.findById(referrerId)
     if (!referrer) return { success: false, message: "Referrer not found" }
@@ -183,9 +161,6 @@ export const addReferral = async (referrerId, referredUserId) => {
     // Add to referredUsers if not already added
     if (!referrer.referredUsers.includes(referredUserId)) {
       referrer.referredUsers.push(referredUserId)
-      console.log(`✅ Added new referral. Total referrals now: ${referrer.referredUsers.length}`)
-    } else {
-      console.log(`⚠️ Referral already exists. Total referrals: ${referrer.referredUsers.length}`)
     }
 
     // Update referral stats
@@ -194,12 +169,9 @@ export const addReferral = async (referrerId, referredUserId) => {
     referrer.referralStats.nextBonusAt = Math.ceil((referrer.referralStats.totalReferrals + 1) / 3) * 3
 
     await referrer.save()
-    console.log(`💾 Updated referrer stats: totalReferrals=${referrer.referralStats.totalReferrals}, nextBonusAt=${referrer.referralStats.nextBonusAt}`)
 
     // Check if referrer should receive bonus
-    console.log(`🎁 Checking for referral bonus...`)
     const bonusResult = await processReferralBonus(referrerId)
-    console.log(`🎁 Bonus result:`, bonusResult)
 
     return {
       success: true,
@@ -216,8 +188,6 @@ export const addReferral = async (referrerId, referredUserId) => {
 // Process all missing bonuses for all users (one-time fix)
 export const processAllMissingBonuses = async () => {
   try {
-    console.log(`🔧 Starting system-wide missing bonus processing...`)
-    
     const users = await User.find({})
     let totalProcessed = 0
     let totalAmount = 0
@@ -227,26 +197,17 @@ export const processAllMissingBonuses = async () => {
         const eligibility = await checkReferralBonusEligibility(user._id)
         
         if (eligibility.eligible) {
-          console.log(`🎁 Processing missing bonus for user ${user.email}: ${eligibility.missingBonuses} bonus(es) = ₦${eligibility.bonusAmount}`)
-          
           const result = await processReferralBonus(user._id)
           
           if (result.success) {
             totalProcessed++
             totalAmount += result.bonusAmount
-            console.log(`✅ Successfully processed ₦${result.bonusAmount} for ${user.email}`)
-          } else {
-            console.log(`❌ Failed to process bonus for ${user.email}: ${result.message}`)
           }
         }
       } catch (error) {
         console.error(`❌ Error processing bonus for user ${user.email}:`, error)
       }
     }
-    
-    console.log(`🎉 System-wide bonus processing complete!`)
-    console.log(`📊 Total users processed: ${totalProcessed}`)
-    console.log(`💰 Total amount distributed: ₦${totalAmount}`)
     
     return {
       success: true,
@@ -275,13 +236,14 @@ export const getReferralStats = async (userId) => {
     const wallet = await Wallet.findOne({ user: userId })
     if (!wallet) return null
     
-    // Count actual bonuses given by checking transaction records
+    // Count actual bonuses given by amount (not transaction count)
     const referralTransactions = await Transaction.find({
       wallet: wallet._id,
       reason: "REFERRAL_BONUS",
       type: "credit"
     })
-    const bonusesActuallyGiven = referralTransactions.length
+    const totalBonusAmountGiven = referralTransactions.reduce((total, tx) => total + tx.amount, 0)
+    const bonusesActuallyGiven = totalBonusAmountGiven / 500 // Convert amount to bonus count
 
     // FIXED: Calculate next bonus milestone correctly
     const nextBonusMilestone = Math.ceil((totalReferrals + 1) / 3) * 3

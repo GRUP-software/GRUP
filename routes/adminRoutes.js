@@ -100,7 +100,7 @@ router.delete("/images/:id", verifyAdminToken, async (req, res) => {
     const fs = await import("fs")
     const path = await import("path")
     const filePath = path.join(process.cwd(), "uploads", image.filename)
-
+    
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath)
     }
@@ -112,6 +112,7 @@ router.delete("/images/:id", verifyAdminToken, async (req, res) => {
       message: "Image deleted successfully",
     })
   } catch (error) {
+    console.error("Delete image error:", error)
     res.status(500).json({
       success: false,
       message: "Error deleting image",
@@ -119,5 +120,64 @@ router.delete("/images/:id", verifyAdminToken, async (req, res) => {
     })
   }
 })
+
+// Process missing referral bonuses for all users
+router.post("/process-missing-bonuses", verifyAdminToken, async (req, res) => {
+  try {
+    const { processReferralBonus, processAllMissingBonuses } = await import("../utils/referralBonusService.js");
+    
+    console.log("🔧 Admin requested system-wide missing bonus processing");
+    
+    const result = await processAllMissingBonuses();
+    
+    res.json({
+      success: result.success,
+      message: result.message,
+      totalProcessed: result.totalProcessed,
+      totalAmount: result.totalAmount
+    });
+  } catch (error) {
+    console.error("Admin bonus processing error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error processing missing bonuses",
+      error: error.message
+    });
+  }
+});
+
+// Process missing referral bonus for specific user
+router.post("/process-user-bonus/:userId", verifyAdminToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { processReferralBonus } = await import("../utils/referralBonusService.js");
+    
+    console.log(`🔧 Admin requested bonus processing for user: ${userId}`);
+    
+    const result = await processReferralBonus(userId);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        bonusAmount: result.bonusAmount,
+        newBalance: result.newBalance,
+        totalReferrals: result.totalReferrals
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message
+      });
+    }
+  } catch (error) {
+    console.error("Admin user bonus processing error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error processing user bonus",
+      error: error.message
+    });
+  }
+});
 
 export default router

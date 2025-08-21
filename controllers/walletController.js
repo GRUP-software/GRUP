@@ -1,118 +1,60 @@
 import Wallet from "../models/Wallet.js"
 import Transaction from "../models/Transaction.js"
 import User from "../models/User.js"
+import { getWalletDataWithAggregation } from "../utils/walletTransactionService.js"
+import { getWalletStatistics, calculateWalletOffset as calculateOffset } from "../utils/walletCalculationService.js"
+import { 
+  getCachedWalletData, 
+  cacheWalletData, 
+  invalidateWalletCache,
+  CACHE_KEYS 
+} from "../utils/cacheManager.js"
 
 export const getWalletData = async (req, res) => {
   try {
     const userId = req.user.id
-
-    console.log(`🔍 Fetching wallet data for user: ${userId}`)
-
-    // Get wallet
-    let wallet = await Wallet.findOne({ user: userId })
-    if (!wallet) {
-      wallet = await Wallet.create({ user: userId, balance: 0 })
-    }
-
-    console.log(`💰 Current wallet balance: ${wallet.balance}`)
-
-    // Get all transactions with pagination
     const page = parseInt(req.query.page) || 1
     const limit = parseInt(req.query.limit) || 20
-    const skip = (page - 1) * limit
 
-    const transactions = await Transaction.find({ wallet: wallet._id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('metadata.orderId', 'trackingNumber totalAmount')
-      .populate('metadata.groupBuyId', 'productId status unitsSold')
+               // Try to get from cache first
+           const cachedData = await getCachedWalletData(userId)
+           if (cachedData && page === 1) {
+             return res.json(cachedData)
+           }
 
-    // Get total transaction count for pagination
-    const totalTransactions = await Transaction.countDocuments({ wallet: wallet._id })
-
-    // Calculate referral earnings (all REFERRAL_BONUS transactions)
-    const referralTransactions = await Transaction.find({ 
-      wallet: wallet._id, 
-      reason: 'REFERRAL_BONUS',
-      type: 'credit'
-    })
+    // Get fresh data with aggregation for better performance
+    const walletData = await getWalletDataWithAggregation(userId, page, limit)
     
-    console.log(`🎁 Found ${referralTransactions.length} referral bonus transactions`)
-    referralTransactions.forEach(tx => {
-      console.log(`  - Transaction: ${tx._id}, Amount: ${tx.amount}, Date: ${tx.createdAt}`)
-    })
+    // Get comprehensive statistics
+    const walletStats = await getWalletStatistics(userId)
     
-    const referralEarnings = referralTransactions.reduce((total, transaction) => total + transaction.amount, 0)
-    console.log(`💵 Total referral earnings calculated: ${referralEarnings}`)
-    
-    // Calculate total earned (all credit transactions)
-    const creditTransactions = await Transaction.find({ 
-      wallet: wallet._id, 
-      type: 'credit'
-    })
-    
-    const totalEarned = creditTransactions.reduce((total, transaction) => total + transaction.amount, 0)
-
-    // Calculate total spent (all debit transactions)
-    const debitTransactions = await Transaction.find({ 
-      wallet: wallet._id, 
-      type: 'debit'
-    })
-    
-    const totalSpent = debitTransactions.reduce((total, transaction) => total + transaction.amount, 0)
-
-    // Get user referral info for context
-    const user = await User.findById(userId).select("referralCode referredUsers referralStats")
-
-    // Format transactions for frontend
-    const formattedTransactions = transactions.map(transaction => ({
-      id: transaction._id,
-      type: transaction.type,
-      amount: transaction.amount,
-      reason: transaction.reason,
-      description: transaction.description,
-      createdAt: transaction.createdAt,
-      metadata: {
-        orderId: transaction.metadata?.orderId?._id,
-        orderTrackingNumber: transaction.metadata?.orderId?.trackingNumber,
-        groupBuyId: transaction.metadata?.groupBuyId?._id,
-        groupBuyStatus: transaction.metadata?.groupBuyId?.status,
-        referralCount: transaction.metadata?.referralCount,
-      }
-    }))
-
-    res.json({
-      balance: wallet.balance,
-      transactions: formattedTransactions,
-      pagination: {
-        page,
-        limit,
-        total: totalTransactions,
-        pages: Math.ceil(totalTransactions / limit),
-        hasNext: page * limit < totalTransactions,
-        hasPrev: page > 1
-      },
+    // Combine data
+    const responseData = {
+      ...walletData,
       stats: {
-        referralEarnings,
-        totalEarned,
-        totalSpent,
-        netBalance: totalEarned - totalSpent
+        ...walletData.stats,
+        ...walletStats.referralStats
       },
       referralInfo: {
-        referralCode: user.referralCode,
-        totalReferrals: user.referredUsers?.length || 0,
-        referralsNeeded: Math.max(0, (user.referralStats?.nextBonusAt || 3) - (user.referredUsers?.length || 0)),
-        referralStats: user.referralStats || {
-          totalReferrals: 0,
-          totalBonusesEarned: 0,
-          lastBonusAt: 0,
-          nextBonusAt: 3
-        }
-      },
-    })
+        totalReferrals: walletStats.referralStats.totalReferrals,
+        completedRounds: walletStats.referralStats.completedRounds,
+        referralsNeededForNextBonus: walletStats.referralStats.referralsNeededForNextBonus,
+        progressPercentage: walletStats.referralStats.progressPercentage,
+        totalBonusEarned: walletStats.referralStats.totalBonusEarned,
+        bonusesActuallyGiven: walletStats.referralStats.bonusesActuallyGiven,
+        missingBonuses: walletStats.referralStats.missingBonuses
+      }
+    }
+
+               // Cache the data for future requests
+           if (page === 1) {
+             await cacheWalletData(userId, responseData, 300) // 5 minutes TTL
+           }
+
+           res.json(responseData)
+
   } catch (error) {
-    console.error("Get wallet error:", error)
+    console.error("Get wallet data error:", error)
     res.status(500).json({ message: "Error fetching wallet data", error: error.message })
   }
 }
@@ -123,30 +65,8 @@ export const calculateWalletOffset = async (req, res) => {
     const { totalAmount, requestedWalletUse } = req.body
     const userId = req.user.id
 
-    const wallet = await Wallet.findOne({ user: userId })
-    if (!wallet) {
-      return res.json({
-        walletBalance: 0,
-        maxWalletUse: 0,
-        walletUsed: 0,
-        remainingToPay: totalAmount,
-        canUseWallet: false,
-        message: "No wallet found"
-      })
-    }
-
-    const maxWalletUse = Math.min(wallet.balance, totalAmount)
-    const walletUsed = requestedWalletUse ? Math.min(requestedWalletUse, maxWalletUse) : maxWalletUse
-    const remainingToPay = totalAmount - walletUsed
-
-    res.json({
-      walletBalance: wallet.balance,
-      maxWalletUse,
-      walletUsed,
-      remainingToPay: Math.max(0, remainingToPay),
-      canUseWallet: wallet.balance > 0,
-      message: wallet.balance > 0 ? "Wallet can be used for payment" : "Insufficient wallet balance"
-    })
+    const result = await calculateOffset(userId, totalAmount, requestedWalletUse)
+    res.json(result)
   } catch (error) {
     console.error("Calculate wallet offset error:", error)
     res.status(500).json({ message: "Error calculating wallet offset", error: error.message })
@@ -213,5 +133,22 @@ export const getTransactionHistory = async (req, res) => {
   } catch (error) {
     console.error("Get transaction history error:", error)
     res.status(500).json({ message: "Error fetching transaction history", error: error.message })
+  }
+}
+
+// Invalidate wallet cache (for admin/debug purposes)
+export const invalidateCache = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const invalidatedCount = await invalidateWalletCache(userId)
+    
+    res.json({
+      success: true,
+      message: `Invalidated ${invalidatedCount} cache entries`,
+      invalidatedCount
+    })
+  } catch (error) {
+    console.error("Invalidate cache error:", error)
+    res.status(500).json({ message: "Error invalidating cache", error: error.message })
   }
 }

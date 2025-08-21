@@ -8,6 +8,8 @@ import { generateTrackingNumber } from "../utils/trackingGenerator.js"
 import logger from "../utils/logger.js"
 import { processGroupBuys } from "./paymentController.js"
 import notificationService from "../services/notificationService.js"
+import { processWalletDebit } from "../utils/walletTransactionService.js"
+import { invalidateWalletCache } from "../utils/cacheManager.js"
 
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
@@ -94,6 +96,8 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
 // Paystack webhook handler
 export const handlePaystackWebhook = async (req, res) => {
   try {
+    console.log("🔔 Webhook received:", req.body)
+    
     // Verify Paystack signature
     const hash = crypto
       .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
@@ -146,13 +150,34 @@ const handleSuccessfulCharge = async (data) => {
     console.log(`   Status: ${status}`)
 
     // Find payment history by Paystack reference
+    console.log(`🔍 Looking for payment history with paystackReference: ${reference}`)
     const paymentHistory = await PaymentHistory.findOne({ paystackReference: reference })
     if (!paymentHistory) {
       logger.error(`Payment history not found for reference: ${reference}`)
       console.error(`❌ Payment history not found for reference: ${reference}`)
+      
+      // Try to find by referenceId as fallback
+      console.log(`🔍 Trying to find by referenceId: ${reference}`)
+      const fallbackPayment = await PaymentHistory.findOne({ referenceId: reference })
+      if (fallbackPayment) {
+        console.log(`✅ Found payment by referenceId: ${fallbackPayment._id}`)
+        // Update the paystackReference
+        fallbackPayment.paystackReference = reference
+        await fallbackPayment.save()
+        console.log(`✅ Updated paystackReference for payment: ${fallbackPayment._id}`)
+        return await handleSuccessfulCharge({ ...data, reference: fallbackPayment.referenceId })
+      }
+      
       console.error(`🔍 Available references in database:`, await PaymentHistory.distinct("referenceId"))
+      console.error(`🔍 Available paystack references in database:`, await PaymentHistory.distinct("paystackReference"))
       return
     }
+    
+    console.log(`✅ Found payment history: ${paymentHistory._id}`)
+    console.log(`   Wallet used: ₦${paymentHistory.walletUsed}`)
+    console.log(`   Paystack amount: ₦${paymentHistory.paystackAmount}`)
+    console.log(`   Total amount: ₦${paymentHistory.amount}`)
+    console.log(`   Status: ${paymentHistory.status}`)
 
     if (paymentHistory.status === "paid") {
       logger.info(`Payment ${reference} already processed`)
@@ -173,38 +198,31 @@ const handleSuccessfulCharge = async (data) => {
 
     // Process wallet deduction if applicable
     if (paymentHistory.walletUsed > 0) {
-      const wallet = await Wallet.findOne({ user: paymentHistory.userId })
-      if (!wallet) {
-        logger.error(`Wallet not found for user ${paymentHistory.userId}`)
-        console.error(`❌ Wallet not found for user ${paymentHistory.userId}`)
-        return
+      try {
+        console.log(`💳 Processing wallet deduction for user ${paymentHistory.userId}: ₦${paymentHistory.walletUsed}`)
+        
+        const walletResult = await processWalletDebit(
+          paymentHistory.userId,
+          paymentHistory.walletUsed,
+          "ORDER",
+          `Wallet payment for order ${reference}`,
+          {
+            paymentHistoryId: paymentHistory._id,
+            isWebhookProcessed: true,
+            paystackReference: reference,
+          }
+        )
+
+        // Invalidate wallet cache
+        await invalidateWalletCache(paymentHistory.userId)
+        
+        console.log(`✅ Wallet deduction successful: ₦${paymentHistory.walletUsed} deducted from user ${paymentHistory.userId}`)
+      } catch (error) {
+        console.error(`❌ Wallet deduction failed for user ${paymentHistory.userId}:`, error)
+        logger.error(`Wallet deduction failed for user ${paymentHistory.userId}:`, error)
+        // Don't fail the entire webhook if wallet deduction fails
+        // The payment can still be processed without wallet deduction
       }
-
-      if (wallet.balance < paymentHistory.walletUsed) {
-        logger.error(`Insufficient wallet balance for user ${paymentHistory.userId}`)
-        console.error(`❌ Insufficient wallet balance for user ${paymentHistory.userId}:`)
-        console.error(`   Current balance: ₦${wallet.balance}`)
-        console.error(`   Required amount: ₦${paymentHistory.walletUsed}`)
-        console.error(`   Shortfall: ₦${paymentHistory.walletUsed - wallet.balance}`)
-        return
-      }
-
-      wallet.balance -= paymentHistory.walletUsed
-      await wallet.save()
-
-      // Create wallet transaction record
-      await Transaction.create({
-        wallet: wallet._id,
-        user: paymentHistory.userId,
-        type: "debit",
-        amount: paymentHistory.walletUsed,
-        reason: "ORDER",
-        description: `Wallet payment for order ${reference}`,
-        metadata: {
-          paymentHistoryId: paymentHistory._id,
-          isWebhookProcessed: true,
-        },
-      })
     }
 
     // Mark payment as paid
@@ -214,12 +232,21 @@ const handleSuccessfulCharge = async (data) => {
 
     // Process group buys
     console.log(`🔄 Starting group buy processing for payment: ${paymentHistory._id}`)
+    console.log(`🔄 Payment cart items:`, JSON.stringify(paymentHistory.cartItems, null, 2))
     let groupBuys = []
     try {
       groupBuys = await processGroupBuys(paymentHistory)
       console.log(`✅ Group buys processed successfully: ${groupBuys.length} created/joined`)
+      console.log(`✅ Group buy details:`, groupBuys.map(gb => ({
+        id: gb._id,
+        productId: gb.productId,
+        status: gb.status,
+        unitsSold: gb.unitsSold,
+        participants: gb.participants?.length || 0
+      })))
     } catch (error) {
       console.error(`❌ Error processing group buys:`, error)
+      console.error(`❌ Error stack:`, error.stack)
       logger.error(`Group buy processing failed for payment ${paymentHistory._id}:`, error)
       // Continue with order creation even if group buys fail
     }
