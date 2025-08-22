@@ -12,6 +12,7 @@ import {
   getGroupBuyStatus,
   reviewGroupBuy,
   updateGroupBuyMVU,
+  markGroupBuyAsFailed,
 } from "../controllers/groupBuyController.js"
 
 const router = express.Router()
@@ -49,5 +50,6 @@ router.get("/:id", getGroupBuyById)
 // Admin routes
 router.post("/:id/review", verifyToken, reviewGroupBuy)
 router.patch("/:id/mvu", verifyToken, updateGroupBuyMVU)
+router.patch("/:id/fail", verifyToken, markGroupBuyAsFailed)
 
 export default router

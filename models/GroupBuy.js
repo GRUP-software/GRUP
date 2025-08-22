@@ -256,7 +256,7 @@ groupBuySchema.pre("save", function (next) {
 
 // Post-save middleware to handle notifications
 groupBuySchema.post("save", async function(doc) {
-  // Check if notifications should be sent
+  // Check if notifications should be sent for successful group buys
   if (doc._shouldSendNotifications && doc._notificationData) {
     try {
       const notificationService = (await import('../services/notificationService.js')).default;
@@ -280,6 +280,32 @@ groupBuySchema.post("save", async function(doc) {
       doc._notificationData = null;
     } catch (error) {
       console.error('Failed to send group buy secured notifications:', error);
+    }
+  }
+
+  // Check if status changed to failed or manual_review and send notifications
+  if (doc.isModified('status') && (doc.status === 'failed' || doc.status === 'manual_review')) {
+    try {
+      const notificationService = (await import('../services/notificationService.js')).default;
+      const Product = (await import('./Product.js')).default;
+      
+      // Get product details for notification
+      const product = await Product.findById(doc.productId);
+      const productName = product?.title || 'Product';
+      const progressPercentage = doc.getProgressPercentage();
+      
+      // Notify all participants about the failure
+      for (const participant of doc.participants) {
+        await notificationService.notifyGroupBuyFailed(
+          participant.userId,
+          productName,
+          doc._id,
+          progressPercentage,
+          participant.amount
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send group buy failed notifications:', error);
     }
   }
 })

@@ -189,6 +189,15 @@ class GroupBuyMonitoringService {
           groupBuy._id,
           Math.round(progressPercentage)
         );
+
+        // Send the new failed notification with refund information
+        await notificationService.notifyGroupBuyFailed(
+          participant.userId,
+          productName,
+          groupBuy._id,
+          Math.round(progressPercentage),
+          participant.amount
+        );
       } catch (error) {
         logger.error(`Failed to send expired failed notification to user ${participant.userId}:`, error);
       }

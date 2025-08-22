@@ -628,6 +628,15 @@ export const reviewGroupBuy = async (req, res) => {
           "failed",
           "Group buy was not successful. Refund has been processed to your wallet.",
         )
+        
+        // Send the new failed notification with refund information
+        await notificationService.notifyGroupBuyFailed(
+          participant.userId._id,
+          groupBuy.productId.title,
+          groupBuy._id,
+          Math.round(groupBuy.getProgressPercentage()),
+          participant.amount
+        );
       }
 
       logger.info(`❌ GroupBuy ${groupBuy._id} rejected by admin - ${refundResult.refundsProcessed} refunds processed`)
@@ -657,6 +666,83 @@ export const reviewGroupBuy = async (req, res) => {
   } catch (error) {
     logger.error("Review group buy error:", error)
     res.status(500).json({ message: "Error reviewing group buy", error: error.message })
+  }
+}
+
+// Admin: Mark group buy as failed
+export const markGroupBuyAsFailed = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { adminNotes, reviewedBy } = req.body
+
+    const groupBuy = await GroupBuy.findById(id)
+      .populate("productId", "title price slug")
+      .populate("participants.userId", "firstName lastName email")
+
+    if (!groupBuy) {
+      return res.status(404).json({ message: "Group buy not found" })
+    }
+
+    if (groupBuy.status === "successful") {
+      return res.status(400).json({ message: "Cannot mark successful group buy as failed" })
+    }
+
+    // Mark as failed
+    groupBuy.status = "failed"
+    groupBuy.adminNotes = adminNotes || `Marked as failed by admin - ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units achieved`
+    groupBuy.manualReviewData = {
+      reviewedBy: reviewedBy || "Admin",
+      reviewedAt: new Date(),
+      adminNotes: adminNotes || "Marked as failed",
+      recommendedAction: "reject",
+    }
+
+    await groupBuy.save()
+
+    // Process refunds
+    const refundResult = await processGroupBuyRefunds(groupBuy)
+
+    // Update related orders
+    await updateOrdersAfterReview(groupBuy, "rejected")
+
+    // Send notifications to all participants
+    for (const participant of groupBuy.participants) {
+      await notificationService.notifyGroupBuyFailed(
+        participant.userId._id,
+        groupBuy.productId.title,
+        groupBuy._id,
+        Math.round(groupBuy.getProgressPercentage()),
+        participant.amount
+      )
+    }
+
+    logger.info(`❌ GroupBuy ${groupBuy._id} marked as failed by admin - ${refundResult.refundsProcessed} refunds processed`)
+
+    // Emit WebSocket events
+    const io = global.io
+    if (io) {
+      // Notify all participants
+      groupBuy.participants.forEach((participant) => {
+        io.to(`user_${participant.userId._id}`).emit("groupBuyFailed", {
+          groupBuyId: groupBuy._id,
+          productTitle: groupBuy.productId.title,
+          message: "Group buy has been marked as failed. Refund has been processed to your wallet.",
+        })
+      })
+    }
+
+    res.json({
+      success: true,
+      message: "Group buy marked as failed successfully",
+      data: {
+        ...groupBuy.toObject(),
+        progressPercentage: groupBuy.getProgressPercentage(),
+        refundsProcessed: refundResult.refundsProcessed,
+      },
+    })
+  } catch (error) {
+    logger.error("Mark group buy as failed error:", error)
+    res.status(500).json({ message: "Error marking group buy as failed", error: error.message })
   }
 }
 

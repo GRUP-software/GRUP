@@ -286,6 +286,24 @@ class NotificationService {
     })
   }
 
+  async notifyGroupBuyFailed(userId, productName, groupBuyId, progressPercentage, refundAmount = null) {
+    const message = refundAmount 
+      ? `Group buy for "${productName}" failed (${progressPercentage}% complete). Your payment of ₦${refundAmount.toLocaleString()} will be refunded to your wallet within 24 hours.`
+      : `Group buy for "${productName}" failed (${progressPercentage}% complete). Your payment will be refunded to your wallet within 24 hours.`;
+    
+    return await this.createNotification({
+      userId,
+      type: "error",
+      category: "group_buy",
+      title: "Group Buy Failed",
+      message,
+      data: { productName, groupBuyId, progressPercentage, refundAmount },
+      priority: "high",
+      actionUrl: `/account/orders`,
+      actionText: "View Orders",
+    })
+  }
+
   // Referral notifications
   async notifyReferralBonus(userId, amount, referralName) {
     return await this.createNotification({
