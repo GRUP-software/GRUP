@@ -23,7 +23,7 @@ export const getReferralInfo = async (req, res) => {
       reason: "REFERRAL_BONUS",
     }).sort({ createdAt: -1 })
 
-    const frontendUrl = process.env.NODE_ENV === "development" ? "http://localhost:4000" : process.env.FRONTEND_URL
+    const frontendUrl = process.env.NODE_ENV === "development" ? "http://localhost:5173" : process.env.FRONTEND_URL || "https://grupclient.netlify.app"
     const referralLink = `${frontendUrl}/register?ref=${user.referralCode}`
 
     // Get detailed referred users with purchase information

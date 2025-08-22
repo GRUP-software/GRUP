@@ -152,3 +152,4 @@ export const uploadSingleToCloudinary = (fieldName = 'image') => {
 };
 
 export default upload;
+

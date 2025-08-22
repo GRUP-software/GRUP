@@ -106,3 +106,4 @@ async function testWalletUpdate() {
 }
 
 testWalletUpdate();
+

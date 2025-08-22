@@ -82,18 +82,39 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
   }
 
   const handleShare = async () => {
+    // Extract custom message from product's shareLink if available
+    let shareText = `Check out this group buy for ${product.title}!`;
+    try {
+      if (product.shareLink) {
+        const urlObj = new URL(product.shareLink);
+        const customMessage = urlObj.searchParams.get('msg');
+        if (customMessage) {
+          shareText = decodeURIComponent(customMessage);
+        }
+      }
+    } catch (error) {
+      console.warn('Error parsing shareLink for custom message:', error);
+    }
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: product.title,
-          text: `Check out this group buy for ${product.title}!`,
+          text: shareText,
           url: product.shareLink,
         })
       } catch (err) {
         console.log("Error sharing:", err)
       }
     } else {
-      navigator.clipboard.writeText(product.shareLink)
+      // Fallback: copy to clipboard
+      try {
+        const shareData = `${product.title}\n\n${shareText}\n\n${product.shareLink}`;
+        await navigator.clipboard.writeText(shareData);
+        console.log('Share data copied to clipboard');
+      } catch (error) {
+        console.error('Error copying to clipboard:', error);
+      }
     }
   }
 

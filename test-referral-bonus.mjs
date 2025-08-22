@@ -83,3 +83,4 @@ async function testReferralBonus() {
 
 // Run the test
 testReferralBonus();
+

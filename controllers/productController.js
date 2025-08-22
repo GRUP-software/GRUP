@@ -6,12 +6,15 @@ export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
 
-    const host =
-      process.env.NODE_ENV === "development" ? "http://localhost:4000" : `${req.protocol}://${req.get("host")}`
+    // Use frontend URL instead of backend URL for share links
+    const frontendHost = process.env.NODE_ENV === "development" 
+      ? "http://localhost:5173" 
+      : process.env.FRONTEND_URL || "https://grupclient.netlify.app"
 
     const enrichedProducts = await Promise.all(
       products.map(async (product) => {
-        const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
+        // Updated share message as requested by user
+        const message = `Wow I just bought ${product.title}! Click on the link so we can complete the order.`
         const encodedMessage = encodeURIComponent(message)
 
         // Fetch the most recent GroupBuy for this product (active or inactive)
@@ -47,7 +50,7 @@ export const getAllProducts = async (req, res) => {
 
         return {
           ...product.toObject(),
-          shareLink: `${host}/product/${product.slug}?msg=${encodedMessage}`,
+          shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
           // Ensure description is included
           description: product.description || "",
           // Add computed fields for frontend
@@ -99,10 +102,13 @@ export const getProductBySlug = async (req, res) => {
       })
     }
 
-    const host =
-      process.env.NODE_ENV === "development" ? "http://localhost:4000" : `${req.protocol}://${req.get("host")}`
+    // Use frontend URL instead of backend URL for share links
+    const frontendHost = process.env.NODE_ENV === "development" 
+      ? "http://localhost:5173" 
+      : process.env.FRONTEND_URL || "https://grupclient.netlify.app"
 
-    const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
+    // Updated share message as requested by user
+    const message = `Wow I just bought ${product.title}! Click on the link so we can complete the order.`
     const encodedMessage = encodeURIComponent(message)
 
     const groupBuy = await GroupBuy.findOne({ productId: product._id })
@@ -137,7 +143,7 @@ export const getProductBySlug = async (req, res) => {
 
     const enrichedProduct = {
       ...product.toObject(),
-      shareLink: `${host}/product/${product.slug}?msg=${encodedMessage}`,
+      shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
       // Ensure full description is available
       description: product.description || "",
       hasDescription: Boolean(product.description && product.description.trim()),
@@ -188,10 +194,13 @@ export const getProductById = async (req, res) => {
       })
     }
 
-    const host =
-      process.env.NODE_ENV === "development" ? "http://localhost:4000" : `${req.protocol}://${req.get("host")}`
+    // Use frontend URL instead of backend URL for share links
+    const frontendHost = process.env.NODE_ENV === "development" 
+      ? "http://localhost:5173" 
+      : process.env.FRONTEND_URL || "https://grupclient.netlify.app"
 
-    const message = `I just made a purchase of ${product.title}, join me to seal the deal!`
+    // Updated share message as requested by user
+    const message = `Wow I just bought ${product.title}! Click on the link so we can complete the order.`
     const encodedMessage = encodeURIComponent(message)
 
     const groupBuy = await GroupBuy.findOne({ productId: product._id })
@@ -226,7 +235,7 @@ export const getProductById = async (req, res) => {
 
     const enrichedProduct = {
       ...product.toObject(),
-      shareLink: `${host}/product/${product.slug}?msg=${encodedMessage}`,
+      shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
       description: product.description || "",
       hasDescription: Boolean(product.description && product.description.trim()),
       isLowStock: product.stock <= (product.lowStockThreshold || 5),

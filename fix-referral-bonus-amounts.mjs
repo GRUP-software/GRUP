@@ -127,3 +127,4 @@ async function fixReferralBonusAmounts() {
 
 // Run the fix
 fixReferralBonusAmounts();
+

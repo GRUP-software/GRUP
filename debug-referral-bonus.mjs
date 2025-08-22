@@ -76,3 +76,4 @@ async function debugReferralBonus() {
 
 // Run the debug
 debugReferralBonus();
+
