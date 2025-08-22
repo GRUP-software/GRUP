@@ -97,6 +97,27 @@ const adminJs = new AdminJS({
             ],
             isRequired: true,
           },
+          // Price range fields
+          minPrice: {
+            type: 'number',
+            isVisible: { list: false, edit: true, show: true, filter: false, new: true },
+            description: '💰 Minimum selling price (for price range display)'
+          },
+          maxPrice: {
+            type: 'number',
+            isVisible: { list: false, edit: true, show: true, filter: false, new: true },
+            description: '💰 Maximum selling price (for price range display)'
+          },
+          minBasePrice: {
+            type: 'number',
+            isVisible: { list: false, edit: true, show: true, filter: false, new: true },
+            description: '💰 Minimum base price (original price before discount)'
+          },
+          maxBasePrice: {
+            type: 'number',
+            isVisible: { list: false, edit: true, show: true, filter: false, new: true },
+            description: '💰 Maximum base price (original price before discount)'
+          },
           // ✅ FIXED: Proper array field configuration
           images: {
             isArray: true,

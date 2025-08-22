@@ -271,6 +271,11 @@ export const createProduct = async (req, res) => {
       description,
       basePrice,
       price,
+      // New price range fields
+      minPrice,
+      maxPrice,
+      minBasePrice,
+      maxBasePrice,
       stock,
       category,
       unitTag,
@@ -297,6 +302,11 @@ export const createProduct = async (req, res) => {
       description: description.trim(), // Ensure description is properly stored
       basePrice,
       price,
+      // Add price range fields
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      minBasePrice: minBasePrice ? Number(minBasePrice) : undefined,
+      maxBasePrice: maxBasePrice ? Number(maxBasePrice) : undefined,
       stock,
       category,
       unitTag,
@@ -348,6 +358,11 @@ export const updateProduct = async (req, res) => {
       description,
       basePrice,
       price,
+      // New price range fields
+      minPrice,
+      maxPrice,
+      minBasePrice,
+      maxBasePrice,
       stock,
       category,
       unitTag,
@@ -363,6 +378,11 @@ export const updateProduct = async (req, res) => {
       description: description ? description.trim() : "", // Ensure description is properly updated
       basePrice,
       price,
+      // Add price range fields
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      minBasePrice: minBasePrice ? Number(minBasePrice) : undefined,
+      maxBasePrice: maxBasePrice ? Number(maxBasePrice) : undefined,
       stock,
       category,
       unitTag,

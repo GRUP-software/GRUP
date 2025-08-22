@@ -10,6 +10,11 @@ const productSchema = new Schema(
     description: { type: String },
     basePrice: { type: Number },
     price: { type: Number, required: true },
+    // New price range fields
+    minPrice: { type: Number },
+    maxPrice: { type: Number },
+    minBasePrice: { type: Number },
+    maxBasePrice: { type: Number },
     stock: { type: Number, default: 0 },
     category: { type: String },
     unitTag: {
