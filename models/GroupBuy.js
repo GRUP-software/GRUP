@@ -200,7 +200,15 @@ groupBuySchema.methods.canAcceptMoreParticipants = function () {
 groupBuySchema.methods.prepareForManualReview = function () {
   const progressPercentage = this.getProgressPercentage()
 
-  // Set status to manual review
+  // Only move to manual review if it's a failed group buy (didn't reach MVU)
+  if (this.unitsSold >= this.minimumViableUnits) {
+    // This is a successful group buy, keep it as successful even after expiry
+    this.status = "successful"
+    this.adminNotes = `Successful GroupBuy expired (${this.unitsSold}/${this.minimumViableUnits} units, ${progressPercentage.toFixed(1)}%). Ready for order processing.`
+    return
+  }
+
+  // Set status to manual review for failed group buys
   this.status = "manual_review"
 
   // Set up manual review data based on completion status

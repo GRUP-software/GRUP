@@ -304,6 +304,22 @@ class NotificationService {
     })
   }
 
+  async notifyPartialOrderRefund(userId, productName, refundAmount, orderTrackingNumber) {
+    const message = `Partial refund processed for "${productName}". ₦${refundAmount.toLocaleString()} has been refunded to your wallet. Your other items in order ${orderTrackingNumber} will be fulfilled as scheduled.`;
+    
+    return await this.createNotification({
+      userId,
+      type: "info",
+      category: "order",
+      title: "Partial Refund Processed",
+      message,
+      data: { productName, refundAmount, orderTrackingNumber },
+      priority: "medium",
+      actionUrl: `/account/orders`,
+      actionText: "View Orders",
+    })
+  }
+
   // Referral notifications
   async notifyReferralBonus(userId, amount, referralName) {
     return await this.createNotification({

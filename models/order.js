@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema(
         },
         groupStatus: {
           type: String,
-          enum: ["forming", "secured", "dispatched", "under_review"],
+          enum: ["forming", "secured", "dispatched", "under_review", "failed"],
           default: "forming",
         },
       },
@@ -119,19 +119,38 @@ const orderSchema = new mongoose.Schema(
 
 // Method to check if all groups are secured
 orderSchema.methods.checkAllGroupsSecured = function () {
-  const allSecured = this.items.every((item) => item.groupStatus === "secured" || item.groupStatus === "dispatched")
+  // Check if all non-failed items are secured
+  const nonFailedItems = this.items.filter(item => item.groupStatus !== "failed")
+  const allSecured = nonFailedItems.length > 0 && nonFailedItems.every((item) => item.groupStatus === "secured" || item.groupStatus === "dispatched")
 
   if (allSecured && !this.allGroupsSecured) {
     this.allGroupsSecured = true
     this.currentStatus = "all_secured"
     this.progress.push({
       status: "all_secured",
-      message: "All group buys have been secured! Your order will be processed soon.",
+      message: "All remaining group buys have been secured! Your order will be processed soon.",
       timestamp: new Date(),
     })
   }
 
   return allSecured
+}
+
+// Method to calculate the amount for items that are still active (not failed)
+orderSchema.methods.getActiveOrderAmount = function () {
+  return this.items
+    .filter(item => item.groupStatus !== "failed")
+    .reduce((total, item) => total + (item.price * item.quantity), 0)
+}
+
+// Method to get failed items
+orderSchema.methods.getFailedItems = function () {
+  return this.items.filter(item => item.groupStatus === "failed")
+}
+
+// Method to get successful items
+orderSchema.methods.getSuccessfulItems = function () {
+  return this.items.filter(item => item.groupStatus === "secured" || item.groupStatus === "dispatched")
 }
 
 // Method to calculate priority score for admin sorting

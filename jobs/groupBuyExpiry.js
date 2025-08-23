@@ -2,26 +2,29 @@ import cron from "node-cron"
 import GroupBuy from "../models/GroupBuy.js"
 import Order from "../models/order.js"
 import logger from "../utils/logger.js"
+import Wallet from "../models/Wallet.js"
+import Transaction from "../models/Transaction.js"
 
-// Enhanced group buy expiry job - ALL expired GroupBuys go to manual review
+// Enhanced group buy expiry job - Implement partial order processing
 export const processExpiredGroupBuys = async () => {
   try {
     logger.info("🔍 Starting group buy expiry check...")
 
-    // Find all expired GroupBuys that are still active or successful
+    // Find all expired GroupBuys that are still active (exclude successful ones)
     const expiredGroupBuys = await GroupBuy.find({
       expiresAt: { $lt: new Date() },
-      status: { $in: ["active", "successful"] },
+      status: "active", // Only process active group buys, not successful ones
     }).populate("productId", "title price")
 
     if (expiredGroupBuys.length === 0) {
       logger.info("✅ No expired group buys found")
-      return { processed: 0, manualReview: 0 }
+      return { processed: 0, manualReview: 0, partialOrders: 0 }
     }
 
     logger.info(`Found ${expiredGroupBuys.length} expired group buys to process`)
 
     let manualReviewCount = 0
+    let partialOrderCount = 0
 
     for (const groupBuy of expiredGroupBuys) {
       try {
@@ -32,18 +35,31 @@ export const processExpiredGroupBuys = async () => {
         logger.info(`  Progress: ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} (${progressPercentage}%)`)
         logger.info(`  Status: ${groupBuy.status}`)
 
-        // ALL expired GroupBuys go to manual review regardless of completion
-        groupBuy.prepareForManualReview()
-        await groupBuy.save()
-
-        manualReviewCount++
-
-        logger.info(`GroupBuy ${groupBuy._id} moved to manual review`)
-        logger.info(`   Recommendation: ${groupBuy.manualReviewData.recommendedAction}`)
-        logger.info(`   Notes: ${groupBuy.adminNotes}`)
-
-        // Update related orders
-        await updateRelatedOrders(groupBuy)
+        // Check if this group buy reached MVU
+        if (groupBuy.unitsSold >= groupBuy.minimumViableUnits) {
+          // This is a successful group buy, mark it as successful
+          groupBuy.status = "successful"
+          groupBuy.adminNotes = `Successful GroupBuy expired (${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units, ${progressPercentage.toFixed(1)}%). Ready for order processing.`
+          await groupBuy.save()
+          
+          // Update related orders to mark this item as secured
+          await updateOrderForSuccessfulGroupBuy(groupBuy)
+          
+          logger.info(`✅ GroupBuy ${groupBuy._id} marked as successful`)
+        } else {
+          // This is a failed group buy, move to manual review
+          groupBuy.prepareForManualReview()
+          await groupBuy.save()
+          
+          // Process partial order refunds for this failed product
+          const partialOrderResult = await processPartialOrderRefunds(groupBuy)
+          if (partialOrderResult.partialOrdersProcessed > 0) {
+            partialOrderCount += partialOrderResult.partialOrdersProcessed
+          }
+          
+          manualReviewCount++
+          logger.info(`GroupBuy ${groupBuy._id} moved to manual review`)
+        }
 
         // Emit WebSocket event for real-time updates
         const io = global.io
@@ -52,12 +68,14 @@ export const processExpiredGroupBuys = async () => {
             groupBuyId: groupBuy._id,
             productId: groupBuy.productId._id,
             productTitle: groupBuy.productId.title,
-            status: "manual_review",
+            status: groupBuy.status,
             unitsSold: groupBuy.unitsSold,
             minimumViableUnits: groupBuy.minimumViableUnits,
             progressPercentage,
             participantCount: groupBuy.getParticipantCount(),
-            message: "Group buy expired and moved to manual review",
+            message: groupBuy.status === "successful" 
+              ? "Group buy was successful and is ready for processing!" 
+              : "Group buy expired and is under admin review",
           })
 
           // Notify participants
@@ -65,8 +83,10 @@ export const processExpiredGroupBuys = async () => {
             io.to(`user_${participant.userId}`).emit("groupBuyExpired", {
               groupBuyId: groupBuy._id,
               productTitle: groupBuy.productId.title,
-              status: "manual_review",
-              message: "Your group buy has expired and is under admin review",
+              status: groupBuy.status,
+              message: groupBuy.status === "successful"
+                ? "Your group buy was successful and will be fulfilled!"
+                : "Your group buy has expired and is under admin review",
             })
           })
         }
@@ -78,13 +98,158 @@ export const processExpiredGroupBuys = async () => {
     logger.info(`Group buy expiry processing completed:`)
     logger.info(`   Total processed: ${expiredGroupBuys.length}`)
     logger.info(`   Moved to manual review: ${manualReviewCount}`)
+    logger.info(`   Partial orders processed: ${partialOrderCount}`)
 
     return {
       processed: expiredGroupBuys.length,
       manualReview: manualReviewCount,
+      partialOrders: partialOrderCount,
     }
   } catch (error) {
     logger.error("Group buy expiry job failed:", error)
+    throw error
+  }
+}
+
+// Helper function to update orders for successful group buys
+const updateOrderForSuccessfulGroupBuy = async (groupBuy) => {
+  try {
+    // Find orders that contain items from this GroupBuy
+    const relatedOrders = await Order.find({
+      "items.groupbuyId": groupBuy._id,
+    })
+
+    for (const order of relatedOrders) {
+      let orderUpdated = false
+
+      // Update items that belong to this GroupBuy
+      order.items.forEach((item) => {
+        if (item.groupbuyId && item.groupbuyId.toString() === groupBuy._id.toString()) {
+          item.groupStatus = "secured"
+          orderUpdated = true
+        }
+      })
+
+      if (orderUpdated) {
+        // Add progress update
+        order.progress.push({
+          status: "group_secured",
+          message: `Group buy for ${groupBuy.productId.title} was successful and is secured!`,
+          timestamp: new Date(),
+        })
+
+        // Check if all groups are now secured
+        order.checkAllGroupsSecured()
+        await order.save()
+
+        logger.info(`✅ Updated order ${order.trackingNumber} - group buy secured`)
+      }
+    }
+  } catch (error) {
+    logger.error(`❌ Error updating orders for successful GroupBuy ${groupBuy._id}:`, error)
+  }
+}
+
+// Helper function to process partial order refunds for failed group buys
+const processPartialOrderRefunds = async (groupBuy) => {
+  const result = {
+    partialOrdersProcessed: 0,
+    totalRefunded: 0,
+    errors: [],
+  }
+
+  try {
+    // Find orders that contain items from this failed GroupBuy
+    const relatedOrders = await Order.find({
+      "items.groupbuyId": groupBuy._id,
+    }).populate("items.product", "title")
+
+    for (const order of relatedOrders) {
+      try {
+        // Find the specific item that failed
+        const failedItem = order.items.find(
+          (item) => item.groupbuyId && item.groupbuyId.toString() === groupBuy._id.toString()
+        )
+
+        if (!failedItem) continue
+
+        // Find the user's participation in this group buy
+        const userParticipation = groupBuy.getParticipant(order.user)
+        if (!userParticipation) continue
+
+        // Process refund for this specific item
+        const refundAmount = userParticipation.amount
+
+        // Find or create wallet for user
+        let wallet = await Wallet.findOne({ user: order.user })
+        if (!wallet) {
+          wallet = new Wallet({
+            user: order.user,
+            balance: 0,
+          })
+        }
+
+        // Add refund to wallet
+        wallet.balance += refundAmount
+        await wallet.save()
+
+        // Create transaction record
+        await Transaction.create({
+          wallet: wallet._id,
+          user: order.user,
+          type: "credit",
+          amount: refundAmount,
+          reason: "PARTIAL_REFUND",
+          description: `Partial refund for failed group buy - ${groupBuy.productId.title}`,
+          metadata: {
+            groupBuyId: groupBuy._id,
+            orderId: order._id,
+            originalQuantity: userParticipation.quantity,
+            failedProduct: failedItem.product.title,
+          },
+        })
+
+        // Update the failed item status
+        failedItem.groupStatus = "failed"
+        
+        // Add progress update to order
+        order.progress.push({
+          status: "partial_refund",
+          message: `Group buy for ${failedItem.product.title} failed. Refund of ₦${refundAmount.toLocaleString()} has been processed to your wallet.`,
+          timestamp: new Date(),
+        })
+
+        // Update order status
+        order.checkAllGroupsSecured()
+        await order.save()
+
+        result.partialOrdersProcessed++
+        result.totalRefunded += refundAmount
+
+        logger.info(`💰 Partial refund processed: ₦${refundAmount} for order ${order.trackingNumber}`)
+
+        // Send notification to user about partial refund
+        const notificationService = (await import('../services/notificationService.js')).default
+        await notificationService.notifyPartialOrderRefund(
+          order.user,
+          failedItem.product.title,
+          refundAmount,
+          order.trackingNumber
+        )
+
+      } catch (error) {
+        logger.error(`❌ Error processing partial refund for order ${order.trackingNumber}:`, error)
+        result.errors.push({
+          orderId: order._id,
+          error: error.message,
+        })
+      }
+    }
+
+    logger.info(`✅ Processed ${result.partialOrdersProcessed} partial refunds totaling ₦${result.totalRefunded}`)
+    return result
+  } catch (error) {
+    logger.error("❌ Error processing partial order refunds:", error)
     throw error
   }
 }

@@ -245,12 +245,20 @@ export const getUserGroupBuys = async (req, res) => {
       } else if (groupBuy.status === "successful") {
         statusLabel = "Successful"
         statusColor = "green"
+      } else if (groupBuy.status === "manual_review") {
+        // Check if this was a successful group buy that expired
+        if (groupBuy.unitsSold >= groupBuy.minimumViableUnits) {
+          displayStatus = "successful"
+          statusLabel = "Successful"
+          statusColor = "green"
+        } else {
+          displayStatus = "failed"
+          statusLabel = "Under Review"
+          statusColor = "orange"
+        }
       } else if (groupBuy.status === "failed") {
         statusLabel = "Failed"
         statusColor = "red"
-      } else if (groupBuy.status === "manual_review") {
-        statusLabel = "Under Review"
-        statusColor = "orange"
       } else if (groupBuy.status === "refunded") {
         statusLabel = "Refunded"
         statusColor = "gray"
@@ -319,11 +327,24 @@ export const getUserGroupBuys = async (req, res) => {
       }),
       successful: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
-        status: "successful",
+        $or: [
+          { status: "successful" },
+          { 
+            status: "manual_review", 
+            $expr: { $gte: ["$unitsSold", "$minimumViableUnits"] }
+          }
+        ]
       }),
       failed: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
-        status: { $in: ["failed", "manual_review"] },
+        $or: [
+          { status: "failed" },
+          { status: "refunded" },
+          { 
+            status: "manual_review", 
+            $expr: { $lt: ["$unitsSold", "$minimumViableUnits"] }
+          }
+        ]
       }),
       totalSpent: totalSpent,
       totalUnits: totalUnits,
@@ -447,11 +468,24 @@ export const getUserGroupBuyStats = async (req, res) => {
       }),
       successful: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
-        status: "successful",
+        $or: [
+          { status: "successful" },
+          { 
+            status: "manual_review", 
+            $expr: { $gte: ["$unitsSold", "$minimumViableUnits"] }
+          }
+        ]
       }),
       failed: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
-        status: { $in: ["failed", "manual_review"] },
+        $or: [
+          { status: "failed" },
+          { status: "refunded" },
+          { 
+            status: "manual_review", 
+            $expr: { $lt: ["$unitsSold", "$minimumViableUnits"] }
+          }
+        ]
       }),
       expired: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
