@@ -67,6 +67,7 @@ const adminJs = new AdminJS({
           edit: { isAccessible: true },
           new: { isAccessible: false },
         },
+        perPage: 200,
       },
     },
     {
@@ -82,6 +83,7 @@ const adminJs = new AdminJS({
         actions: {
           edit: { isAccessible: true },
         },
+        perPage: 200,
       },
     },
     {
@@ -180,6 +182,7 @@ const adminJs = new AdminJS({
           edit: { isAccessible: true },
           new: { isAccessible: true },
         },
+        perPage: 200,
       },
     },
     {
@@ -241,6 +244,7 @@ const adminJs = new AdminJS({
         },
         listProperties: ['referenceId', 'userId', 'amount', 'status', 'createdAt'],
         showProperties: ['referenceId', 'paystackReference', 'userId', 'orderId', 'amount', 'walletUsed', 'paystackAmount', 'status', 'cartItems', 'groupBuysCreated', 'metadata', 'createdAt', 'updatedAt'],
+        perPage: 200,
       },
     },
     {
@@ -253,6 +257,7 @@ const adminJs = new AdminJS({
         listProperties: ['trackingNumber', 'user', 'currentStatus', 'totalAmount', 'priorityScore', 'allGroupsSecured', 'createdAt'],
         showProperties: ['trackingNumber', 'paymentHistoryId', 'user', 'currentStatus', 'totalAmount', 'walletUsed', 'paystackAmount', 'priorityScore', 'allGroupsSecured', 'fulfillmentChoice', 'estimatedFulfillmentTime', 'items', 'deliveryAddress', 'progress', 'createdAt', 'updatedAt'],
         filterProperties: ['trackingNumber'],
+        perPage: 200,
         sort: {
           sortBy: 'createdAt',
           direction: 'desc',
@@ -577,6 +582,7 @@ const adminJs = new AdminJS({
           edit: { isAccessible: true },
           new: { isAccessible: false },
         },
+        perPage: 200,
       },
     },
     {
@@ -609,6 +615,7 @@ const adminJs = new AdminJS({
           edit: { isAccessible: false },
           new: { isAccessible: false },
         },
+        perPage: 200,
       },
     },
     {
@@ -634,6 +641,7 @@ const adminJs = new AdminJS({
           edit: { isAccessible: true },
           new: { isAccessible: true },
         },
+        perPage: 200,
       },
     },
     {
@@ -659,9 +667,13 @@ const adminJs = new AdminJS({
           edit: { isAccessible: false },
           new: { isAccessible: false },
         },
+        perPage: 200,
       },
     },
   ],
+  settings: {
+    defaultPerPage: 200,
+  },
   branding: {
     companyName: 'Grup Admin',
     logo: false,
