@@ -66,7 +66,7 @@ const groupBuySchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "successful", "failed", "manual_review", "refunded"],
+      enum: ["active", "successful", "secured", "processing", "packaging", "ready_for_pickup", "delivered", "failed", "manual_review", "refunded"],
       default: "active",
     },
 
@@ -95,6 +95,50 @@ const groupBuySchema = new Schema(
     },
 
     adminNotes: String,
+
+    // Admin tracking fields
+    adminStatusHistory: [
+      {
+        status: {
+          type: String,
+          enum: ["active", "successful", "secured", "processing", "packaging", "ready_for_pickup", "delivered", "failed", "manual_review", "refunded"],
+        },
+        changedBy: {
+          type: String,
+          required: true,
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        notes: String,
+        notificationSent: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+
+    // Fulfillment tracking
+    fulfillmentData: {
+      processingStartedAt: Date,
+      packagingStartedAt: Date,
+      readyForPickupAt: Date,
+      deliveredAt: Date,
+      adminNotes: String,
+      trackingNumber: String,
+      deliveryMethod: {
+        type: String,
+        enum: ["pickup", "delivery"],
+      },
+      pickupLocation: String,
+      deliveryAddress: {
+        street: String,
+        city: String,
+        state: String,
+        phone: String,
+      },
+    },
 
     createdAt: {
       type: Date,
@@ -229,6 +273,49 @@ groupBuySchema.methods.prepareForManualReview = function () {
   }
 
   this.updatedAt = new Date()
+}
+
+// Method to update status with admin tracking
+groupBuySchema.methods.updateStatus = function (newStatus, adminName, notes = "") {
+  const oldStatus = this.status
+  this.status = newStatus
+  
+  // Add to admin status history
+  this.adminStatusHistory.push({
+    status: newStatus,
+    changedBy: adminName,
+    changedAt: new Date(),
+    notes: notes,
+    notificationSent: false,
+  })
+
+  // Update fulfillment timestamps based on status
+  if (newStatus === "processing" && !this.fulfillmentData.processingStartedAt) {
+    this.fulfillmentData.processingStartedAt = new Date()
+  } else if (newStatus === "packaging" && !this.fulfillmentData.packagingStartedAt) {
+    this.fulfillmentData.packagingStartedAt = new Date()
+  } else if (newStatus === "ready_for_pickup" && !this.fulfillmentData.readyForPickupAt) {
+    this.fulfillmentData.readyForPickupAt = new Date()
+  } else if (newStatus === "delivered" && !this.fulfillmentData.deliveredAt) {
+    this.fulfillmentData.deliveredAt = new Date()
+  }
+
+  this.updatedAt = new Date()
+  
+  // Return the old status for comparison
+  return oldStatus
+}
+
+// Method to get the latest admin status change
+groupBuySchema.methods.getLatestStatusChange = function () {
+  if (this.adminStatusHistory.length === 0) return null
+  return this.adminStatusHistory[this.adminStatusHistory.length - 1]
+}
+
+// Method to check if status change requires notification
+groupBuySchema.methods.requiresNotification = function (newStatus) {
+  const notificationStatuses = ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "failed"]
+  return notificationStatuses.includes(newStatus)
 }
 
 // Pre-save middleware

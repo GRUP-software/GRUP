@@ -15,6 +15,8 @@
     "seed": "node scripts/seed-delivery-zones.js",
     "create-uploads": "node scripts/create-uploads-folder.js",
     "test": "jest",
+    "test:notifications": "node test-notification-system.mjs",
+    "test:groupbuy-notifications": "node test-groupbuy-notification.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -39,6 +41,7 @@
     "mongoose": "^8.3.2",
     "multer": "^1.4.5-lts.1",
     "nanoid": "^5.0.7",
+    "nodemailer": "^6.9.7",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "slugify": "^1.6.6",

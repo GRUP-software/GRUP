@@ -9,7 +9,24 @@ const userSchema = new Schema(
     name: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    phone: { type: String },
+    phone: { 
+      type: String, 
+      unique: true, 
+      sparse: true, // Allow multiple null/undefined values for existing users
+      required: function() {
+        return this.isNew; // Only required for new documents
+      },
+      validate: {
+        validator: function(v) {
+          // If phone is provided, validate format
+          if (v) {
+            return /^\+234\d{10}$/.test(v);
+          }
+          return true; // Allow empty/null values for existing users
+        },
+        message: 'Please enter a valid Nigerian phone number starting with +234 followed by 10 digits'
+      }
+    },
     wallet: { type: Schema.Types.ObjectId, ref: "Wallet" },
     referralCode: { type: String, unique: true },
     referredBy: { type: Schema.Types.ObjectId, ref: "User", default: null },

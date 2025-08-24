@@ -19,7 +19,7 @@ import { globalErrorHandler, handleUnhandledRejection, handleUncaughtException }
 import logger from './utils/logger.js';
 
 // Import admin panel EARLY (before other routes)
-import { adminRouter } from './admin.mjs';
+import { router as adminRouter } from './admin.mjs';
 
 // Import routes
 import groupRoutes from './routes/groupBuyRoutes.js';

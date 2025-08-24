@@ -37,7 +37,16 @@ const config = {
   SOCKET_CORS_ORIGIN: process.env.SOCKET_CORS_ORIGIN || 'http://localhost:3000',
   
   // Logging
-  LOG_LEVEL: process.env.LOG_LEVEL || 'info'
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+  
+  // Email Configuration
+  EMAIL: {
+    HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    PORT: process.env.EMAIL_PORT || 587,
+    USER: process.env.EMAIL_USER || '',
+    PASS: process.env.EMAIL_PASS || '',
+    FROM_NAME: process.env.EMAIL_FROM_NAME || 'Grup Team'
+  }
 };
 
 // Environment-specific configurations

@@ -1,5 +1,7 @@
 import Notification from "../models/Notification.js"
 import logger from "../utils/logger.js"
+import emailService from "./emailService.js"
+import User from "../models/User.js"
 
 class NotificationService {
   constructor() {
@@ -304,6 +306,31 @@ class NotificationService {
     })
   }
 
+  async notifyGroupBuyStatusUpdate(userId, productName, groupBuyId, newStatus, oldStatus, fulfillmentData = null) {
+    const statusMessages = {
+      secured: `Great news! Your group buy for "${productName}" has been secured and is ready for processing.`,
+      processing: `Your order for "${productName}" is now being processed!`,
+      packaging: `Your order for "${productName}" is being packaged for delivery!`,
+      ready_for_pickup: `Your order for "${productName}" is ready for pickup!`,
+      delivered: `Your order for "${productName}" has been delivered!`,
+      failed: `Unfortunately, your group buy for "${productName}" has failed. A refund will be processed to your wallet.`,
+    }
+
+    const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`
+
+    return await this.createNotification({
+      userId,
+      type: newStatus === "failed" ? "error" : "success",
+      category: "group_buy",
+      title: newStatus === "failed" ? "Group Buy Failed" : "Group Buy Status Updated",
+      message,
+      data: { productName, groupBuyId, newStatus, oldStatus, fulfillmentData },
+      priority: newStatus === "failed" ? "high" : "medium",
+      actionUrl: `/account/orders`,
+      actionText: "View Orders",
+    })
+  }
+
   async notifyPartialOrderRefund(userId, productName, refundAmount, orderTrackingNumber) {
     const message = `Partial refund processed for "${productName}". ₦${refundAmount.toLocaleString()} has been refunded to your wallet. Your other items in order ${orderTrackingNumber} will be fulfilled as scheduled.`;
     
@@ -318,6 +345,371 @@ class NotificationService {
       actionUrl: `/account/orders`,
       actionText: "View Orders",
     })
+  }
+
+  // Email notification methods
+  async sendEmailNotification(userId, template, data) {
+    try {
+      const user = await User.findById(userId)
+      if (!user || !user.email) {
+        logger.warn(`📧 No email found for user ${userId}`)
+        return { success: false, message: "User email not found" }
+      }
+
+      let subject, htmlContent
+
+      // Check if email service is available
+      if (!emailService || !emailService.isConfigured) {
+        logger.warn(`📧 Email service not available for template: ${template}`)
+        return { success: false, message: "Email service not configured" }
+      }
+
+      switch (template) {
+        case 'order_status_update':
+          subject = `Order Status Update - ${data.status}`
+          htmlContent = emailService.generateOrderStatusEmail({
+            ...data,
+            customerName: user.name
+          })
+          break
+
+        case 'group_buy_status_update':
+          subject = `Group Buy Status Update - ${data.status}`
+          htmlContent = emailService.generateGroupBuyStatusEmail({
+            ...data,
+            customerName: user.name
+          })
+          break
+
+        case 'payment_confirmation':
+          subject = 'Payment Confirmation - Grup'
+          htmlContent = emailService.generatePaymentConfirmationEmail({
+            ...data,
+            customerName: user.name
+          })
+          break
+
+        case 'refund_notification':
+          subject = 'Refund Processed - Grup'
+          htmlContent = emailService.generateRefundNotificationEmail({
+            ...data,
+            customerName: user.name
+          })
+          break
+
+        case 'admin_action_notification':
+          subject = `Admin Action - ${data.actionType}`
+          htmlContent = emailService.generateAdminActionNotificationEmail({
+            ...data,
+            customerName: user.name
+          })
+          break
+
+        default:
+          logger.warn(`📧 Unknown email template: ${template}`)
+          return { success: false, message: "Unknown email template" }
+      }
+
+      try {
+        const result = await emailService.sendEmail(user.email, subject, htmlContent)
+        
+        if (result.success) {
+          logger.info(`📧 Email sent successfully to ${user.email}: ${subject}`)
+        } else {
+          logger.error(`❌ Failed to send email to ${user.email}: ${result.error}`)
+        }
+
+        return result
+      } catch (emailError) {
+        logger.error(`❌ Email service error for user ${userId}:`, emailError)
+        return { success: false, error: emailError.message }
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending email notification to user ${userId}:`, error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Group buy status email notifications
+  async sendGroupBuyStatusEmail(userId, status, productName, groupBuyId, fulfillmentData) {
+    const emailData = {
+      status,
+      productName,
+      groupBuyId,
+      fulfillmentData,
+      timestamp: new Date(),
+    }
+
+    return await this.sendEmailNotification(userId, "group_buy_status_update", emailData)
+  }
+
+  // Order status email notifications
+  async sendOrderStatusEmail(userId, orderId, status, trackingNumber) {
+    const emailData = {
+      orderId,
+      status,
+      trackingNumber,
+      timestamp: new Date(),
+    }
+
+    return await this.sendEmailNotification(userId, "order_status_update", emailData)
+  }
+
+  // Payment confirmation email
+  async sendPaymentConfirmationEmail(userId, orderId, amount, trackingNumber) {
+    const emailData = {
+      orderId,
+      amount,
+      trackingNumber,
+      timestamp: new Date(),
+    }
+
+    return await this.sendEmailNotification(userId, "payment_confirmation", emailData)
+  }
+
+  // Refund notification email
+  async sendRefundNotificationEmail(userId, amount, reason, orderId) {
+    const emailData = {
+      amount,
+      reason,
+      orderId,
+      timestamp: new Date(),
+    }
+
+    return await this.sendEmailNotification(userId, "refund_notification", emailData)
+  }
+
+  // Admin action notifications
+  async notifyAdminOrderStatusUpdate(userId, orderData, status, message, adminName) {
+    const notification = await this.createNotification({
+      userId,
+      type: "info",
+      category: "order",
+      title: `Order Status Updated by Admin`,
+      message: `Order #${orderData.trackingNumber}: ${message}`,
+      data: { 
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        status,
+        message,
+        adminName,
+        actionType: 'order_status_update'
+      },
+      priority: "high",
+      actionUrl: `/account/orders/${orderData.orderId}`,
+      actionText: "View Details",
+    })
+
+    // Send email notification
+    await this.sendEmailNotification(userId, "admin_action_notification", {
+      actionType: 'order_status_update',
+      actionDetails: {
+        title: 'Order Status Updated',
+        description: message,
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        status
+      },
+      adminName,
+      timestamp: new Date()
+    })
+
+    return notification
+  }
+
+  async notifyAdminGroupBuyStatusUpdate(userId, productName, groupBuyId, newStatus, oldStatus, adminName, fulfillmentData = null) {
+    const statusMessages = {
+      'secured': 'Your group buy has been secured and is ready for processing!',
+      'processing': 'Your order is now being processed!',
+      'packaging': 'Your order is being packaged for delivery!',
+      'ready_for_pickup': 'Your order is ready for pickup!',
+      'delivered': 'Your order has been delivered!',
+      'failed': 'Unfortunately, your group buy has failed. A refund will be processed to your wallet.'
+    }
+
+    const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`
+
+    const notification = await this.createNotification({
+      userId,
+      type: newStatus === "failed" ? "error" : "success",
+      category: "group_buy",
+      title: `Group Buy Status Updated by Admin`,
+      message: `Group buy for "${productName}": ${message}`,
+      data: { 
+        productName, 
+        groupBuyId, 
+        newStatus, 
+        oldStatus, 
+        fulfillmentData,
+        adminName,
+        actionType: 'group_buy_status_update'
+      },
+      priority: newStatus === "failed" ? "high" : "medium",
+      actionUrl: `/account/orders`,
+      actionText: "View Orders",
+    })
+
+    // Send email notification
+    await this.sendEmailNotification(userId, "admin_action_notification", {
+      actionType: 'group_buy_status_update',
+      actionDetails: {
+        title: 'Group Buy Status Updated',
+        description: message,
+        productName,
+        groupBuyId,
+        newStatus,
+        oldStatus,
+        fulfillmentData
+      },
+      adminName,
+      timestamp: new Date()
+    })
+
+    return notification
+  }
+
+  async notifyAdminOrderCancellation(userId, orderData, reason, adminName) {
+    const notification = await this.createNotification({
+      userId,
+      type: "error",
+      category: "order",
+      title: "Order Cancelled by Admin",
+      message: `Order #${orderData.trackingNumber} has been cancelled: ${reason}`,
+      data: { 
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        reason,
+        adminName,
+        actionType: 'order_cancelled'
+      },
+      priority: "high",
+      actionUrl: `/account/orders/${orderData.orderId}`,
+      actionText: "View Details",
+    })
+
+    // Send email notification
+    await this.sendEmailNotification(userId, "admin_action_notification", {
+      actionType: 'order_cancelled',
+      actionDetails: {
+        title: 'Order Cancelled',
+        description: `Your order has been cancelled: ${reason}`,
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        reason
+      },
+      adminName,
+      timestamp: new Date()
+    })
+
+    return notification
+  }
+
+  async notifyAdminRefundProcessed(userId, amount, reason, orderId, adminName) {
+    const notification = await this.createNotification({
+      userId,
+      type: "info",
+      category: "wallet",
+      title: "Refund Processed by Admin",
+      message: `Refund of ₦${amount?.toLocaleString()} processed: ${reason}`,
+      data: { 
+        amount, 
+        reason, 
+        orderId,
+        adminName,
+        actionType: 'refund_processed'
+      },
+      priority: "high",
+      actionUrl: "/account/wallet",
+      actionText: "View Wallet",
+    })
+
+    // Send email notification
+    await this.sendEmailNotification(userId, "admin_action_notification", {
+      actionType: 'refund_processed',
+      actionDetails: {
+        title: 'Refund Processed',
+        description: `A refund of ₦${amount?.toLocaleString()} has been processed: ${reason}`,
+        amount,
+        reason,
+        orderId
+      },
+      adminName,
+      timestamp: new Date()
+    })
+
+    return notification
+  }
+
+  async notifyAdminDeliveryScheduled(userId, orderData, deliveryInfo, adminName) {
+    const notification = await this.createNotification({
+      userId,
+      type: "success",
+      category: "order",
+      title: "Delivery Scheduled by Admin",
+      message: `Delivery scheduled for order #${orderData.trackingNumber}: ${deliveryInfo}`,
+      data: { 
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        deliveryInfo,
+        adminName,
+        actionType: 'delivery_scheduled'
+      },
+      priority: "high",
+      actionUrl: `/track/${orderData.trackingNumber}`,
+      actionText: "Track Delivery",
+    })
+
+    // Send email notification
+    await this.sendEmailNotification(userId, "admin_action_notification", {
+      actionType: 'delivery_scheduled',
+      actionDetails: {
+        title: 'Delivery Scheduled',
+        description: `Delivery has been scheduled for your order: ${deliveryInfo}`,
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        deliveryInfo
+      },
+      adminName,
+      timestamp: new Date()
+    })
+
+    return notification
+  }
+
+  async notifyAdminPickupReady(userId, orderData, pickupLocation, adminName) {
+    const notification = await this.createNotification({
+      userId,
+      type: "success",
+      category: "order",
+      title: "Order Ready for Pickup",
+      message: `Order #${orderData.trackingNumber} is ready for pickup at ${pickupLocation}`,
+      data: { 
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        pickupLocation,
+        adminName,
+        actionType: 'pickup_ready'
+      },
+      priority: "high",
+      actionUrl: `/track/${orderData.trackingNumber}`,
+      actionText: "View Pickup Details",
+    })
+
+    // Send email notification
+    await this.sendEmailNotification(userId, "admin_action_notification", {
+      actionType: 'pickup_ready',
+      actionDetails: {
+        title: 'Order Ready for Pickup',
+        description: `Your order is ready for pickup at ${pickupLocation}`,
+        orderId: orderData.orderId,
+        trackingNumber: orderData.trackingNumber,
+        pickupLocation
+      },
+      adminName,
+      timestamp: new Date()
+    })
+
+    return notification
   }
 
   // Referral notifications

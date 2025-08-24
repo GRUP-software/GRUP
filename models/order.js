@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema(
         },
         groupStatus: {
           type: String,
-          enum: ["forming", "secured", "dispatched", "under_review", "failed"],
+          enum: ["forming", "secured", "processing", "packaging", "ready_for_pickup", "delivered", "dispatched", "under_review", "failed"],
           default: "forming",
         },
       },
@@ -119,9 +119,11 @@ const orderSchema = new mongoose.Schema(
 
 // Method to check if all groups are secured
 orderSchema.methods.checkAllGroupsSecured = function () {
-  // Check if all non-failed items are secured
+  // Check if all non-failed items are secured or in fulfillment process
   const nonFailedItems = this.items.filter(item => item.groupStatus !== "failed")
-  const allSecured = nonFailedItems.length > 0 && nonFailedItems.every((item) => item.groupStatus === "secured" || item.groupStatus === "dispatched")
+  const allSecured = nonFailedItems.length > 0 && nonFailedItems.every((item) => 
+    ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "dispatched"].includes(item.groupStatus)
+  )
 
   if (allSecured && !this.allGroupsSecured) {
     this.allGroupsSecured = true
@@ -263,14 +265,120 @@ orderSchema.post("save", async (doc) => {
   }
 })
 
-// Pre-save middleware to detect status changes
+// Pre-save middleware to detect status changes and ensure required fields
 orderSchema.pre("save", function (next) {
+  // Ensure required fields exist
+  if (!this.trackingNumber) {
+    this.trackingNumber = `AUTO_${this._id ? this._id.toString().slice(-8) : Date.now().toString().slice(-8)}`;
+  }
+  
+  if (!this.currentStatus) {
+    this.currentStatus = 'groups_forming';
+  }
+  
+  if (!this.items || !Array.isArray(this.items)) {
+    this.items = [];
+  }
+  
+  if (!this.progress || !Array.isArray(this.progress)) {
+    this.progress = [];
+  }
+  
   if (this.isModified("currentStatus")) {
     this._statusChanged = true
     this._previousStatus = this._original?.currentStatus || this.currentStatus
   }
   next()
 })
+
+// Safe toJSON method to prevent AdminJS errors
+orderSchema.methods.toJSON = function() {
+  try {
+    const obj = this.toObject();
+    
+    // Ensure all required fields exist
+    if (!obj.trackingNumber) {
+      obj.trackingNumber = `AUTO_${this._id ? this._id.toString().slice(-8) : Date.now().toString().slice(-8)}`;
+    }
+    
+    if (!obj.currentStatus) {
+      obj.currentStatus = 'groups_forming';
+    }
+    
+    if (!obj.items || !Array.isArray(obj.items)) {
+      obj.items = [];
+    }
+    
+    if (!obj.progress || !Array.isArray(obj.progress)) {
+      obj.progress = [];
+    }
+    
+    if (!obj.totalAmount) {
+      obj.totalAmount = 0;
+    }
+    
+    if (!obj.walletUsed) {
+      obj.walletUsed = 0;
+    }
+    
+    if (!obj.paystackAmount) {
+      obj.paystackAmount = 0;
+    }
+    
+    if (!obj.priorityScore) {
+      obj.priorityScore = 0;
+    }
+    
+    if (!obj.allGroupsSecured) {
+      obj.allGroupsSecured = false;
+    }
+    
+    // Ensure all nested objects are properly initialized
+    if (!obj.deliveryAddress) {
+      obj.deliveryAddress = {};
+    }
+    
+    if (!obj.fulfillmentChoice) {
+      obj.fulfillmentChoice = 'pickup';
+    }
+    
+    if (!obj.estimatedFulfillmentTime) {
+      obj.estimatedFulfillmentTime = null;
+    }
+    
+    if (!obj.paymentHistoryId) {
+      obj.paymentHistoryId = null;
+    }
+    
+    if (!obj.user) {
+      obj.user = null;
+    }
+    
+    return obj;
+  } catch (error) {
+    console.error('Error in Order toJSON method:', error);
+    // Return a minimal valid object if toObject fails
+    return {
+      _id: this._id,
+      trackingNumber: `AUTO_${this._id ? this._id.toString().slice(-8) : Date.now().toString().slice(-8)}`,
+      currentStatus: 'groups_forming',
+      items: [],
+      progress: [],
+      totalAmount: 0,
+      walletUsed: 0,
+      paystackAmount: 0,
+      priorityScore: 0,
+      allGroupsSecured: false,
+      deliveryAddress: {},
+      fulfillmentChoice: 'pickup',
+      estimatedFulfillmentTime: null,
+      paymentHistoryId: null,
+      user: null,
+      createdAt: this.createdAt || new Date(),
+      updatedAt: this.updatedAt || new Date()
+    };
+  }
+};
 
 // Index for efficient queries
 orderSchema.index({ user: 1, createdAt: -1 })

@@ -242,3 +242,4 @@ Before going live:
 
 **🎯 Your production setup is now ready! Images will automatically be stored in the `grup/production/` folder and will be completely separate from your development images.**
 
+

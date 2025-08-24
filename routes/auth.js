@@ -18,14 +18,34 @@ const generateToken = (user) => {
 // SIGNUP ROUTE
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, referralCode } = req.body
+    const { name, email, password, referralCode, phone } = req.body
 
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" })
+    // Validate phone number format
+    if (!phone) {
+      return res.status(400).json({ message: "Phone number is required" })
     }
 
-    const newUser = new User({ name, email, password })
+    if (!phone.startsWith('+234')) {
+      return res.status(400).json({ message: "Please enter a valid Nigerian WhatsApp number starting with +234" })
+    }
+
+    if (phone.length !== 14) {
+      return res.status(400).json({ message: "Please enter a valid 11-digit Nigerian phone number" })
+    }
+
+    // Check if email already exists
+    const existingUserByEmail = await User.findOne({ email })
+    if (existingUserByEmail) {
+      return res.status(400).json({ message: "Email already associated with an account" })
+    }
+
+    // Check if phone number already exists
+    const existingUserByPhone = await User.findOne({ phone })
+    if (existingUserByPhone) {
+      return res.status(400).json({ message: "Phone number already associated with an account" })
+    }
+
+    const newUser = new User({ name, email, password, phone })
 
     // Handle referral logic using the new service
     if (referralCode) {
@@ -61,6 +81,7 @@ router.post("/signup", async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        phone: newUser.phone,
         referralCode: newUser.referralCode,
         referralLink,
       },
@@ -90,6 +111,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         referralCode: user.referralCode,
         referralLink,
       },

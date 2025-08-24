@@ -224,6 +224,7 @@ export const updateOrderStatus = async (req, res) => {
       "delivered",
       "picked_up",
       "cancelled",
+      "groups_under_review",
     ]
 
     if (!validStatuses.includes(status)) {
@@ -259,8 +260,9 @@ export const updateOrderStatus = async (req, res) => {
     // Send detailed notification to customer if requested
     if (notifyCustomer) {
       const customMessage = message || `Your order ${trackingNumber} status has been updated to ${status}.`
+      const adminName = req.user?.name || req.user?.email || "Admin"
 
-      await notificationService.notifyOrderStatusUpdate(
+      await notificationService.notifyAdminOrderStatusUpdate(
         order.user._id,
         {
           orderId: order._id,
@@ -268,6 +270,7 @@ export const updateOrderStatus = async (req, res) => {
         },
         status,
         customMessage,
+        adminName
       )
 
       // Send additional notification for tracking number if this is the first status update

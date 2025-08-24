@@ -13,6 +13,9 @@ import {
   reviewGroupBuy,
   updateGroupBuyMVU,
   markGroupBuyAsFailed,
+  updateGroupBuyStatus,
+  getGroupBuyStatusHistory,
+  getGroupBuysByStatus,
 } from "../controllers/groupBuyController.js"
 
 const router = express.Router()
@@ -51,5 +54,8 @@ router.get("/:id", getGroupBuyById)
 router.post("/:id/review", verifyToken, reviewGroupBuy)
 router.patch("/:id/mvu", verifyToken, updateGroupBuyMVU)
 router.patch("/:id/fail", verifyToken, markGroupBuyAsFailed)
+router.put("/admin/:id/status", verifyToken, updateGroupBuyStatus)
+router.get("/admin/:id/history", verifyToken, getGroupBuyStatusHistory)
+router.get("/admin/by-status", verifyToken, getGroupBuysByStatus)
 
 export default router

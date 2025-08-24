@@ -37,15 +37,25 @@ export const processExpiredGroupBuys = async () => {
 
         // Check if this group buy reached MVU
         if (groupBuy.unitsSold >= groupBuy.minimumViableUnits) {
-          // This is a successful group buy, mark it as successful
-          groupBuy.status = "successful"
+          // This is a successful group buy, mark it as secured
+          groupBuy.status = "secured"
           groupBuy.adminNotes = `Successful GroupBuy expired (${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units, ${progressPercentage.toFixed(1)}%). Ready for order processing.`
+          
+          // Add to admin status history
+          groupBuy.adminStatusHistory.push({
+            status: "secured",
+            changedBy: "System",
+            changedAt: new Date(),
+            notes: "Automatically secured after reaching MVU",
+            notificationSent: false,
+          })
+          
           await groupBuy.save()
           
           // Update related orders to mark this item as secured
           await updateOrderForSuccessfulGroupBuy(groupBuy)
           
-          logger.info(`✅ GroupBuy ${groupBuy._id} marked as successful`)
+          logger.info(`✅ GroupBuy ${groupBuy._id} marked as secured`)
         } else {
           // This is a failed group buy, move to manual review
           groupBuy.prepareForManualReview()
