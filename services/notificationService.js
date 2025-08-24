@@ -306,6 +306,22 @@ class NotificationService {
     })
   }
 
+  async notifyGroupBuyRefunded(userId, productName, groupBuyId, refundAmount) {
+    const message = `Your group buy for "${productName}" has been refunded. ₦${refundAmount.toLocaleString()} has been credited to your wallet.`;
+    
+    return await this.createNotification({
+      userId,
+      type: "info",
+      category: "group_buy",
+      title: "Group Buy Refunded",
+      message,
+      data: { productName, groupBuyId, refundAmount },
+      priority: "medium",
+      actionUrl: `/account/orders`,
+      actionText: "View Orders",
+    })
+  }
+
   async notifyGroupBuyStatusUpdate(userId, productName, groupBuyId, newStatus, oldStatus, fulfillmentData = null) {
     const statusMessages = {
       secured: `Great news! Your group buy for "${productName}" has been secured and is ready for processing.`,
@@ -314,6 +330,7 @@ class NotificationService {
       ready_for_pickup: `Your order for "${productName}" is ready for pickup!`,
       delivered: `Your order for "${productName}" has been delivered!`,
       failed: `Unfortunately, your group buy for "${productName}" has failed. A refund will be processed to your wallet.`,
+      refunded: `Your group buy for "${productName}" has been refunded. The amount has been credited to your wallet.`,
     }
 
     const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`

@@ -90,50 +90,35 @@ const adminJs = new AdminJS({
       resource: Product,
       options: {
         properties: {
-          unitTag: {
-            availableValues: [
-              { value: 'Litres', label: 'Litres' },
-              { value: 'Paint', label: 'Paint' },
-              { value: 'Bags', label: 'Bags' },
-              { value: 'Kg', label: 'Kilograms' },
-              { value: 'Bottles', label: 'Bottles' },
-              { value: 'Piece', label: 'Piece' },
-            ],
+          title: {
+            type: 'string',
+            isVisible: { list: true, filter: true, show: true, edit: true },
             isRequired: true,
           },
-          // Price range fields
-          minPrice: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          maxPrice: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          basePrice: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
+          description: {
+            type: 'textarea',
+            isVisible: { list: false, filter: false, show: true, edit: true },
           },
           price: {
             type: 'number',
             isVisible: { list: true, filter: true, show: true, edit: true },
+            isRequired: true,
+          },
+          image: {
+            type: 'string',
+            isVisible: { list: false, filter: false, show: true, edit: true },
           },
           // Selling units configuration
           sellingUnits: {
             type: 'mixed',
-            isArray: true,
             isVisible: { list: false, filter: false, show: true, edit: true },
           },
           // Group buy settings
-          groupBuyEnabled: {
+          groupEligible: {
             type: 'boolean',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
           minimumViableUnits: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          groupBuyDuration: {
             type: 'number',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
@@ -146,6 +131,12 @@ const adminJs = new AdminJS({
             type: 'number',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
+          // Variants
+          variants: {
+            type: 'mixed',
+            isArray: true,
+            isVisible: { list: false, filter: false, show: true, edit: true },
+          },
           // Images
           images: {
             type: 'mixed',
@@ -156,25 +147,19 @@ const adminJs = new AdminJS({
           slug: {
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
-          metaTitle: {
-            isVisible: { list: false, filter: false, show: true, edit: true },
-          },
-          metaDescription: {
-            type: 'textarea',
-            isVisible: { list: false, filter: false, show: true, edit: true },
-          },
           // Status and visibility
           isActive: {
             type: 'boolean',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
-          isFeatured: {
-            type: 'boolean',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
           // Category
           category: {
-            reference: 'Category',
+            type: 'string',
+            isVisible: { list: true, filter: true, show: true, edit: true },
+          },
+          // Slug
+          slug: {
+            type: 'string',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
         },

@@ -314,7 +314,7 @@ groupBuySchema.methods.getLatestStatusChange = function () {
 
 // Method to check if status change requires notification
 groupBuySchema.methods.requiresNotification = function (newStatus) {
-  const notificationStatuses = ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "failed"]
+  const notificationStatuses = ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "failed", "refunded"]
   return notificationStatuses.includes(newStatus)
 }
 

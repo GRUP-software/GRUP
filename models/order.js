@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema(
         },
         groupStatus: {
           type: String,
-          enum: ["forming", "secured", "processing", "packaging", "ready_for_pickup", "delivered", "dispatched", "under_review", "failed"],
+          enum: ["forming", "secured", "processing", "packaging", "ready_for_pickup", "delivered", "dispatched", "under_review", "failed", "refunded"],
           default: "forming",
         },
       },
@@ -119,9 +119,9 @@ const orderSchema = new mongoose.Schema(
 
 // Method to check if all groups are secured
 orderSchema.methods.checkAllGroupsSecured = function () {
-  // Check if all non-failed items are secured or in fulfillment process
-  const nonFailedItems = this.items.filter(item => item.groupStatus !== "failed")
-  const allSecured = nonFailedItems.length > 0 && nonFailedItems.every((item) => 
+  // Check if all non-failed and non-refunded items are secured or in fulfillment process
+  const activeItems = this.items.filter(item => item.groupStatus !== "failed" && item.groupStatus !== "refunded")
+  const allSecured = activeItems.length > 0 && activeItems.every((item) => 
     ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "dispatched"].includes(item.groupStatus)
   )
 
@@ -141,13 +141,18 @@ orderSchema.methods.checkAllGroupsSecured = function () {
 // Method to calculate the amount for items that are still active (not failed)
 orderSchema.methods.getActiveOrderAmount = function () {
   return this.items
-    .filter(item => item.groupStatus !== "failed")
+    .filter(item => item.groupStatus !== "failed" && item.groupStatus !== "refunded")
     .reduce((total, item) => total + (item.price * item.quantity), 0)
 }
 
 // Method to get failed items
 orderSchema.methods.getFailedItems = function () {
   return this.items.filter(item => item.groupStatus === "failed")
+}
+
+// Method to get refunded items
+orderSchema.methods.getRefundedItems = function () {
+  return this.items.filter(item => item.groupStatus === "refunded")
 }
 
 // Method to get successful items

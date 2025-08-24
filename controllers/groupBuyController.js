@@ -946,6 +946,7 @@ const updateOrderStatusForGroupBuy = async (groupBuy, newStatus) => {
           packaging: "Your order is being packaged for delivery!",
           ready_for_pickup: "Your order is ready for pickup!",
           delivered: "Your order has been delivered!",
+          refunded: "Your group buy has been refunded. The amount has been credited to your wallet.",
         }
 
         const message = statusMessages[newStatus] || `Group buy status updated to ${newStatus}`
@@ -981,6 +982,7 @@ const sendGroupBuyStatusNotification = async (groupBuy, newStatus, oldStatus) =>
       ready_for_pickup: `Your order for "${productName}" is ready for pickup!`,
       delivered: `Your order for "${productName}" has been delivered!`,
       failed: `Unfortunately, your group buy for "${productName}" has failed. A refund will be processed to your wallet.`,
+      refunded: `Your group buy for "${productName}" has been refunded. The amount has been credited to your wallet.`,
     }
 
     const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`
@@ -992,9 +994,9 @@ const sendGroupBuyStatusNotification = async (groupBuy, newStatus, oldStatus) =>
       
       await notificationService.createNotification({
         userId: userId,
-        type: newStatus === "failed" ? "error" : "success",
+        type: newStatus === "failed" ? "error" : newStatus === "refunded" ? "info" : "success",
         category: "group_buy",
-        title: newStatus === "failed" ? "Group Buy Failed" : "Group Buy Status Updated",
+        title: newStatus === "failed" ? "Group Buy Failed" : newStatus === "refunded" ? "Group Buy Refunded" : "Group Buy Status Updated",
         message,
         data: { 
           productName, 
@@ -1142,11 +1144,16 @@ export const updateGroupBuyStatus = async (req, res) => {
 
     // Validate status transition
     const validTransitions = {
-      secured: ["processing", "packaging", "ready_for_pickup", "delivered"],
-      processing: ["packaging", "ready_for_pickup", "delivered"],
-      packaging: ["ready_for_pickup", "delivered"],
-      ready_for_pickup: ["delivered"],
-      delivered: [], // Final state
+      active: ["successful", "secured", "failed", "manual_review", "refunded"],
+      successful: ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "refunded"],
+      secured: ["processing", "packaging", "ready_for_pickup", "delivered", "refunded"],
+      processing: ["packaging", "ready_for_pickup", "delivered", "refunded"],
+      packaging: ["ready_for_pickup", "delivered", "refunded"],
+      ready_for_pickup: ["delivered", "refunded"],
+      delivered: ["refunded"], // Can still be refunded if needed
+      failed: ["refunded"], // Can be refunded after failure
+      manual_review: ["secured", "failed", "refunded"],
+      refunded: [], // Final state
     }
 
     if (validTransitions[groupBuy.status] && !validTransitions[groupBuy.status].includes(status)) {
