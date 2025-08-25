@@ -108,58 +108,20 @@ const adminJs = new AdminJS({
             type: 'string',
             isVisible: { list: false, filter: false, show: true, edit: true },
           },
-          // Selling units configuration
-          sellingUnits: {
-            type: 'mixed',
-            isVisible: { list: false, filter: false, show: true, edit: true },
-          },
-          // Group buy settings
-          groupEligible: {
-            type: 'boolean',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          minimumViableUnits: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          // Stock management
-          stock: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          lowStockThreshold: {
-            type: 'number',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          // Variants
-          variants: {
-            type: 'mixed',
-            isArray: true,
-            isVisible: { list: false, filter: false, show: true, edit: true },
-          },
-          // Images
-          images: {
-            type: 'mixed',
-            isArray: true,
-            isVisible: { list: false, filter: false, show: true, edit: true },
-          },
-          // SEO and metadata
-          slug: {
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          // Status and visibility
-          isActive: {
-            type: 'boolean',
-            isVisible: { list: true, filter: true, show: true, edit: true },
-          },
-          // Category
           category: {
             type: 'string',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
-          // Slug
-          slug: {
-            type: 'string',
+          stock: {
+            type: 'number',
+            isVisible: { list: true, filter: true, show: true, edit: true },
+          },
+          groupEligible: {
+            type: 'boolean',
+            isVisible: { list: true, filter: true, show: true, edit: true },
+          },
+          isActive: {
+            type: 'boolean',
             isVisible: { list: true, filter: true, show: true, edit: true },
           },
         },

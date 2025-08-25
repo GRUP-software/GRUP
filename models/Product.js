@@ -100,5 +100,26 @@ productSchema.pre("save", function (next) {
   next()
 })
 
+// Custom toJSON method to handle undefined/null values for AdminJS
+productSchema.methods.toJSON = function() {
+  const obj = this.toObject();
+  
+  // Only set defaults for fields that are actually undefined/null
+  if (obj.sellingUnits === undefined || obj.sellingUnits === null) {
+    obj.sellingUnits = {
+      enabled: false,
+      options: []
+    };
+  }
+  if (obj.variants === undefined || obj.variants === null) {
+    obj.variants = [];
+  }
+  if (obj.images === undefined || obj.images === null) {
+    obj.images = [];
+  }
+  
+  return obj;
+};
+
 const Product = mongoose.model("Product", productSchema)
 export default Product
