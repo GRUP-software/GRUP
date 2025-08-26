@@ -6,6 +6,7 @@ import Order from "../models/order.js"
 import User from "../models/User.js"
 import notificationService from "../services/notificationService.js"
 import logger from "../utils/logger.js"
+import { sendWhatsAppMessage, getWhatsAppMessageStatus, getOrderWhatsAppMessages, getGroupBuyWhatsAppMessages } from "../controllers/whatsappController.js"
 
 const router = express.Router()
 
@@ -1056,6 +1057,61 @@ router.post("/orders/:trackingNumber/ready-pickup", verifyAdminToken, async (req
       adminName
     );
 
+    // Send WhatsApp message for fulfillment choice
+    try {
+      const whatsappService = (await import('../services/whatsappService.js')).default
+      const userPhone = order.user?.phone || order.deliveryAddress?.phone
+      
+      if (userPhone) {
+        const orderDetails = {
+          totalAmount: order.totalAmount,
+          itemCount: order.items.length,
+          items: order.items.map(item => item.product?.title || 'Product').join(', ')
+        }
+
+        // For admin-triggered messages, we need to specify which GroupBuy
+        // This would need to be passed in the request body
+        const { groupBuyId } = req.body
+        
+        if (groupBuyId) {
+          // Find the specific GroupBuy item in this order
+          const groupBuyItem = order.items.find(item => 
+            item.groupbuyId && item.groupbuyId.toString() === groupBuyId
+          )
+          
+          if (groupBuyItem) {
+            const groupBuyDetails = {
+              totalAmount: groupBuyItem.price * groupBuyItem.quantity,
+              itemCount: groupBuyItem.quantity,
+              productName: groupBuyItem.product?.title || 'Product'
+            }
+
+            const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
+              userPhone,
+              groupBuyDetails,
+              order.trackingNumber,
+              groupBuyId
+            )
+          } else {
+            logger.warn(`⚠️ GroupBuy ${groupBuyId} not found in order ${trackingNumber}`)
+          }
+        } else {
+          logger.warn(`⚠️ No GroupBuy ID provided for admin-triggered WhatsApp message`)
+        }
+
+            if (whatsappResult.success) {
+              logger.info(`📱 WhatsApp fulfillment choice message sent for GroupBuy ${groupBuyId} (Order: ${trackingNumber})`)
+            } else {
+              logger.warn(`⚠️ Failed to send WhatsApp message for GroupBuy ${groupBuyId}: ${whatsappResult.error}`)
+            }
+      } else {
+        logger.warn(`⚠️ No phone number found for order ${trackingNumber}`)
+      }
+    } catch (whatsappError) {
+      logger.error('❌ WhatsApp integration error:', whatsappError)
+      // Don't fail the entire operation if WhatsApp fails
+    }
+
     logger.info(`📦 Admin ${adminName} marked order ${trackingNumber} ready for pickup at ${pickupLocation}`);
 
     res.json({
@@ -1074,5 +1130,19 @@ router.post("/orders/:trackingNumber/ready-pickup", verifyAdminToken, async (req
     });
   }
 });
+
+// WhatsApp Integration Routes
+
+// Send WhatsApp message manually (for testing/admin use)
+router.post("/whatsapp/send", verifyAdminToken, sendWhatsAppMessage);
+
+// Get WhatsApp message status
+router.get("/whatsapp/message/:messageId", verifyAdminToken, getWhatsAppMessageStatus);
+
+// Get WhatsApp messages for an order
+router.get("/orders/:trackingNumber/whatsapp", verifyAdminToken, getOrderWhatsAppMessages);
+
+// Get WhatsApp messages for a GroupBuy
+router.get("/groupbuys/:groupBuyId/whatsapp", verifyAdminToken, getGroupBuyWhatsAppMessages);
 
 export default router

@@ -423,6 +423,39 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
       console.error("Failed to send payment success notification:", error)
     }
 
+    // Emit social proof notification to all users
+    try {
+      const io = global.io
+      if (io && groupBuys.length > 0) {
+        const User = (await import("../models/User.js")).default
+        const user = await User.findById(paymentHistory.userId).select('firstName lastName')
+        
+        if (user) {
+          // Get the first product from group buys for social proof
+          const Product = (await import("../models/Product.js")).default
+          const product = await Product.findById(groupBuys[0].productId).select('title')
+          
+          if (product) {
+            // Anonymize user name (show only first name)
+            const displayName = user.firstName || 'Someone'
+            const productName = product.title || 'a product'
+            
+            io.emit("purchase:social_proof", {
+              userName: displayName,
+              productName: productName,
+              timestamp: new Date(),
+              purchaseId: paymentHistory._id
+            })
+            
+            console.log(`✅ Social proof emitted: ${displayName} joined groupbuy for ${productName}`)
+          }
+        }
+      }
+    } catch (socialProofError) {
+      console.error(`❌ Error emitting social proof:`, socialProofError)
+      // Don't fail the payment if social proof fails
+    }
+
     res.json({
       success: true,
       message: "Payment completed successfully using wallet",

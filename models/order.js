@@ -101,6 +101,34 @@ const orderSchema = new mongoose.Schema(
       default: 0,
       index: true,
     },
+    // WhatsApp integration tracking
+    whatsappMessages: [
+      {
+        messageId: String,
+        type: {
+          type: String,
+          enum: ["fulfillment_choice", "confirmation", "help", "reminder"]
+        },
+        sentAt: {
+          type: Date,
+          default: Date.now
+        },
+        status: {
+          type: String,
+          enum: ["sent", "delivered", "read", "failed"],
+          default: "sent"
+        },
+        responseReceived: {
+          type: Boolean,
+          default: false
+        },
+        responseChoice: {
+          type: String,
+          enum: ["pickup", "delivery"]
+        },
+        responseAt: Date
+      }
+    ],
     progress: [
       {
         status: String,
@@ -300,85 +328,26 @@ orderSchema.pre("save", function (next) {
 orderSchema.methods.toJSON = function() {
   try {
     const obj = this.toObject();
-    
-    // Ensure all required fields exist
-    if (!obj.trackingNumber) {
-      obj.trackingNumber = `AUTO_${this._id ? this._id.toString().slice(-8) : Date.now().toString().slice(-8)}`;
-    }
-    
-    if (!obj.currentStatus) {
-      obj.currentStatus = 'groups_forming';
-    }
-    
-    if (!obj.items || !Array.isArray(obj.items)) {
-      obj.items = [];
-    }
-    
-    if (!obj.progress || !Array.isArray(obj.progress)) {
-      obj.progress = [];
-    }
-    
-    if (!obj.totalAmount) {
-      obj.totalAmount = 0;
-    }
-    
-    if (!obj.walletUsed) {
-      obj.walletUsed = 0;
-    }
-    
-    if (!obj.paystackAmount) {
-      obj.paystackAmount = 0;
-    }
-    
-    if (!obj.priorityScore) {
-      obj.priorityScore = 0;
-    }
-    
-    if (!obj.allGroupsSecured) {
-      obj.allGroupsSecured = false;
-    }
-    
-    // Ensure all nested objects are properly initialized
-    if (!obj.deliveryAddress) {
-      obj.deliveryAddress = {};
-    }
-    
-    if (!obj.fulfillmentChoice) {
-      obj.fulfillmentChoice = 'pickup';
-    }
-    
-    if (!obj.estimatedFulfillmentTime) {
-      obj.estimatedFulfillmentTime = null;
-    }
-    
-    if (!obj.paymentHistoryId) {
-      obj.paymentHistoryId = null;
-    }
-    
-    if (!obj.user) {
-      obj.user = null;
-    }
-    
     return obj;
   } catch (error) {
     console.error('Error in Order toJSON method:', error);
     // Return a minimal valid object if toObject fails
     return {
       _id: this._id,
-      trackingNumber: `AUTO_${this._id ? this._id.toString().slice(-8) : Date.now().toString().slice(-8)}`,
-      currentStatus: 'groups_forming',
-      items: [],
-      progress: [],
-      totalAmount: 0,
-      walletUsed: 0,
-      paystackAmount: 0,
-      priorityScore: 0,
-      allGroupsSecured: false,
-      deliveryAddress: {},
-      fulfillmentChoice: 'pickup',
-      estimatedFulfillmentTime: null,
-      paymentHistoryId: null,
-      user: null,
+      trackingNumber: this.trackingNumber || `AUTO_${this._id ? this._id.toString().slice(-8) : Date.now().toString().slice(-8)}`,
+      currentStatus: this.currentStatus || 'groups_forming',
+      items: this.items || [],
+      progress: this.progress || [],
+      totalAmount: this.totalAmount || 0,
+      walletUsed: this.walletUsed || 0,
+      paystackAmount: this.paystackAmount || 0,
+      priorityScore: this.priorityScore || 0,
+      allGroupsSecured: this.allGroupsSecured || false,
+      deliveryAddress: this.deliveryAddress || {},
+      fulfillmentChoice: this.fulfillmentChoice || 'pickup',
+      estimatedFulfillmentTime: this.estimatedFulfillmentTime || null,
+      paymentHistoryId: this.paymentHistoryId || null,
+      user: this.user || null,
       createdAt: this.createdAt || new Date(),
       updatedAt: this.updatedAt || new Date()
     };

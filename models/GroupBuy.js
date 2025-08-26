@@ -99,24 +99,46 @@ const groupBuySchema = new Schema(
     // Admin tracking fields
     adminStatusHistory: [
       {
+        status: String,
+        changedBy: String,
+        changedAt: { type: Date, default: Date.now },
+        notes: String,
+      },
+    ],
+
+    // WhatsApp integration tracking
+    whatsappMessages: [
+      {
+        messageId: String,
+        orderId: {
+          type: Schema.Types.ObjectId,
+          ref: "Order"
+        },
+        trackingNumber: String,
+        type: {
+          type: String,
+          enum: ["fulfillment_choice", "confirmation", "help", "reminder"]
+        },
+        sentAt: {
+          type: Date,
+          default: Date.now
+        },
         status: {
           type: String,
-          enum: ["active", "successful", "secured", "processing", "packaging", "ready_for_pickup", "delivered", "failed", "manual_review", "refunded"],
+          enum: ["sent", "delivered", "read", "failed"],
+          default: "sent"
         },
-        changedBy: {
-          type: String,
-          required: true,
-        },
-        changedAt: {
-          type: Date,
-          default: Date.now,
-        },
-        notes: String,
-        notificationSent: {
+        responseReceived: {
           type: Boolean,
-          default: false,
+          default: false
         },
-      },
+        responseChoice: {
+          type: String,
+          enum: ["pickup", "delivery"]
+        },
+        responseAt: Date,
+        customerPhone: String
+      }
     ],
 
     // Fulfillment tracking

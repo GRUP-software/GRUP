@@ -811,6 +811,58 @@ export const markGroupBuyAsFailed = async (req, res) => {
   }
 }
 
+// Helper function to check if all items in related orders are secured and trigger bulk WhatsApp
+const checkAndTriggerBulkWhatsApp = async (groupBuy) => {
+  try {
+    const Order = (await import('../models/order.js')).default
+    const whatsappService = (await import('../services/whatsappService.js')).default
+    
+    // Get all orders that contain this group buy
+    const relatedOrders = await Order.find({
+      "items.groupbuyId": groupBuy._id,
+    }).populate('user', 'phone name')
+      .populate('items.groupbuyId', 'status')
+
+    for (const order of relatedOrders) {
+      // Check if all items in this order are secured
+      const allItemsSecured = order.items.every(item => {
+        if (!item.groupbuyId) return true // Skip items without group buy
+        return item.groupbuyId.status === 'secured'
+      })
+
+      if (allItemsSecured) {
+        // All items in this order are secured - trigger bulk WhatsApp
+        const userPhone = order.user?.phone || order.deliveryAddress?.phone
+        
+        if (userPhone) {
+          const orderDetails = {
+            totalAmount: order.totalAmount,
+            itemCount: order.items.length,
+            items: order.items.map(item => item.product?.title || 'Product').join(', ')
+          }
+
+          // Send bulk WhatsApp message for entire order
+          const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
+            userPhone,
+            order.trackingNumber,
+            orderDetails,
+            groupBuy._id
+          )
+
+          if (whatsappResult.success) {
+            logger.info(`📱 Bulk WhatsApp message sent for complete order ${order.trackingNumber}`)
+          } else {
+            logger.warn(`⚠️ Failed to send bulk WhatsApp message for order ${order.trackingNumber}: ${whatsappResult.error}`)
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logger.error('❌ Error in bulk WhatsApp check:', error)
+    throw error
+  }
+}
+
 // Helper function to process refunds for failed group buy
 const processGroupBuyRefunds = async (groupBuy) => {
   const refundResults = {
@@ -1183,6 +1235,60 @@ export const updateGroupBuyStatus = async (req, res) => {
 
     // Update related orders
     await updateOrderStatusForGroupBuy(groupBuy, status)
+
+    // Send WhatsApp messages if status is ready_for_pickup
+    if (status === "ready_for_pickup") {
+      try {
+        const whatsappService = (await import('../services/whatsappService.js')).default
+        
+        // Get all orders related to this group buy
+        const Order = (await import('../models/order.js')).default
+        const relatedOrders = await Order.find({
+          "items.groupbuyId": groupBuy._id,
+        }).populate('user', 'phone name')
+
+        for (const order of relatedOrders) {
+          // Get user's phone number
+          const userPhone = order.user?.phone || order.deliveryAddress?.phone
+          
+          if (userPhone) {
+            // Find the specific item in this order that belongs to this GroupBuy
+            const groupBuyItem = order.items.find(item => 
+              item.groupbuyId && item.groupbuyId.toString() === groupBuy._id.toString()
+            )
+            
+            if (groupBuyItem) {
+              const groupBuyDetails = {
+                totalAmount: groupBuyItem.price * groupBuyItem.quantity,
+                itemCount: groupBuyItem.quantity,
+                productName: groupBuyItem.product?.title || 'Product'
+              }
+
+              // Send WhatsApp message for this specific GroupBuy
+              const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
+                userPhone,
+                groupBuyDetails,
+                order.trackingNumber,
+                groupBuy._id
+              )
+
+              if (whatsappResult.success) {
+                logger.info(`📱 WhatsApp message sent for GroupBuy ${groupBuy._id} (Order: ${order.trackingNumber})`)
+              } else {
+                logger.warn(`⚠️ Failed to send WhatsApp message for GroupBuy ${groupBuy._id}: ${whatsappResult.error}`)
+              }
+            }
+          } else {
+            logger.warn(`⚠️ No phone number found for order ${order.trackingNumber}`)
+          }
+        }
+      } catch (whatsappError) {
+        logger.error('❌ WhatsApp integration error:', whatsappError)
+        // Don't fail the entire operation if WhatsApp fails
+      }
+    }
+
+    // Note: Removed bulk WhatsApp trigger - now only sends individual GroupBuy messages
 
           // Send notifications to participants if status change requires notification
       if (groupBuy.requiresNotification(status)) {

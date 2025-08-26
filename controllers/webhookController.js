@@ -313,6 +313,36 @@ const handleSuccessfulCharge = async (data) => {
         amount: paymentHistory.amount,
         groupBuysJoined: groupBuys.length,
       })
+
+      // Emit social proof notification to all users
+      try {
+        const User = (await import("../models/User.js")).default
+        const user = await User.findById(paymentHistory.userId).select('firstName lastName')
+        
+        if (user && groupBuys.length > 0) {
+          // Get the first product from group buys for social proof
+          const Product = (await import("../models/Product.js")).default
+          const product = await Product.findById(groupBuys[0].productId).select('title')
+          
+          if (product) {
+            // Anonymize user name (show only first name)
+            const displayName = user.firstName || 'Someone'
+            const productName = product.title || 'a product'
+            
+            io.emit("purchase:social_proof", {
+              userName: displayName,
+              productName: productName,
+              timestamp: new Date(),
+              purchaseId: paymentHistory._id
+            })
+            
+            console.log(`✅ Social proof emitted: ${displayName} joined groupbuy for ${productName}`)
+          }
+        }
+      } catch (socialProofError) {
+        console.error(`❌ Error emitting social proof:`, socialProofError)
+        // Don't fail the webhook if social proof fails
+      }
     }
   } catch (error) {
     logger.error(`❌ Webhook processing failed for ${data.reference}:`, error)

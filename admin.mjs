@@ -201,8 +201,8 @@ const adminJs = new AdminJS({
           name: 'Orders',
           icon: 'Package',
         },
-        listProperties: ['trackingNumber', 'user', 'currentStatus', 'totalAmount', 'priorityScore', 'allGroupsSecured', 'createdAt'],
-        showProperties: ['trackingNumber', 'paymentHistoryId', 'user', 'currentStatus', 'totalAmount', 'walletUsed', 'paystackAmount', 'priorityScore', 'allGroupsSecured', 'fulfillmentChoice', 'estimatedFulfillmentTime', 'items', 'deliveryAddress', 'progress', 'createdAt', 'updatedAt'],
+        listProperties: ['trackingNumber', 'user', 'currentStatus', 'totalAmount', 'fulfillmentChoice', 'createdAt'],
+        showProperties: ['trackingNumber', 'user', 'currentStatus', 'totalAmount', 'fulfillmentChoice', 'estimatedFulfillmentTime', 'createdAt'],
         filterProperties: ['trackingNumber'],
         perPage: 200,
         sort: {
@@ -210,21 +210,8 @@ const adminJs = new AdminJS({
           direction: 'desc',
         },
         properties: {
-          _id: {
-            isVisible: { list: false, filter: false, show: true, edit: false },
-          },
           trackingNumber: {
             isVisible: { list: true, filter: true, show: true, edit: false },
-            isFilterable: true,
-            isSearchable: true,
-            filter: {
-              type: 'string',
-              component: 'TextFilter',
-            },
-          },
-          paymentHistoryId: {
-            reference: 'PaymentHistory',
-            isVisible: { list: false, filter: false, show: true, edit: false },
           },
           user: {
             reference: 'User',
@@ -244,34 +231,11 @@ const adminJs = new AdminJS({
               { value: 'cancelled', label: 'Cancelled' },
               { value: 'groups_under_review', label: 'Groups Under Review' },
             ],
-            isEditable: true,
-            isRequired: true,
             isVisible: { list: true, filter: false, show: true, edit: true },
           },
           totalAmount: {
             type: 'number',
             isVisible: { list: true, filter: false, show: true, edit: false },
-            isRequired: true,
-          },
-          walletUsed: {
-            type: 'number',
-            isVisible: { list: true, filter: false, show: true, edit: false },
-            isRequired: true,
-          },
-          paystackAmount: {
-            type: 'number',
-            isVisible: { list: true, filter: false, show: true, edit: false },
-            isRequired: true,
-          },
-          priorityScore: {
-            type: 'number',
-            isVisible: { list: true, filter: false, show: true, edit: false },
-            isRequired: true,
-          },
-          allGroupsSecured: {
-            type: 'boolean',
-            isVisible: { list: true, filter: false, show: true, edit: false },
-            isRequired: true,
           },
           fulfillmentChoice: {
             availableValues: [
@@ -279,24 +243,6 @@ const adminJs = new AdminJS({
               { value: 'delivery', label: 'Delivery' },
             ],
             isVisible: { list: true, filter: false, show: true, edit: true },
-            isRequired: true,
-          },
-          items: {
-            type: 'mixed',
-            isArray: true,
-            isVisible: { list: false, filter: false, show: true, edit: false },
-            isRequired: true,
-          },
-          deliveryAddress: {
-            type: 'mixed',
-            isVisible: { list: false, filter: false, show: true, edit: false },
-            isRequired: true,
-          },
-          progress: {
-            type: 'mixed',
-            isArray: true,
-            isVisible: { list: false, filter: false, show: true, edit: false },
-            isRequired: true,
           },
           estimatedFulfillmentTime: {
             type: 'datetime',
@@ -306,87 +252,9 @@ const adminJs = new AdminJS({
             type: 'datetime',
             isVisible: { list: true, filter: false, show: true, edit: false },
           },
-          updatedAt: {
-            type: 'datetime',
-            isVisible: { list: true, filter: false, show: true, edit: false },
-          },
         },
                 actions: {
           new: { isAccessible: false },
-          list: {
-            before: async (request, context) => {
-              console.log('AdminJS List Request:', {
-                query: request.query,
-                filters: request.query?.filters,
-                trackingNumber: request.query?.filters?.trackingNumber
-              });
-              
-              // Handle tracking number filter manually
-              if (request.query?.filters?.trackingNumber) {
-                const trackingNumber = request.query.filters.trackingNumber;
-                console.log('🔍 Filtering by tracking number:', trackingNumber);
-                
-                // Import Order model
-                const Order = (await import('./models/order.js')).default;
-                
-                // Find orders with matching tracking number
-                const filteredOrders = await Order.find({
-                  trackingNumber: { $regex: trackingNumber, $options: 'i' }
-                }).populate('user', 'name email');
-                
-                console.log(`✅ Found ${filteredOrders.length} orders matching "${trackingNumber}"`);
-                
-                // Update the request to use our filtered results
-                request.query.filters = { ...request.query.filters };
-                delete request.query.filters.trackingNumber; // Remove the filter so AdminJS doesn't apply it again
-                
-                // Store our filtered results for the after hook
-                request.customFilteredOrders = filteredOrders;
-              }
-              
-              return request;
-            },
-            after: async (response, request, context) => {
-              console.log('AdminJS List Response - Records count:', response.records?.length || 0);
-              
-              // If we have custom filtered results, replace the response
-              if (request.customFilteredOrders) {
-                console.log('🔄 Replacing AdminJS results with custom filtered results');
-                
-                // Convert our filtered orders to AdminJS record format
-                const customRecords = request.customFilteredOrders.map(order => ({
-                  id: order._id.toString(),
-                  title: order.trackingNumber,
-                  params: {
-                    trackingNumber: order.trackingNumber,
-                    user: order.user?.name || 'Unknown',
-                    currentStatus: order.currentStatus,
-                    totalAmount: order.totalAmount,
-                    priorityScore: order.priorityScore,
-                    allGroupsSecured: order.allGroupsSecured,
-                    createdAt: order.createdAt
-                  }
-                }));
-                
-                response.records = customRecords;
-                response.meta.total = customRecords.length;
-                response.meta.perPage = customRecords.length;
-                
-                console.log(`✅ Custom filter applied: ${customRecords.length} records returned`);
-              }
-              
-              if (response.records && response.records.length > 0) {
-                console.log('Sample record:', {
-                  id: response.records[0].id,
-                  trackingNumber: response.records[0].params?.trackingNumber,
-                  currentStatus: response.records[0].params?.currentStatus,
-                  user: response.records[0].params?.user
-                });
-              }
-              
-              return response;
-            },
-          },
           edit: { 
             isAccessible: true,
             before: async (request, context) => {
@@ -398,30 +266,6 @@ const adminJs = new AdminJS({
                 if (!order) {
                   throw new Error('Order not found');
                 }
-                
-                // Ensure all required fields exist to prevent toJSON errors
-                const safeOrder = {
-                  _id: order._id,
-                  trackingNumber: order.trackingNumber || '',
-                  currentStatus: order.currentStatus || 'groups_forming',
-                  totalAmount: order.totalAmount || 0,
-                  walletUsed: order.walletUsed || 0,
-                  paystackAmount: order.paystackAmount || 0,
-                  priorityScore: order.priorityScore || 0,
-                  allGroupsSecured: order.allGroupsSecured || false,
-                  fulfillmentChoice: order.fulfillmentChoice || 'pickup',
-                  estimatedFulfillmentTime: order.estimatedFulfillmentTime || new Date(),
-                  user: order.user || null,
-                  paymentHistoryId: order.paymentHistoryId || null,
-                  items: order.items || [],
-                  deliveryAddress: order.deliveryAddress || {},
-                  progress: order.progress || [],
-                  createdAt: order.createdAt || new Date(),
-                  updatedAt: order.updatedAt || new Date(),
-                };
-                
-                // Update the request with safe data
-                request.payload = { ...request.payload, ...safeOrder };
                 
                 return request;
               } catch (error) {
@@ -467,7 +311,6 @@ const adminJs = new AdminJS({
             }
           },
           delete: { isAccessible: false },
-          
         },
       },
     },

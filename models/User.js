@@ -40,6 +40,32 @@ const userSchema = new Schema(
       nextBonusAt: { type: Number, default: 3 }, // Next bonus at X referrals
     },
 
+    // Secret recovery key for password reset
+    secretRecoveryKey: { 
+      type: String, 
+      required: true,
+      validate: {
+        validator: function(v) {
+          return v && v.length >= 8;
+        },
+        message: 'Secret recovery key must be at least 8 characters long'
+      }
+    },
+
+    // Recovery key reset request tracking
+    recoveryKeyResetRequest: {
+      requestedAt: { type: Date },
+      status: { 
+        type: String, 
+        enum: ['pending', 'approved', 'rejected', 'completed'],
+        default: null 
+      },
+      approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      approvedAt: { type: Date },
+      temporaryKey: { type: String }, // Temporary key set by admin
+      expiresAt: { type: Date } // Temporary key expiration
+    },
+
     // Location and delivery info
     defaultAddress: {
       street: String,
@@ -67,6 +93,11 @@ userSchema.pre("save", async function (next) {
     this.password = await bcrypt.hash(this.password, 10)
   }
 
+  // Hash secret recovery key if modified
+  if (this.isModified("secretRecoveryKey")) {
+    this.secretRecoveryKey = await bcrypt.hash(this.secretRecoveryKey, 10)
+  }
+
   // Generate referral code if not set
   if (!this.referralCode) {
     this.referralCode = nanoid(8)
@@ -90,6 +121,11 @@ userSchema.pre("save", async function (next) {
 // Password comparison method
 userSchema.methods.comparePassword = function (plainPassword) {
   return bcrypt.compare(plainPassword, this.password)
+}
+
+// Secret recovery key comparison method
+userSchema.methods.compareSecretRecoveryKey = function (plainRecoveryKey) {
+  return bcrypt.compare(plainRecoveryKey, this.secretRecoveryKey)
 }
 
 // Method to check if user should receive referral bonus
