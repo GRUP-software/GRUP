@@ -14,7 +14,7 @@ COPY . .
 RUN npm install
 
 # Starting our application
-CMD [ "node", "index.js" ]
+CMD [ "npm", "start" ]
 
 # Exposing server port
 EXPOSE 5000
