@@ -244,20 +244,20 @@ app.get('/api/status', (req, res) => {
 });
 
 // Root endpoint
-// app.get('/', (req, res) => {
-//   res.json({
-//     message: '🚀 Grup Backend Server',
-//     version: process.env.npm_package_version || '1.0.0',
-//     status: 'Running',
-//     environment: process.env.NODE_ENV || 'development',
-//     links: {
-//       admin: '/admin',
-//       uploadTool: '/admin-upload.html',
-//       apiStatus: '/api/status',
-//       health: '/health'
-//     }
-//   });
-// });
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Grup',
+    // version: process.env.npm_package_version || '1.0.0',
+    // status: 'Running',
+    // environment: process.env.NODE_ENV || 'development',
+    // links: {
+    //   admin: '/admin',
+    //   uploadTool: '/admin-upload.html',
+    //   apiStatus: '/api/status',
+    //   health: '/health'
+    // }
+  });
+});
 
 // 404 handler for undefined API routes
 app.get('/api/*', (req, res) => {
