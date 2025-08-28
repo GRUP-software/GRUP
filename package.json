@@ -18,7 +18,22 @@
     "test:notifications": "node test-notification-system.mjs",
     "test:groupbuy-notifications": "node test-groupbuy-notification.mjs",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "deploy:check": "bash scripts/deploy-production.sh",
+    "deploy:production": "NODE_ENV=production npm start",
+    "health:check": "curl -f http://localhost:$PORT/health || exit 1",
+    "db:indexes": "node -e \"import('./config/database.js').then(({connectDatabase, createIndexes}) => connectDatabase().then(createIndexes).then(() => process.exit(0)).catch(e => {console.error(e); process.exit(1)}))\"",
+    "db:test": "node -e \"import('./config/database.js').then(({connectDatabase}) => connectDatabase().then(() => {console.log('✅ Database connection successful'); process.exit(0)}).catch(e => {console.error('❌ Database connection failed:', e.message); process.exit(1)}))\"",
+    "docker:build": "docker build -t grup-backend .",
+    "docker:run": "docker run -p 8080:8080 --env-file .env.production grup-backend",
+    "docker:deploy": "bash scripts/deploy-docker.sh",
+    "docker:logs": "docker-compose logs -f",
+    "docker:status": "docker-compose ps",
+    "docker:restart": "docker-compose restart",
+    "docker:stop": "docker-compose down",
+    "docker:clean": "docker-compose down --rmi all --volumes --remove-orphans",
+    "docker:backup": "docker-compose exec mongo mongodump --out /data/backup/$(date +%Y%m%d)",
+    "docker:backup:copy": "docker cp grup-mongo:/data/backup ./backups/"
   },
   "dependencies": {
     "@adminjs/express": "^6.1.0",
@@ -57,7 +72,8 @@
     "nodemon": "^3.1.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "keywords": [
     "group-buying",

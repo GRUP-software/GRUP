@@ -10,8 +10,8 @@ const config = {
   // Server
   PORT: process.env.PORT || 5000,
   
-  // Database
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/grup',
+  // Database - Use MONGODB_URI consistently
+  MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/grup',
   
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
@@ -56,7 +56,8 @@ const environmentConfigs = {
     CLOUDINARY: {
       ...config.CLOUDINARY,
       FOLDER: `${config.CLOUDINARY.FOLDER}/development`
-    }
+    },
+    LOG_LEVEL: 'debug'
   },
   
   testing: {
@@ -64,7 +65,8 @@ const environmentConfigs = {
     CLOUDINARY: {
       ...config.CLOUDINARY,
       FOLDER: `${config.CLOUDINARY.FOLDER}/testing`
-    }
+    },
+    LOG_LEVEL: 'warn'
   },
   
   staging: {
@@ -72,7 +74,8 @@ const environmentConfigs = {
     CLOUDINARY: {
       ...config.CLOUDINARY,
       FOLDER: `${config.CLOUDINARY.FOLDER}/staging`
-    }
+    },
+    LOG_LEVEL: 'info'
   },
   
   production: {
@@ -80,7 +83,13 @@ const environmentConfigs = {
     CLOUDINARY: {
       ...config.CLOUDINARY,
       FOLDER: `${config.CLOUDINARY.FOLDER}/production`
-    }
+    },
+    LOG_LEVEL: 'error',
+    // Production-specific overrides
+    PORT: process.env.PORT || 8080,
+    JWT_SECRET: process.env.JWT_SECRET || (() => {
+      throw new Error('JWT_SECRET must be set in production');
+    })()
   }
 };
 

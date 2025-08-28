@@ -207,3 +207,4 @@ For issues or questions about the Social Proof feature:
 ---
 
 **Note**: This feature is designed to be motivational and non-intrusive. If users find it distracting, consider implementing an opt-out mechanism or reducing the frequency of popups.
+

@@ -3,14 +3,32 @@ import logger from "../utils/logger.js"
 
 export const connectDatabase = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP', {
-      // Removed deprecated options: useNewUrlParser and useUnifiedTopology
-      maxPoolSize: 10,
+    // Use MONGODB_URI consistently, fallback to MONGO_URI for backward compatibility
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP';
+    
+    // Connection options based on environment
+    const connectionOptions = {
+      // Production-ready connection options
+      maxPoolSize: process.env.NODE_ENV === 'production' ? 50 : 10,
+      minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-    })
+    };
+
+    // Add SSL options only for non-Docker MongoDB (like MongoDB Atlas)
+    if (process.env.NODE_ENV === 'production' && !mongoUri.includes('mongo:') && !mongoUri.includes('localhost')) {
+      connectionOptions.ssl = true;
+      connectionOptions.sslValidate = true;
+      connectionOptions.retryWrites = true;
+      connectionOptions.w = 'majority';
+    }
+
+    const conn = await mongoose.connect(mongoUri, connectionOptions);
 
     logger.info(`MongoDB Connected: ${conn.connection.host}`)
+    logger.info(`Database: ${conn.connection.name}`)
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
+    logger.info(`Connection Type: ${mongoUri.includes('mongo:') ? 'Docker' : 'External'}`)
     return conn
   } catch (error) {
     logger.error("Database connection error:", error)

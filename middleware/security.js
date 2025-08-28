@@ -32,13 +32,17 @@ export const corsOptions = {
       process.env.FRONTEND_URL,
     ].filter(Boolean)
 
-
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true)
+    // Production: Only allow specific origins
+    if (process.env.NODE_ENV === "production") {
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        console.warn(`Blocked request from unauthorized origin: ${origin}`)
+        callback(new Error('Not allowed by CORS'))
+      }
     } else {
-
-      callback(null, true) // Allow all for now to fix admin panel
+      // Development/Staging: Allow all origins
+      callback(null, true)
     }
   },
   credentials: true,
