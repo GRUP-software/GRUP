@@ -363,13 +363,14 @@ const startServer = async () => {
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        logger.error(`Port ${PORT} is already in use. Trying port ${PORT + 1}...`);
-        server.listen(PORT + 1, () => {
-          logger.info(`🚀 Grup Backend Server running at: http://localhost:${PORT + 1}`);
-          logger.info(`📊 Admin Panel: http://localhost:${PORT + 1}/admin`);
-          logger.info(`🖼️  Upload Tool: http://localhost:${PORT + 1}/admin-upload.html`);
-          logger.info(`📡 API Status: http://localhost:${PORT + 1}/api/status`);
-          logger.info(`🏥 Health Check: http://localhost:${PORT + 1}/health`);
+        const nextPort = parseInt(PORT) + 1;
+        logger.error(`Port ${PORT} is already in use. Trying port ${nextPort}...`);
+        server.listen(nextPort, () => {
+          logger.info(`🚀 Grup Backend Server running at: http://localhost:${nextPort}`);
+          logger.info(`📊 Admin Panel: http://localhost:${nextPort}/admin`);
+          logger.info(`🖼️  Upload Tool: http://localhost:${nextPort}/admin-upload.html`);
+          logger.info(`📡 API Status: http://localhost:${nextPort}/api/status`);
+          logger.info(`🏥 Health Check: http://localhost:${nextPort}/health`);
         });
       } else {
         logger.error('Failed to start server:', err);

@@ -438,17 +438,42 @@ const adminJs = new AdminJS({
       resource: UploadedImage,
       options: {
         properties: {
+          filename: {
+            isVisible: { list: true, filter: true, show: true, edit: false },
+          },
+          originalName: {
+            isVisible: { list: true, filter: true, show: true, edit: false },
+          },
           url: {
             isVisible: { list: true, filter: false, show: true, edit: false },
           },
-          publicId: {
+          size: {
+            type: 'number',
+            isVisible: { list: true, filter: false, show: true, edit: false },
+          },
+          mimetype: {
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
           uploadedBy: {
-            reference: 'User',
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
-          uploadedAt: {
+          isUsed: {
+            type: 'boolean',
+            isVisible: { list: true, filter: true, show: true, edit: false },
+          },
+          usedInProducts: {
+            reference: 'Product',
+            isArray: true,
+            isVisible: { list: false, filter: false, show: true, edit: false },
+          },
+          tags: {
+            isArray: true,
+            isVisible: { list: false, filter: true, show: true, edit: false },
+          },
+          description: {
+            isVisible: { list: false, filter: false, show: true, edit: false },
+          },
+          createdAt: {
             type: 'datetime',
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
