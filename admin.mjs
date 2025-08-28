@@ -437,6 +437,10 @@ const adminJs = new AdminJS({
     {
       resource: UploadedImage,
       options: {
+        navigation: {
+          name: 'Media',
+          icon: 'Image',
+        },
         properties: {
           filename: {
             isVisible: { list: true, filter: true, show: true, edit: false },
@@ -481,8 +485,13 @@ const adminJs = new AdminJS({
         actions: {
           edit: { isAccessible: false },
           new: { isAccessible: false },
+          delete: { isAccessible: false },
         },
-        perPage: 200,
+        perPage: 50,
+        sort: {
+          sortBy: 'createdAt',
+          direction: 'desc',
+        },
       },
     },
   ],
