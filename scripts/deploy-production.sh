@@ -59,10 +59,9 @@ if (!mongoUri) {
 mongoose.connect(mongoUri, {
     maxPoolSize: 50,
     minPoolSize: 5,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
     ssl: true,
-    sslValidate: true,
     retryWrites: true,
     w: 'majority'
 })

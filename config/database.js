@@ -4,32 +4,45 @@ import logger from "../utils/logger.js"
 export const connectDatabase = async () => {
   try {
     // Use MONGODB_URI consistently, fallback to MONGO_URI for backward compatibility
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP';
+    let mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP';
     
     // Log connection attempt (without sensitive info)
     logger.info(`Attempting to connect to MongoDB...`)
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
     logger.info(`Connection Type: ${mongoUri.includes('localhost') ? 'Local' : 'External'}`)
     
-    // Connection options based on environment
+    // Clean up the MongoDB URI - remove any deprecated options from the connection string
+    if (mongoUri.includes('sslValidate')) {
+      logger.warn('Removing deprecated sslValidate from connection string')
+      mongoUri = mongoUri.replace(/[?&]sslValidate=[^&]*/g, '')
+    }
+    
+    // Base connection options
     const connectionOptions = {
-      // Development-friendly connection options
       maxPoolSize: process.env.NODE_ENV === 'production' ? 50 : 10,
       minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
-      serverSelectionTimeoutMS: 30000, // Increased timeout for better reliability
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
-      bufferCommands: false, // Disable mongoose buffering
-      bufferMaxEntries: 0, // Disable mongoose buffering
+      bufferCommands: false,
+      bufferMaxEntries: 0,
     };
 
-    // Add SSL options only for production MongoDB Atlas
+    // Add production-specific options only for external MongoDB (not localhost)
     if (process.env.NODE_ENV === 'production' && !mongoUri.includes('localhost')) {
-      connectionOptions.ssl = true;
-      connectionOptions.retryWrites = true;
-      connectionOptions.w = 'majority';
-      logger.info('Using SSL connection for production MongoDB Atlas')
+      // Modern MongoDB connection options for external servers
+      Object.assign(connectionOptions, {
+        ssl: true,
+        retryWrites: true,
+        w: 'majority',
+      });
+      logger.info('Using SSL connection for production MongoDB')
+    } else {
+      // Local MongoDB connection options
+      logger.info('Using local MongoDB connection')
     }
+
+    logger.info('Connection options:', JSON.stringify(connectionOptions, null, 2))
 
     const conn = await mongoose.connect(mongoUri, connectionOptions);
 
@@ -44,6 +57,13 @@ export const connectDatabase = async () => {
       message: error.message,
       code: error.code
     })
+    
+    // Additional debugging info
+    if (error.message.includes('sslvalidate')) {
+      logger.error("SSL validation error detected. This might be due to deprecated connection options.")
+      logger.error("Please check your MONGODB_URI environment variable for deprecated options.")
+    }
+    
     process.exit(1)
   }
 }
