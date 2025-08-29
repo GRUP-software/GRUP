@@ -25,7 +25,6 @@ export const connectDatabase = async () => {
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
       bufferCommands: false,
-      bufferMaxEntries: 0,
     };
 
     // Add production-specific options only for external MongoDB (not localhost)
