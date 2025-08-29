@@ -92,7 +92,8 @@ export const createIndexes = async () => {
     // User indexes
     if (collections.users) {
       await collections.users.createIndex({ email: 1 }, { unique: true })
-      await collections.users.createIndex({ phone: 1 })
+      // Fix: Match the existing index exactly with unique and sparse options
+      await collections.users.createIndex({ phone: 1 }, { unique: true, sparse: true })
     }
 
     // Order indexes

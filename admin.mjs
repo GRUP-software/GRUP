@@ -5,6 +5,8 @@ import * as AdminJSMongoose from '@adminjs/mongoose'
 import { ComponentLoader } from 'adminjs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import session from 'express-session'
+import MongoStore from 'connect-mongo'
 
 // Fix __dirname in ES module context
 const __filename = fileURLToPath(import.meta.url)
@@ -521,8 +523,22 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
   },
   null,
   {
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP',
+      collectionName: 'adminjs_sessions',
+      ttl: 24 * 60 * 60, // 1 day
+      autoRemove: 'native',
+      touchAfter: 24 * 3600,
+    }),
+    secret: process.env.SESSION_SECRET || 'adminjs-session-secret-change-this',
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+    }
   }
 )
 

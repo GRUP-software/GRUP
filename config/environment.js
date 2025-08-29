@@ -16,6 +16,9 @@ const config = {
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
   
+  // Session
+  SESSION_SECRET: process.env.SESSION_SECRET || 'your-session-secret-key-change-this-in-production',
+  
   // Frontend URL
   FRONTEND_URL: process.env.FRONTEND_URL || 'https://grupclient.netlify.app',
   

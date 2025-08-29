@@ -8,6 +8,8 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import compression from 'compression';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 
 // Load environment variables first
 dotenv.config();
@@ -97,7 +99,27 @@ app.use('/admin', (req, res, next) => {
   next();
 });
 
-// Security middleware - apply after CORS
+// Session configuration with MongoDB store
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP',
+    collectionName: 'sessions',
+    ttl: 24 * 60 * 60, // 1 day
+    autoRemove: 'native', // Use MongoDB's TTL index
+    touchAfter: 24 * 3600, // Only update session once per day
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+  }
+}));
+
+// Security middleware - apply after CORS and sessions
 app.use(securityMiddleware);
 
 // __dirname support for ES modules
