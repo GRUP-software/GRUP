@@ -107,14 +107,14 @@ app.use(session({
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP',
     collectionName: 'sessions',
-    ttl: 24 * 60 * 60, // 1 day
+    ttl: 14 * 24 * 60 * 60, // 14 days
     autoRemove: 'native', // Use MongoDB's TTL index
     touchAfter: 24 * 3600, // Only update session once per day
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
   }
 }));

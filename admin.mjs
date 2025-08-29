@@ -526,7 +526,7 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP',
       collectionName: 'adminjs_sessions',
-      ttl: 24 * 60 * 60, // 1 day
+      ttl: 14 * 24 * 60 * 60, // 14 days
       autoRemove: 'native',
       touchAfter: 24 * 3600,
     }),
@@ -536,7 +536,7 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
     }
   }
