@@ -8,15 +8,16 @@ export const connectDatabase = async () => {
     
     // Connection options based on environment
     const connectionOptions = {
-      // Production-ready connection options
+      // Development-friendly connection options
       maxPoolSize: process.env.NODE_ENV === 'production' ? 50 : 10,
       minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000, // Increased for local development
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
     };
 
-    // Add SSL options only for non-Docker MongoDB (like MongoDB Atlas)
-    if (process.env.NODE_ENV === 'production' && !mongoUri.includes('mongo:') && !mongoUri.includes('localhost')) {
+    // Add SSL options only for production MongoDB Atlas
+    if (process.env.NODE_ENV === 'production' && !mongoUri.includes('localhost')) {
       connectionOptions.ssl = true;
       connectionOptions.sslValidate = true;
       connectionOptions.retryWrites = true;
@@ -28,7 +29,7 @@ export const connectDatabase = async () => {
     logger.info(`MongoDB Connected: ${conn.connection.host}`)
     logger.info(`Database: ${conn.connection.name}`)
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
-    logger.info(`Connection Type: ${mongoUri.includes('mongo:') ? 'Docker' : 'External'}`)
+    logger.info(`Connection Type: ${mongoUri.includes('localhost') ? 'Local' : 'External'}`)
     return conn
   } catch (error) {
     logger.error("Database connection error:", error)

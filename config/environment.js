@@ -11,7 +11,7 @@ const config = {
   PORT: process.env.PORT || 5000,
   
   // Database - Use MONGODB_URI consistently
-  MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/grup',
+  MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP',
   
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',

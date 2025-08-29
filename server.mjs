@@ -78,7 +78,15 @@ app.options('*', cors(corsOptions));
 // Special CORS handling for admin routes
 app.use('/admin', (req, res, next) => {
   // Set CORS headers explicitly for admin routes
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || 'http://localhost:5000';
+  
+  // In development, allow all origins including null
+  if (process.env.NODE_ENV === 'development') {
+    res.header('Access-Control-Allow-Origin', '*');
+  } else {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.header('Access-Control-Allow-Credentials', 'true');

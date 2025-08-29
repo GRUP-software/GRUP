@@ -6,29 +6,41 @@ import hpp from "hpp"
 // CORS configuration
 export const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true)
+    // Always allow requests with no origin (direct browser access, file:// URLs, etc.)
+    if (!origin) {
+      console.log('Allowing request with no origin (direct access)');
+      return callback(null, true);
+    }
 
     // Allow all origins in development
     if (process.env.NODE_ENV === "development") {
-      return callback(null, true)
+      console.log(`Development mode: allowing origin: ${origin}`);
+      return callback(null, true);
     }
 
     const allowedOrigins = [
       process.env.FRONTEND_URL,
-    ].filter(Boolean)
+      'http://localhost:5000',
+      'http://localhost:3000',
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:3000',
+      'http://localhost:8080',
+      'http://127.0.0.1:8080',
+    ].filter(Boolean);
 
     // Production: Only allow specific origins
     if (process.env.NODE_ENV === "production") {
       if (allowedOrigins.includes(origin)) {
-        callback(null, true)
+        console.log(`Production: allowing origin: ${origin}`);
+        callback(null, true);
       } else {
-        console.warn(`Blocked request from unauthorized origin: ${origin}`)
-        callback(new Error('Not allowed by CORS'))
+        console.warn(`Blocked request from unauthorized origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
       }
     } else {
       // Development/Staging: Allow all origins
-      callback(null, true)
+      console.log(`Non-production: allowing origin: ${origin}`);
+      callback(null, true);
     }
   },
   credentials: true,
