@@ -26,7 +26,8 @@
     "db:test": "node -e \"import('./config/database.js').then(({connectDatabase}) => connectDatabase().then(() => {console.log('✅ Database connection successful'); process.exit(0)}).catch(e => {console.error('❌ Database connection failed:', e.message); process.exit(1)}))\"",
     "db:check-indexes": "node scripts/check-indexes.js check",
     "db:fix-phone-index": "node scripts/check-indexes.js fix",
-    "db:setup": "node scripts/setup-db-connection.js"
+    "db:setup": "node scripts/setup-db-connection.js",
+    "test:cors": "node scripts/test-cors.js"
   },
   "dependencies": {
     "@adminjs/express": "^6.1.0",

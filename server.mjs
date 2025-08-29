@@ -71,33 +71,11 @@ app.set('trust proxy', 1);
 // Compression middleware
 app.use(compression());
 
-// CORS middleware - Apply BEFORE security middleware for admin panel
+// CORS middleware - Apply BEFORE security middleware and routes
 app.use(cors(corsOptions));
 
 // Add explicit OPTIONS handling for preflight requests
 app.options('*', cors(corsOptions));
-
-// Special CORS handling for admin routes
-app.use('/admin', (req, res, next) => {
-  // Set CORS headers explicitly for admin routes
-  const origin = req.headers.origin || 'http://localhost:5000';
-  
-  // In development, allow all origins including null
-  if (process.env.NODE_ENV === 'development') {
-    res.header('Access-Control-Allow-Origin', '*');
-  } else {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // Session configuration with MongoDB store
 app.use(session({
