@@ -6,33 +6,44 @@ export const connectDatabase = async () => {
     // Use MONGODB_URI consistently, fallback to MONGO_URI for backward compatibility
     const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP';
     
+    // Log connection attempt (without sensitive info)
+    logger.info(`Attempting to connect to MongoDB...`)
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
+    logger.info(`Connection Type: ${mongoUri.includes('localhost') ? 'Local' : 'External'}`)
+    
     // Connection options based on environment
     const connectionOptions = {
       // Development-friendly connection options
       maxPoolSize: process.env.NODE_ENV === 'production' ? 50 : 10,
       minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
-      serverSelectionTimeoutMS: 10000, // Increased for local development
+      serverSelectionTimeoutMS: 30000, // Increased timeout for better reliability
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
+      connectTimeoutMS: 30000,
+      bufferCommands: false, // Disable mongoose buffering
+      bufferMaxEntries: 0, // Disable mongoose buffering
     };
 
     // Add SSL options only for production MongoDB Atlas
     if (process.env.NODE_ENV === 'production' && !mongoUri.includes('localhost')) {
       connectionOptions.ssl = true;
-      connectionOptions.sslValidate = true;
       connectionOptions.retryWrites = true;
       connectionOptions.w = 'majority';
+      logger.info('Using SSL connection for production MongoDB Atlas')
     }
 
     const conn = await mongoose.connect(mongoUri, connectionOptions);
 
     logger.info(`MongoDB Connected: ${conn.connection.host}`)
     logger.info(`Database: ${conn.connection.name}`)
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
-    logger.info(`Connection Type: ${mongoUri.includes('localhost') ? 'Local' : 'External'}`)
+    logger.info(`Connection successful!`)
     return conn
   } catch (error) {
     logger.error("Database connection error:", error)
+    logger.error("Error details:", {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    })
     process.exit(1)
   }
 }
