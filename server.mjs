@@ -358,27 +358,29 @@ const startServer = async () => {
     });
 
     // Start server with dynamic port selection
-    const PORT = process.env.PORT || 5001;
-    server.listen(PORT, () => {
-      logger.info(`🚀 Grup Backend Server running at: http://localhost:${PORT}`);
-      logger.info(`📊 Admin Panel: http://localhost:${PORT}/admin`);
-      logger.info(`🖼️  Upload Tool: http://localhost:${PORT}/admin-upload.html`);
-      logger.info(`📡 API Status: http://localhost:${PORT}/api/status`);
-      logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
-      logger.info(`🔗 Webhook: http://localhost:${PORT}/api/webhook/paystack`);
-      logger.info(`👥 Group Buy: http://localhost:${PORT}/api/groupbuy`);
-      logger.info(`🔍 Manual Review: http://localhost:${PORT}/api/groupbuy/manual-review`);
+    const PORT = process.env.PORT || 3000;
+    const HOST = "0.0.0.0";
+    
+    server.listen(PORT, HOST, () => {
+      logger.info(`🚀 Grup Backend Server running at http://${HOST}:${PORT}`);
+      logger.info(`📊 Admin Panel: http://${HOST}:${PORT}/admin`);
+      logger.info(`🖼️  Upload Tool: http://${HOST}:${PORT}/admin-upload.html`);
+      logger.info(`📡 API Status: http://${HOST}:${PORT}/api/status`);
+      logger.info(`🏥 Health Check: http://${HOST}:${PORT}/health`);
+      logger.info(`🔗 Webhook: http://${HOST}:${PORT}/api/webhook/paystack`);
+      logger.info(`👥 Group Buy: http://${HOST}:${PORT}/api/groupbuy`);
+      logger.info(`🔍 Manual Review: http://${HOST}:${PORT}/api/groupbuy/manual-review`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         const nextPort = parseInt(PORT) + 1;
         logger.error(`Port ${PORT} is already in use. Trying port ${nextPort}...`);
-        server.listen(nextPort, () => {
-          logger.info(`🚀 Grup Backend Server running at: http://localhost:${nextPort}`);
-          logger.info(`📊 Admin Panel: http://localhost:${nextPort}/admin`);
-          logger.info(`🖼️  Upload Tool: http://localhost:${nextPort}/admin-upload.html`);
-          logger.info(`📡 API Status: http://localhost:${nextPort}/api/status`);
-          logger.info(`🏥 Health Check: http://localhost:${nextPort}/health`);
+        server.listen(nextPort, HOST, () => {
+          logger.info(`🚀 Grup Backend Server running at http://${HOST}:${nextPort}`);
+          logger.info(`📊 Admin Panel: http://${HOST}:${nextPort}/admin`);
+          logger.info(`🖼️  Upload Tool: http://${HOST}:${nextPort}/admin-upload.html`);
+          logger.info(`📡 API Status: http://${HOST}:${nextPort}/api/status`);
+          logger.info(`🏥 Health Check: http://${HOST}:${nextPort}/health`);
         });
       } else {
         logger.error('Failed to start server:', err);
