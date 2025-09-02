@@ -101,7 +101,7 @@ export const handleFlutterwaveWebhook = async (req, res) => {
     
     // Verify Flutterwave signature
     const hash = crypto
-      .createHmac("sha512", config.FLUTTERWAVE_SECRET_KEY)
+      .createHmac("sha512", config.FLUTTERWAVE.SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest("hex")
 
