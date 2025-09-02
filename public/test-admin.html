@@ -1,177 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Panel Test</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .test-section {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .success { color: green; }
-        .error { color: red; }
-        button {
-            padding: 10px 15px;
-            margin: 5px;
-            cursor: pointer;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .success {
+        color: green;
+      }
+      .error {
+        color: red;
+      }
+      button {
+        padding: 10px 15px;
+        margin: 5px;
+        cursor: pointer;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>🔧 Admin Panel Test</h1>
-    
+
     <div class="test-section">
-        <h2>1. Test Backend Connection</h2>
-        <button onclick="testConnection()">Test Connection</button>
-        <div id="connectionResult"></div>
+      <h2>1. Test Backend Connection</h2>
+      <button onclick="testConnection()">Test Connection</button>
+      <div id="connectionResult"></div>
     </div>
-    
+
     <div class="test-section">
-        <h2>2. Test Admin Login</h2>
-        <button onclick="testLogin()">Test Login</button>
-        <div id="loginResult"></div>
+      <h2>2. Test Admin Login</h2>
+      <button onclick="testLogin()">Test Login</button>
+      <div id="loginResult"></div>
     </div>
-    
+
     <div class="test-section">
-        <h2>3. Test Order Search</h2>
-        <button onclick="testOrderSearch()">Test Order Search</button>
-        <div id="searchResult"></div>
+      <h2>3. Test Order Search</h2>
+      <button onclick="testOrderSearch()">Test Order Search</button>
+      <div id="searchResult"></div>
     </div>
-    
+
     <div class="test-section">
-        <h2>4. Test Tracking Suggestions</h2>
-        <button onclick="testSuggestions()">Test Suggestions</button>
-        <div id="suggestionsResult"></div>
+      <h2>4. Test Tracking Suggestions</h2>
+      <button onclick="testSuggestions()">Test Suggestions</button>
+      <div id="suggestionsResult"></div>
     </div>
-    
+
     <div class="test-section">
-        <h2>5. Open Admin Panel</h2>
-        <a href="admin-order-manager.html" target="_blank">
-            <button>Open Admin Order Manager</button>
-        </a>
+      <h2>5. Open Admin Panel</h2>
+      <a href="admin-order-manager.html" target="_blank">
+        <button>Open Admin Order Manager</button>
+      </a>
     </div>
 
     <script>
-        let testToken = '';
-        
-        async function testConnection() {
-            const resultDiv = document.getElementById('connectionResult');
-            resultDiv.innerHTML = 'Testing connection...';
-            
-            try {
-                const response = await fetch('http://localhost:5000/api/admin/orders/test-search?trackingNumber=test');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    resultDiv.innerHTML = '<span class="success">✅ Backend connection successful!</span>';
-                } else {
-                    resultDiv.innerHTML = `<span class="error">❌ Connection failed: ${data.message}</span>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error">❌ Connection error: ${error.message}</span>`;
-            }
+      let testToken = "";
+
+      async function testConnection() {
+        const resultDiv = document.getElementById("connectionResult");
+        resultDiv.innerHTML = "Testing connection...";
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/admin/orders/test-search?trackingNumber=test",
+          );
+          const data = await response.json();
+
+          if (response.ok) {
+            resultDiv.innerHTML =
+              '<span class="success">✅ Backend connection successful!</span>';
+          } else {
+            resultDiv.innerHTML = `<span class="error">❌ Connection failed: ${data.message}</span>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<span class="error">❌ Connection error: ${error.message}</span>`;
         }
-        
-        async function testLogin() {
-            const resultDiv = document.getElementById('loginResult');
-            resultDiv.innerHTML = 'Testing login...';
-            
-            try {
-                const response = await fetch('http://localhost:5000/api/admin/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: 'adiazi@grup.com',
-                        password: '12345678'
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    testToken = data.token;
-                    resultDiv.innerHTML = '<span class="success">✅ Login successful! Token received.</span>';
-                } else {
-                    resultDiv.innerHTML = `<span class="error">❌ Login failed: ${data.message}</span>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error">❌ Login error: ${error.message}</span>`;
-            }
+      }
+
+      async function testLogin() {
+        const resultDiv = document.getElementById("loginResult");
+        resultDiv.innerHTML = "Testing login...";
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/admin/login",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: "adiazi@grup.com",
+                password: "12345678",
+              }),
+            },
+          );
+
+          const data = await response.json();
+
+          if (data.success) {
+            testToken = data.token;
+            resultDiv.innerHTML =
+              '<span class="success">✅ Login successful! Token received.</span>';
+          } else {
+            resultDiv.innerHTML = `<span class="error">❌ Login failed: ${data.message}</span>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<span class="error">❌ Login error: ${error.message}</span>`;
         }
-        
-        async function testOrderSearch() {
-            const resultDiv = document.getElementById('searchResult');
-            resultDiv.innerHTML = 'Testing order search...';
-            
-            if (!testToken) {
-                resultDiv.innerHTML = '<span class="error">❌ Please login first!</span>';
-                return;
-            }
-            
-            try {
-                const response = await fetch('http://localhost:5000/api/admin/orders/search?limit=5', {
-                    headers: {
-                        'Authorization': `Bearer ${testToken}`
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    resultDiv.innerHTML = `<span class="success">✅ Order search successful! Found ${data.orders.length} orders.</span>`;
-                } else {
-                    resultDiv.innerHTML = `<span class="error">❌ Search failed: ${data.message}</span>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error">❌ Search error: ${error.message}</span>`;
-            }
+      }
+
+      async function testOrderSearch() {
+        const resultDiv = document.getElementById("searchResult");
+        resultDiv.innerHTML = "Testing order search...";
+
+        if (!testToken) {
+          resultDiv.innerHTML =
+            '<span class="error">❌ Please login first!</span>';
+          return;
         }
-        
-        async function testSuggestions() {
-            const resultDiv = document.getElementById('suggestionsResult');
-            resultDiv.innerHTML = 'Testing suggestions...';
-            
-            if (!testToken) {
-                resultDiv.innerHTML = '<span class="error">❌ Please login first!</span>';
-                return;
-            }
-            
-            try {
-                const response = await fetch('http://localhost:5000/api/admin/orders/suggestions?trackingNumber=GRP', {
-                    headers: {
-                        'Authorization': `Bearer ${testToken}`
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    resultDiv.innerHTML = `<span class="success">✅ Suggestions working! Found ${data.suggestions.length} suggestions.</span>`;
-                } else {
-                    resultDiv.innerHTML = `<span class="error">❌ Suggestions failed: ${data.message}</span>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error">❌ Suggestions error: ${error.message}</span>`;
-            }
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/admin/orders/search?limit=5",
+            {
+              headers: {
+                Authorization: `Bearer ${testToken}`,
+              },
+            },
+          );
+
+          const data = await response.json();
+
+          if (data.success) {
+            resultDiv.innerHTML = `<span class="success">✅ Order search successful! Found ${data.orders.length} orders.</span>`;
+          } else {
+            resultDiv.innerHTML = `<span class="error">❌ Search failed: ${data.message}</span>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<span class="error">❌ Search error: ${error.message}</span>`;
         }
-        
-        // Auto-test connection on page load
-        window.onload = function() {
-            testConnection();
-        };
+      }
+
+      async function testSuggestions() {
+        const resultDiv = document.getElementById("suggestionsResult");
+        resultDiv.innerHTML = "Testing suggestions...";
+
+        if (!testToken) {
+          resultDiv.innerHTML =
+            '<span class="error">❌ Please login first!</span>';
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/admin/orders/suggestions?trackingNumber=GRP",
+            {
+              headers: {
+                Authorization: `Bearer ${testToken}`,
+              },
+            },
+          );
+
+          const data = await response.json();
+
+          if (data.success) {
+            resultDiv.innerHTML = `<span class="success">✅ Suggestions working! Found ${data.suggestions.length} suggestions.</span>`;
+          } else {
+            resultDiv.innerHTML = `<span class="error">❌ Suggestions failed: ${data.message}</span>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<span class="error">❌ Suggestions error: ${error.message}</span>`;
+        }
+      }
+
+      // Auto-test connection on page load
+      window.onload = function () {
+        testConnection();
+      };
     </script>
-</body>
+  </body>
 </html>
-
-

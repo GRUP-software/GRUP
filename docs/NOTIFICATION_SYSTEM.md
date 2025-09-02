@@ -7,18 +7,21 @@ The Grup notification system provides comprehensive in-app and email notificatio
 ## Features
 
 ### ✅ In-App Notifications
+
 - Real-time notifications via WebSocket
 - Notification center with read/unread status
 - Categorized notifications (order, group_buy, payment, wallet, etc.)
 - Action buttons for quick navigation
 
 ### ✅ Email Notifications
+
 - Beautiful HTML email templates
 - Automatic email sending for all admin actions
 - Configurable email service (SMTP)
 - Fallback logging when email service is not configured
 
 ### ✅ Admin Action Notifications
+
 - Order status updates
 - Group buy status changes
 - Order cancellations
@@ -71,26 +74,31 @@ EMAIL_PORT=587
 ## Email Templates
 
 ### Order Status Update
+
 - **Template**: `order_status_update`
 - **Trigger**: Admin updates order status
 - **Content**: Order details, status, tracking number, action buttons
 
 ### Group Buy Status Update
+
 - **Template**: `group_buy_status_update`
 - **Trigger**: Admin updates group buy status
 - **Content**: Product details, status change, fulfillment information
 
 ### Payment Confirmation
+
 - **Template**: `payment_confirmation`
 - **Trigger**: Payment processing
 - **Content**: Payment details, order information, tracking link
 
 ### Refund Notification
+
 - **Template**: `refund_notification`
 - **Trigger**: Refund processing
 - **Content**: Refund amount, reason, wallet update
 
 ### Admin Action Notification
+
 - **Template**: `admin_action_notification`
 - **Trigger**: Any admin action affecting user
 - **Content**: Action details, admin name, timestamp, relevant data
@@ -100,6 +108,7 @@ EMAIL_PORT=587
 ### Order Management
 
 #### 1. Update Order Status
+
 ```javascript
 // Endpoint: PUT /api/orders/admin/:trackingNumber/status
 {
@@ -110,6 +119,7 @@ EMAIL_PORT=587
 ```
 
 #### 2. Cancel Order
+
 ```javascript
 // Endpoint: POST /api/admin/orders/:trackingNumber/cancel
 {
@@ -118,6 +128,7 @@ EMAIL_PORT=587
 ```
 
 #### 3. Process Refund
+
 ```javascript
 // Endpoint: POST /api/admin/orders/:trackingNumber/refund
 {
@@ -127,6 +138,7 @@ EMAIL_PORT=587
 ```
 
 #### 4. Schedule Delivery
+
 ```javascript
 // Endpoint: POST /api/admin/orders/:trackingNumber/schedule-delivery
 {
@@ -136,6 +148,7 @@ EMAIL_PORT=587
 ```
 
 #### 5. Mark Ready for Pickup
+
 ```javascript
 // Endpoint: POST /api/admin/orders/:trackingNumber/ready-pickup
 {
@@ -146,6 +159,7 @@ EMAIL_PORT=587
 ### Group Buy Management
 
 #### 1. Update Group Buy Status
+
 ```javascript
 // Endpoint: PUT /api/groupbuy/admin/:id/status
 {
@@ -171,20 +185,16 @@ await notificationService.createNotification({
   data: { orderId, status },
   priority: "high",
   actionUrl: "/orders/123",
-  actionText: "View Order"
+  actionText: "View Order",
 });
 
 // Send email notification
-await notificationService.sendEmailNotification(
-  userId,
-  "order_status_update",
-  {
-    orderId: "123",
-    status: "processing",
-    trackingNumber: "TRK123",
-    message: "Order is being processed"
-  }
-);
+await notificationService.sendEmailNotification(userId, "order_status_update", {
+  orderId: "123",
+  status: "processing",
+  trackingNumber: "TRK123",
+  message: "Order is being processed",
+});
 ```
 
 ### Admin Action Methods
@@ -196,7 +206,7 @@ await notificationService.notifyAdminOrderStatusUpdate(
   orderData,
   status,
   message,
-  adminName
+  adminName,
 );
 
 // Group buy status update by admin
@@ -207,7 +217,7 @@ await notificationService.notifyAdminGroupBuyStatusUpdate(
   newStatus,
   oldStatus,
   adminName,
-  fulfillmentData
+  fulfillmentData,
 );
 
 // Order cancellation by admin
@@ -215,7 +225,7 @@ await notificationService.notifyAdminOrderCancellation(
   userId,
   orderData,
   reason,
-  adminName
+  adminName,
 );
 
 // Refund processed by admin
@@ -224,7 +234,7 @@ await notificationService.notifyAdminRefundProcessed(
   amount,
   reason,
   orderId,
-  adminName
+  adminName,
 );
 
 // Delivery scheduled by admin
@@ -232,7 +242,7 @@ await notificationService.notifyAdminDeliveryScheduled(
   userId,
   orderData,
   deliveryInfo,
-  adminName
+  adminName,
 );
 
 // Order ready for pickup
@@ -240,7 +250,7 @@ await notificationService.notifyAdminPickupReady(
   userId,
   orderData,
   pickupLocation,
-  adminName
+  adminName,
 );
 ```
 
@@ -251,14 +261,10 @@ await notificationService.notifyAdminPickupReady(
 The frontend uses a notification context to manage notifications:
 
 ```javascript
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotification } from "../contexts/NotificationContext";
 
-const { 
-  notifications, 
-  unreadCount, 
-  markAsRead, 
-  markAllAsRead 
-} = useNotification();
+const { notifications, unreadCount, markAsRead, markAllAsRead } =
+  useNotification();
 ```
 
 ### WebSocket Events
@@ -267,17 +273,17 @@ The system emits these WebSocket events:
 
 ```javascript
 // New notification
-socket.on('notification:new', (data) => {
+socket.on("notification:new", (data) => {
   // Handle new notification
 });
 
 // Notification read
-socket.on('notification:read', (data) => {
+socket.on("notification:read", (data) => {
   // Update read status
 });
 
 // All notifications read
-socket.on('notification:all_read', () => {
+socket.on("notification:all_read", () => {
   // Clear unread count
 });
 ```
@@ -288,11 +294,11 @@ socket.on('notification:all_read', () => {
 
 ```javascript
 // Test email service
-const emailService = require('./services/emailService');
+const emailService = require("./services/emailService");
 const result = await emailService.sendEmail(
-  'test@example.com',
-  'Test Email',
-  '<h1>Test</h1><p>This is a test email</p>'
+  "test@example.com",
+  "Test Email",
+  "<h1>Test</h1><p>This is a test email</p>",
 );
 console.log(result);
 ```
@@ -301,13 +307,13 @@ console.log(result);
 
 ```javascript
 // Test notification service
-const notificationService = require('./services/notificationService');
+const notificationService = require("./services/notificationService");
 await notificationService.notifyAdminOrderStatusUpdate(
   userId,
-  { orderId: '123', trackingNumber: 'TRK123' },
-  'processing',
-  'Order is being processed',
-  'Admin User'
+  { orderId: "123", trackingNumber: "TRK123" },
+  "processing",
+  "Order is being processed",
+  "Admin User",
 );
 ```
 
@@ -356,25 +362,22 @@ await notificationService.notifyAdminOrderStatusUpdate(
 
 ### Admin Notification Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| PUT | `/api/orders/admin/:trackingNumber/status` | Update order status with notification |
-| POST | `/api/admin/orders/:trackingNumber/cancel` | Cancel order with notification |
-| POST | `/api/admin/orders/:trackingNumber/refund` | Process refund with notification |
-| POST | `/api/admin/orders/:trackingNumber/schedule-delivery` | Schedule delivery with notification |
-| POST | `/api/admin/orders/:trackingNumber/ready-pickup` | Mark ready for pickup with notification |
-| PUT | `/api/groupbuy/admin/:id/status` | Update group buy status with notification |
+| Method | Endpoint                                              | Description                               |
+| ------ | ----------------------------------------------------- | ----------------------------------------- |
+| PUT    | `/api/orders/admin/:trackingNumber/status`            | Update order status with notification     |
+| POST   | `/api/admin/orders/:trackingNumber/cancel`            | Cancel order with notification            |
+| POST   | `/api/admin/orders/:trackingNumber/refund`            | Process refund with notification          |
+| POST   | `/api/admin/orders/:trackingNumber/schedule-delivery` | Schedule delivery with notification       |
+| POST   | `/api/admin/orders/:trackingNumber/ready-pickup`      | Mark ready for pickup with notification   |
+| PUT    | `/api/groupbuy/admin/:id/status`                      | Update group buy status with notification |
 
 ### User Notification Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/notifications` | Get user notifications |
-| GET | `/api/notifications/unread-count` | Get unread count |
-| PATCH | `/api/notifications/:id/read` | Mark notification as read |
-| PATCH | `/api/notifications/mark-all-read` | Mark all notifications as read |
-| DELETE | `/api/notifications/:id` | Delete notification |
-| DELETE | `/api/notifications/clear-all` | Clear all notifications |
-
-
-
+| Method | Endpoint                           | Description                    |
+| ------ | ---------------------------------- | ------------------------------ |
+| GET    | `/api/notifications`               | Get user notifications         |
+| GET    | `/api/notifications/unread-count`  | Get unread count               |
+| PATCH  | `/api/notifications/:id/read`      | Mark notification as read      |
+| PATCH  | `/api/notifications/mark-all-read` | Mark all notifications as read |
+| DELETE | `/api/notifications/:id`           | Delete notification            |
+| DELETE | `/api/notifications/clear-all`     | Clear all notifications        |

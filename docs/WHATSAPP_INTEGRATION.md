@@ -81,7 +81,7 @@ Before sending interactive messages, you need to create message templates in Met
    - **Header**: "Order Ready! #{tracking_number}"
    - **Body**: "Your order is ready! Please choose your preferred fulfillment method:"
    - **Footer**: "Reply with your choice to proceed"
-   - **Buttons**: 
+   - **Buttons**:
      - "Pickup" (reply button)
      - "Delivery (+₦500)" (reply button)
 
@@ -126,14 +126,15 @@ if (status === "ready_for_pickup") {
   const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
     userPhone,
     order.trackingNumber,
-    orderDetails
-  )
+    orderDetails,
+  );
 }
 ```
 
 ### 2. Customer Receives Message
 
 Customer receives interactive message with:
+
 - Order details (total, items)
 - Two buttons: "Pickup" and "Delivery (+₦500)"
 - Tracking number for reference
@@ -141,6 +142,7 @@ Customer receives interactive message with:
 ### 3. Customer Response
 
 Customer clicks button or sends text:
+
 - **Button Click**: Automatic processing via webhook
 - **Text Response**: Parsed for keywords and tracking number
 
@@ -150,11 +152,11 @@ Customer clicks button or sends text:
 // In whatsappService.js
 async handleButtonResponse(phoneNumber, buttonReply) {
   const [choice, trackingNumber] = buttonReply.id.split('_')
-  
+
   // Update order status
   order.fulfillmentChoice = choice
   order.currentStatus = choice === 'pickup' ? 'ready_for_pickup' : 'out_for_delivery'
-  
+
   // Send confirmation message
   await this.sendConfirmationMessage(phoneNumber, trackingNumber, choice)
 }
@@ -163,14 +165,15 @@ async handleButtonResponse(phoneNumber, buttonReply) {
 ### 5. Admin Notification
 
 Admin receives notification about customer choice:
+
 ```javascript
 await notificationService.createNotification({
   userId: process.env.ADMIN_USER_ID,
-  type: 'info',
-  category: 'whatsapp',
-  title: 'WhatsApp Fulfillment Choice',
-  message: `Customer chose ${choice} for order #${trackingNumber}`
-})
+  type: "info",
+  category: "whatsapp",
+  title: "WhatsApp Fulfillment Choice",
+  message: `Customer chose ${choice} for order #${trackingNumber}`,
+});
 ```
 
 ## Message Templates
@@ -219,6 +222,7 @@ await notificationService.createNotification({
 ### Confirmation Messages
 
 **Pickup Confirmation:**
+
 ```
 ✅ Pickup confirmed! Please visit:
 📍 Main Store Location - 123 Commerce Street
@@ -226,6 +230,7 @@ await notificationService.createNotification({
 ```
 
 **Delivery Confirmation:**
+
 ```
 ✅ Delivery confirmed! We'll deliver to your address within 24 hours.
 📞 Tracking: #ORDER123456
@@ -243,28 +248,28 @@ whatsappMessages: [
     messageId: String,
     type: {
       type: String,
-      enum: ["fulfillment_choice", "confirmation", "help", "reminder"]
+      enum: ["fulfillment_choice", "confirmation", "help", "reminder"],
     },
     sentAt: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
     status: {
       type: String,
       enum: ["sent", "delivered", "read", "failed"],
-      default: "sent"
+      default: "sent",
     },
     responseReceived: {
       type: Boolean,
-      default: false
+      default: false,
     },
     responseChoice: {
       type: String,
-      enum: ["pickup", "delivery"]
+      enum: ["pickup", "delivery"],
     },
-    responseAt: Date
-  }
-]
+    responseAt: Date,
+  },
+];
 ```
 
 ## Testing
@@ -281,19 +286,20 @@ Update `test-whatsapp-integration.mjs` with your test phone number:
 
 ```javascript
 const testConfig = {
-  phoneNumber: '+2348012345678', // Replace with real test number
-  trackingNumber: 'TEST123456',
+  phoneNumber: "+2348012345678", // Replace with real test number
+  trackingNumber: "TEST123456",
   orderDetails: {
     totalAmount: 15000,
     itemCount: 2,
-    items: 'Test Product 1, Test Product 2'
-  }
-}
+    items: "Test Product 1, Test Product 2",
+  },
+};
 ```
 
 ### Manual Testing
 
 1. **Send Test Message:**
+
    ```bash
    curl -X POST http://localhost:3000/api/admin/whatsapp/send \
      -H "Content-Type: application/json" \
@@ -335,7 +341,10 @@ const testConfig = {
 All WhatsApp errors are logged with detailed information:
 
 ```javascript
-logger.error(`❌ WhatsApp message error for ${trackingNumber}:`, error.response?.data || error.message)
+logger.error(
+  `❌ WhatsApp message error for ${trackingNumber}:`,
+  error.response?.data || error.message,
+);
 ```
 
 ## Security Considerations
@@ -370,8 +379,12 @@ logger.error(`❌ WhatsApp message error for ${trackingNumber}:`, error.response
 All WhatsApp interactions are logged with structured data:
 
 ```javascript
-logger.info(`📱 WhatsApp fulfillment choice message sent to ${phoneNumber} for order ${trackingNumber}`)
-logger.info(`✅ WhatsApp fulfillment choice processed: ${choice} for order ${trackingNumber}`)
+logger.info(
+  `📱 WhatsApp fulfillment choice message sent to ${phoneNumber} for order ${trackingNumber}`,
+);
+logger.info(
+  `✅ WhatsApp fulfillment choice processed: ${choice} for order ${trackingNumber}`,
+);
 ```
 
 ## Troubleshooting
@@ -431,9 +444,9 @@ For issues with the WhatsApp integration:
 ### Configuration Options
 
 See `config/whatsapp.js` for all available configuration options including:
+
 - Message templates
 - Pickup locations
 - Delivery settings
 - Webhook configuration
 - Tracking settings
-

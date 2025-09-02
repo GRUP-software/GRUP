@@ -27,15 +27,18 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ## API Endpoints
 
 ### Payment Initialization
+
 - **POST** `/api/payment/initialize`
 - **POST** `/api/checkout`
 
 ### Webhook
+
 - **POST** `/api/webhook/flutterwave`
 
 ## Payment Flow
 
 ### 1. Wallet + Flutterwave Payment
+
 ```javascript
 {
   "paymentMethod": "wallet_and_flutterwave",
@@ -47,6 +50,7 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ```
 
 **Response:**
+
 ```javascript
 {
   "success": true,
@@ -63,6 +67,7 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ```
 
 ### 2. Flutterwave-Only Payment
+
 ```javascript
 {
   "paymentMethod": "flutterwave_only",
@@ -73,6 +78,7 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ```
 
 **Response:**
+
 ```javascript
 {
   "success": true,
@@ -105,7 +111,7 @@ The webhook verifies signatures using HMAC SHA512:
 const hash = crypto
   .createHmac("sha512", process.env.FLUTTERWAVE_SECRET_KEY)
   .update(JSON.stringify(req.body))
-  .digest("hex")
+  .digest("hex");
 ```
 
 **Header**: `x-flutterwave-signature`
@@ -138,25 +144,25 @@ node scripts/migrate-to-flutterwave.js
 
 ```javascript
 const paymentMethods = [
-  { value: 'wallet_only', label: 'Wallet Only' },
-  { value: 'wallet_and_flutterwave', label: 'Wallet + Flutterwave' },
-  { value: 'flutterwave_only', label: 'Flutterwave Only' }
+  { value: "wallet_only", label: "Wallet Only" },
+  { value: "wallet_and_flutterwave", label: "Wallet + Flutterwave" },
+  { value: "flutterwave_only", label: "Flutterwave Only" },
 ];
 ```
 
 ### Payment Processing
 
 ```javascript
-const response = await fetch('/api/payment/initialize', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/payment/initialize", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    paymentMethod: 'wallet_and_flutterwave',
+    paymentMethod: "wallet_and_flutterwave",
     walletUse: 1000,
     cartId: cartId,
     deliveryAddress: address,
-    phone: phone
-  })
+    phone: phone,
+  }),
 });
 
 if (response.success) {
@@ -253,10 +259,12 @@ Enable debug logging by setting `LOG_LEVEL=debug` in environment variables.
 ## Support
 
 For Flutterwave-specific issues:
+
 - [Flutterwave Documentation](https://developer.flutterwave.com/)
 - [Flutterwave Support](https://support.flutterwave.com/)
 
 For application-specific issues:
+
 - Check application logs
 - Review webhook responses
 - Verify database records

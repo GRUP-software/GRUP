@@ -1,17 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 
 const ImageSelectorFromGallery = (props) => {
-  const { onChange, property, record } = props
-  const [availableImages, setAvailableImages] = useState([])
-  const [selectedImages, setSelectedImages] = useState(record.params[property.path] || [])
-  const [loading, setLoading] = useState(true)
-  const [showGallery, setShowGallery] = useState(false)
+  const { onChange, property, record } = props;
+  const [availableImages, setAvailableImages] = useState([]);
+  const [selectedImages, setSelectedImages] = useState(
+    record.params[property.path] || [],
+  );
+  const [loading, setLoading] = useState(true);
+  const [showGallery, setShowGallery] = useState(false);
 
   useEffect(() => {
-    fetchAvailableImages()
-  }, [])
+    fetchAvailableImages();
+  }, []);
 
   const fetchAvailableImages = async () => {
     try {
@@ -19,36 +21,38 @@ const ImageSelectorFromGallery = (props) => {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("adminToken") || "admin-token"}`,
         },
-      })
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        setAvailableImages(data.images || [])
+        const data = await response.json();
+        setAvailableImages(data.images || []);
       }
     } catch (error) {
-      console.error("Error fetching images:", error)
+      console.error("Error fetching images:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const toggleImageSelection = (imageUrl) => {
-    let updatedImages
+    let updatedImages;
     if (selectedImages.includes(imageUrl)) {
-      updatedImages = selectedImages.filter((url) => url !== imageUrl)
+      updatedImages = selectedImages.filter((url) => url !== imageUrl);
     } else {
-      updatedImages = [...selectedImages, imageUrl]
+      updatedImages = [...selectedImages, imageUrl];
     }
 
-    setSelectedImages(updatedImages)
-    onChange(property.path, updatedImages)
-  }
+    setSelectedImages(updatedImages);
+    onChange(property.path, updatedImages);
+  };
 
   const removeImage = (indexToRemove) => {
-    const updatedImages = selectedImages.filter((_, index) => index !== indexToRemove)
-    setSelectedImages(updatedImages)
-    onChange(property.path, updatedImages)
-  }
+    const updatedImages = selectedImages.filter(
+      (_, index) => index !== indexToRemove,
+    );
+    setSelectedImages(updatedImages);
+    onChange(property.path, updatedImages);
+  };
 
   if (loading) {
     return (
@@ -56,7 +60,7 @@ const ImageSelectorFromGallery = (props) => {
         <div style={{ fontSize: "24px", marginBottom: "10px" }}>⏳</div>
         <p>Loading image gallery...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -64,7 +68,9 @@ const ImageSelectorFromGallery = (props) => {
       {}
       {selectedImages.length > 0 && (
         <div style={{ marginBottom: "20px" }}>
-          <h4 style={{ color: "#28a745", marginBottom: "10px" }}>✅ Selected Images ({selectedImages.length})</h4>
+          <h4 style={{ color: "#28a745", marginBottom: "10px" }}>
+            ✅ Selected Images ({selectedImages.length})
+          </h4>
           <div
             style={{
               display: "grid",
@@ -88,7 +94,8 @@ const ImageSelectorFromGallery = (props) => {
                   alt={`Selected ${index + 1}`}
                   style={{ width: "100%", height: "150px", objectFit: "cover" }}
                   onError={(e) => {
-                    e.target.src = "/placeholder.svg?height=150&width=150&text=Error"
+                    e.target.src =
+                      "/placeholder.svg?height=150&width=150&text=Error";
                   }}
                 />
                 <button
@@ -132,7 +139,8 @@ const ImageSelectorFromGallery = (props) => {
           marginBottom: "15px",
         }}
       >
-        {showGallery ? "🔼 Hide Image Gallery" : "🖼️ Select from Image Gallery"}({availableImages.length} available)
+        {showGallery ? "🔼 Hide Image Gallery" : "🖼️ Select from Image Gallery"}
+        ({availableImages.length} available)
       </button>
 
       {}
@@ -145,12 +153,16 @@ const ImageSelectorFromGallery = (props) => {
             backgroundColor: "#f8f9ff",
           }}
         >
-          <h4 style={{ marginBottom: "15px", color: "#007bff" }}>📸 Available Images - Click to Select</h4>
+          <h4 style={{ marginBottom: "15px", color: "#007bff" }}>
+            📸 Available Images - Click to Select
+          </h4>
 
           {availableImages.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px" }}>
               <div style={{ fontSize: "48px", marginBottom: "15px" }}>📷</div>
-              <p style={{ color: "#666", marginBottom: "15px" }}>No images available</p>
+              <p style={{ color: "#666", marginBottom: "15px" }}>
+                No images available
+              </p>
               <a
                 href="/admin-upload.html"
                 target="_blank"
@@ -179,14 +191,16 @@ const ImageSelectorFromGallery = (props) => {
               }}
             >
               {availableImages.map((image, index) => {
-                const isSelected = selectedImages.includes(image.url)
+                const isSelected = selectedImages.includes(image.url);
                 return (
                   <div
                     key={index}
                     onClick={() => toggleImageSelection(image.url)}
                     style={{
                       position: "relative",
-                      border: isSelected ? "3px solid #28a745" : "2px solid #ddd",
+                      border: isSelected
+                        ? "3px solid #28a745"
+                        : "2px solid #ddd",
                       borderRadius: "8px",
                       overflow: "hidden",
                       cursor: "pointer",
@@ -203,7 +217,8 @@ const ImageSelectorFromGallery = (props) => {
                         objectFit: "cover",
                       }}
                       onError={(e) => {
-                        e.target.src = "/placeholder.svg?height=150&width=150&text=Error"
+                        e.target.src =
+                          "/placeholder.svg?height=150&width=150&text=Error";
                       }}
                     />
 
@@ -245,11 +260,13 @@ const ImageSelectorFromGallery = (props) => {
                       </div>
                       <div>{(image.size / 1024 / 1024).toFixed(1)} MB</div>
                       {image.tags && image.tags.length > 0 && (
-                        <div style={{ color: "#007bff", fontSize: "10px" }}>🏷️ {image.tags.slice(0, 2).join(", ")}</div>
+                        <div style={{ color: "#007bff", fontSize: "10px" }}>
+                          🏷️ {image.tags.slice(0, 2).join(", ")}
+                        </div>
                       )}
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           )}
@@ -283,7 +300,7 @@ const ImageSelectorFromGallery = (props) => {
         </ul>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ImageSelectorFromGallery
+export default ImageSelectorFromGallery;

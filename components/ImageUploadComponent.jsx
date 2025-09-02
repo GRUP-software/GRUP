@@ -1,71 +1,73 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 const ImageUploadComponent = (props) => {
-  const { onChange, property, record } = props
-  const [uploading, setUploading] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
+  const { onChange, property, record } = props;
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const currentImages = record.params[property.path] || []
+  const currentImages = record.params[property.path] || [];
 
   const handleFileUpload = async (files) => {
-    if (!files || files.length === 0) return
+    if (!files || files.length === 0) return;
 
-    setUploading(true)
-    const formData = new FormData()
+    setUploading(true);
+    const formData = new FormData();
 
     Array.from(files).forEach((file) => {
-      formData.append("images", file)
-    })
+      formData.append("images", file);
+    });
 
     try {
       const response = await fetch("/api/admin/upload-images", {
         method: "POST",
         body: formData,
-      })
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        const newImages = [...currentImages, ...data.imageUrls]
-        onChange(property.path, newImages)
+        const data = await response.json();
+        const newImages = [...currentImages, ...data.imageUrls];
+        onChange(property.path, newImages);
       } else {
-        alert("Failed to upload images")
+        alert("Failed to upload images");
       }
     } catch (error) {
-      console.error("Upload error:", error)
-      alert("Error uploading images")
+      console.error("Upload error:", error);
+      alert("Error uploading images");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const handleFileChange = (event) => {
-    const files = event.target.files
-    handleFileUpload(files)
-  }
+    const files = event.target.files;
+    handleFileUpload(files);
+  };
 
   const handleDrop = (event) => {
-    event.preventDefault()
-    setDragOver(false)
-    const files = event.dataTransfer.files
-    handleFileUpload(files)
-  }
+    event.preventDefault();
+    setDragOver(false);
+    const files = event.dataTransfer.files;
+    handleFileUpload(files);
+  };
 
   const handleDragOver = (event) => {
-    event.preventDefault()
-    setDragOver(true)
-  }
+    event.preventDefault();
+    setDragOver(true);
+  };
 
   const handleDragLeave = (event) => {
-    event.preventDefault()
-    setDragOver(false)
-  }
+    event.preventDefault();
+    setDragOver(false);
+  };
 
   const handleRemoveImage = (indexToRemove) => {
-    const updatedImages = currentImages.filter((_, index) => index !== indexToRemove)
-    onChange(property.path, updatedImages)
-  }
+    const updatedImages = currentImages.filter(
+      (_, index) => index !== indexToRemove,
+    );
+    onChange(property.path, updatedImages);
+  };
 
   return (
     <div style={{ marginBottom: "1rem" }}>
@@ -104,7 +106,9 @@ const ImageUploadComponent = (props) => {
         ) : (
           <div>
             <div style={{ fontSize: "48px", marginBottom: "10px" }}>📸</div>
-            <p style={{ margin: "0 0 5px 0", fontWeight: "bold" }}>Click to upload or drag & drop images here</p>
+            <p style={{ margin: "0 0 5px 0", fontWeight: "bold" }}>
+              Click to upload or drag & drop images here
+            </p>
             <p style={{ margin: 0, fontSize: "12px", color: "#666" }}>
               Supports: JPEG, PNG, GIF, WebP (Max 5MB each, up to 5 images)
             </p>
@@ -115,7 +119,9 @@ const ImageUploadComponent = (props) => {
       {}
       {currentImages.length > 0 && (
         <div>
-          <h4 style={{ marginBottom: "10px", color: "#333" }}>Current Images ({currentImages.length})</h4>
+          <h4 style={{ marginBottom: "10px", color: "#333" }}>
+            Current Images ({currentImages.length})
+          </h4>
           <div
             style={{
               display: "grid",
@@ -146,14 +152,15 @@ const ImageUploadComponent = (props) => {
                     display: "block",
                   }}
                   onError={(e) => {
-                    e.target.src = "/placeholder.svg?height=150&width=150&text=Error"
+                    e.target.src =
+                      "/placeholder.svg?height=150&width=150&text=Error";
                   }}
                 />
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleRemoveImage(index)
+                    e.stopPropagation();
+                    handleRemoveImage(index);
                   }}
                   style={{
                     position: "absolute",
@@ -215,7 +222,7 @@ const ImageUploadComponent = (props) => {
         </ul>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ImageUploadComponent
+export default ImageUploadComponent;

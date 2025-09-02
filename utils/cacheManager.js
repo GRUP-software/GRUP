@@ -1,4 +1,4 @@
-import NodeCache from 'node-cache';
+import NodeCache from "node-cache";
 
 /**
  * Cache Manager Service
@@ -10,21 +10,21 @@ const cache = new NodeCache({
   stdTTL: 300, // 5 minutes default TTL
   checkperiod: 60, // Check for expired keys every 60 seconds
   useClones: false, // Don't clone objects for better performance
-  deleteOnExpire: true // Automatically delete expired keys
+  deleteOnExpire: true, // Automatically delete expired keys
 });
 
 // Cache keys constants
 export const CACHE_KEYS = {
-  WALLET_DATA: 'wallet_data',
-  WALLET_STATS: 'wallet_stats',
-  USER_REFERRAL_INFO: 'user_referral_info',
-  TRANSACTION_HISTORY: 'transaction_history',
-  WALLET_BALANCE: 'wallet_balance'
+  WALLET_DATA: "wallet_data",
+  WALLET_STATS: "wallet_stats",
+  USER_REFERRAL_INFO: "user_referral_info",
+  TRANSACTION_HISTORY: "transaction_history",
+  WALLET_BALANCE: "wallet_balance",
 };
 
 // Generate cache key with user ID
-const generateKey = (baseKey, userId, additionalParams = '') => {
-  return `${baseKey}:${userId}${additionalParams ? `:${additionalParams}` : ''}`;
+const generateKey = (baseKey, userId, additionalParams = "") => {
+  return `${baseKey}:${userId}${additionalParams ? `:${additionalParams}` : ""}`;
 };
 
 /**
@@ -38,7 +38,7 @@ export const cacheWalletData = async (userId, walletData, ttl = 300) => {
     cache.set(key, walletData, ttl);
     return true;
   } catch (error) {
-    console.error('Error caching wallet data:', error);
+    console.error("Error caching wallet data:", error);
     return false;
   }
 };
@@ -48,14 +48,14 @@ export const getCachedWalletData = async (userId) => {
   try {
     const key = generateKey(CACHE_KEYS.WALLET_DATA, userId);
     const cachedData = cache.get(key);
-    
+
     if (cachedData) {
       return cachedData;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error getting cached wallet data:', error);
+    console.error("Error getting cached wallet data:", error);
     return null;
   }
 };
@@ -68,7 +68,7 @@ export const cacheWalletStats = async (userId, stats, ttl = 300) => {
     console.log(`💾 Cached wallet stats for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error caching wallet stats:', error);
+    console.error("Error caching wallet stats:", error);
     return false;
   }
 };
@@ -78,15 +78,15 @@ export const getCachedWalletStats = async (userId) => {
   try {
     const key = generateKey(CACHE_KEYS.WALLET_STATS, userId);
     const cachedStats = cache.get(key);
-    
+
     if (cachedStats) {
       console.log(`📋 Retrieved cached wallet stats for user ${userId}`);
       return cachedStats;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error getting cached wallet stats:', error);
+    console.error("Error getting cached wallet stats:", error);
     return null;
   }
 };
@@ -99,7 +99,7 @@ export const cacheWalletBalance = async (userId, balance, ttl = 60) => {
     console.log(`💾 Cached wallet balance for user ${userId}: ₦${balance}`);
     return true;
   } catch (error) {
-    console.error('Error caching wallet balance:', error);
+    console.error("Error caching wallet balance:", error);
     return false;
   }
 };
@@ -109,28 +109,41 @@ export const getCachedWalletBalance = async (userId) => {
   try {
     const key = generateKey(CACHE_KEYS.WALLET_BALANCE, userId);
     const cachedBalance = cache.get(key);
-    
+
     if (cachedBalance !== undefined) {
-      console.log(`📋 Retrieved cached wallet balance for user ${userId}: ₦${cachedBalance}`);
+      console.log(
+        `📋 Retrieved cached wallet balance for user ${userId}: ₦${cachedBalance}`,
+      );
       return cachedBalance;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error getting cached wallet balance:', error);
+    console.error("Error getting cached wallet balance:", error);
     return null;
   }
 };
 
 // Cache transaction history
-export const cacheTransactionHistory = async (userId, transactions, page = 1, ttl = 300) => {
+export const cacheTransactionHistory = async (
+  userId,
+  transactions,
+  page = 1,
+  ttl = 300,
+) => {
   try {
-    const key = generateKey(CACHE_KEYS.TRANSACTION_HISTORY, userId, `page_${page}`);
+    const key = generateKey(
+      CACHE_KEYS.TRANSACTION_HISTORY,
+      userId,
+      `page_${page}`,
+    );
     cache.set(key, transactions, ttl);
-    console.log(`💾 Cached transaction history for user ${userId}, page ${page}`);
+    console.log(
+      `💾 Cached transaction history for user ${userId}, page ${page}`,
+    );
     return true;
   } catch (error) {
-    console.error('Error caching transaction history:', error);
+    console.error("Error caching transaction history:", error);
     return false;
   }
 };
@@ -138,30 +151,40 @@ export const cacheTransactionHistory = async (userId, transactions, page = 1, tt
 // Get cached transaction history
 export const getCachedTransactionHistory = async (userId, page = 1) => {
   try {
-    const key = generateKey(CACHE_KEYS.TRANSACTION_HISTORY, userId, `page_${page}`);
+    const key = generateKey(
+      CACHE_KEYS.TRANSACTION_HISTORY,
+      userId,
+      `page_${page}`,
+    );
     const cachedTransactions = cache.get(key);
-    
+
     if (cachedTransactions) {
-      console.log(`📋 Retrieved cached transaction history for user ${userId}, page ${page}`);
+      console.log(
+        `📋 Retrieved cached transaction history for user ${userId}, page ${page}`,
+      );
       return cachedTransactions;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error getting cached transaction history:', error);
+    console.error("Error getting cached transaction history:", error);
     return null;
   }
 };
 
 // Cache user referral info
-export const cacheUserReferralInfo = async (userId, referralInfo, ttl = 600) => {
+export const cacheUserReferralInfo = async (
+  userId,
+  referralInfo,
+  ttl = 600,
+) => {
   try {
     const key = generateKey(CACHE_KEYS.USER_REFERRAL_INFO, userId);
     cache.set(key, referralInfo, ttl);
     console.log(`💾 Cached referral info for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error caching referral info:', error);
+    console.error("Error caching referral info:", error);
     return false;
   }
 };
@@ -171,15 +194,15 @@ export const getCachedUserReferralInfo = async (userId) => {
   try {
     const key = generateKey(CACHE_KEYS.USER_REFERRAL_INFO, userId);
     const cachedReferralInfo = cache.get(key);
-    
+
     if (cachedReferralInfo) {
       console.log(`📋 Retrieved cached referral info for user ${userId}`);
       return cachedReferralInfo;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error getting cached referral info:', error);
+    console.error("Error getting cached referral info:", error);
     return null;
   }
 };
@@ -195,26 +218,28 @@ export const invalidateWalletCache = async (userId) => {
       generateKey(CACHE_KEYS.WALLET_DATA, userId),
       generateKey(CACHE_KEYS.WALLET_STATS, userId),
       generateKey(CACHE_KEYS.WALLET_BALANCE, userId),
-      generateKey(CACHE_KEYS.USER_REFERRAL_INFO, userId)
+      generateKey(CACHE_KEYS.USER_REFERRAL_INFO, userId),
     ];
-    
+
     // Invalidate transaction history for all pages
     for (let page = 1; page <= 10; page++) {
-      patterns.push(generateKey(CACHE_KEYS.TRANSACTION_HISTORY, userId, `page_${page}`));
+      patterns.push(
+        generateKey(CACHE_KEYS.TRANSACTION_HISTORY, userId, `page_${page}`),
+      );
     }
-    
+
     let invalidatedCount = 0;
-    patterns.forEach(pattern => {
-      const keys = cache.keys().filter(key => key.startsWith(pattern));
-      keys.forEach(key => {
+    patterns.forEach((pattern) => {
+      const keys = cache.keys().filter((key) => key.startsWith(pattern));
+      keys.forEach((key) => {
         cache.del(key);
         invalidatedCount++;
       });
     });
-    
+
     return invalidatedCount;
   } catch (error) {
-    console.error('Error invalidating wallet cache:', error);
+    console.error("Error invalidating wallet cache:", error);
     return 0;
   }
 };
@@ -228,7 +253,7 @@ export const invalidateCacheEntry = async (key) => {
     }
     return deleted > 0;
   } catch (error) {
-    console.error('Error invalidating cache entry:', error);
+    console.error("Error invalidating cache entry:", error);
     return false;
   }
 };
@@ -237,10 +262,10 @@ export const invalidateCacheEntry = async (key) => {
 export const clearAllCache = async () => {
   try {
     cache.flushAll();
-    console.log('🗑️ Cleared all cache');
+    console.log("🗑️ Cleared all cache");
     return true;
   } catch (error) {
-    console.error('Error clearing cache:', error);
+    console.error("Error clearing cache:", error);
     return false;
   }
 };
@@ -259,10 +284,10 @@ export const getCacheStats = () => {
       keys: stats.keys,
       ksize: stats.ksize,
       vsize: stats.vsize,
-      hitRate: stats.hits / (stats.hits + stats.misses) * 100
+      hitRate: (stats.hits / (stats.hits + stats.misses)) * 100,
     };
   } catch (error) {
-    console.error('Error getting cache stats:', error);
+    console.error("Error getting cache stats:", error);
     return null;
   }
 };
@@ -272,7 +297,7 @@ export const getCacheKeys = () => {
   try {
     return cache.keys();
   } catch (error) {
-    console.error('Error getting cache keys:', error);
+    console.error("Error getting cache keys:", error);
     return [];
   }
 };
@@ -282,11 +307,16 @@ export const getCacheKeys = () => {
  */
 
 // Get data with cache fallback
-export const getDataWithCache = async (userId, cacheKey, fetchFunction, ttl = 300) => {
+export const getDataWithCache = async (
+  userId,
+  cacheKey,
+  fetchFunction,
+  ttl = 300,
+) => {
   try {
     // Try to get from cache first
     let cachedData = null;
-    
+
     switch (cacheKey) {
       case CACHE_KEYS.WALLET_DATA:
         cachedData = await getCachedWalletData(userId);
@@ -303,14 +333,14 @@ export const getDataWithCache = async (userId, cacheKey, fetchFunction, ttl = 30
       default:
         cachedData = null;
     }
-    
+
     if (cachedData) {
       return { data: cachedData, fromCache: true };
     }
-    
+
     // If not in cache, fetch from database
     const freshData = await fetchFunction();
-    
+
     // Cache the fresh data
     switch (cacheKey) {
       case CACHE_KEYS.WALLET_DATA:
@@ -326,11 +356,10 @@ export const getDataWithCache = async (userId, cacheKey, fetchFunction, ttl = 30
         await cacheUserReferralInfo(userId, freshData, ttl);
         break;
     }
-    
+
     return { data: freshData, fromCache: false };
-    
   } catch (error) {
-    console.error('Error in getDataWithCache:', error);
+    console.error("Error in getDataWithCache:", error);
     throw error;
   }
 };
@@ -352,5 +381,5 @@ export default {
   getCacheStats,
   getCacheKeys,
   getDataWithCache,
-  CACHE_KEYS
+  CACHE_KEYS,
 };

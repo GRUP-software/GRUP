@@ -1,5 +1,5 @@
-import mongoose from "mongoose"
-const { Schema } = mongoose
+import mongoose from "mongoose";
+const { Schema } = mongoose;
 
 const cartItemSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
@@ -14,14 +14,19 @@ const cartItemSchema = new Schema({
     pricePerUnit: { type: Number },
     totalBaseUnits: { type: Number },
   },
-})
+});
 
 const cartSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", unique: true, required: true },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      unique: true,
+      required: true,
+    },
     items: [cartItemSchema],
   },
   { timestamps: true },
-)
+);
 
-export default mongoose.models.Cart || mongoose.model("Cart", cartSchema)
+export default mongoose.models.Cart || mongoose.model("Cart", cartSchema);

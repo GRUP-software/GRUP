@@ -9,11 +9,13 @@ This document outlines the comprehensive improvements made to the wallet system 
 ### **1. Database Transaction Safety**
 
 #### **Problem Solved:**
+
 - Race conditions during concurrent wallet operations
 - Inconsistent data when operations fail mid-process
 - No rollback mechanism for failed transactions
 
 #### **Solution:**
+
 - **File:** `backend/utils/walletTransactionService.js`
 - **Features:**
   - MongoDB transactions with session management
@@ -22,6 +24,7 @@ This document outlines the comprehensive improvements made to the wallet system 
   - Comprehensive error handling and logging
 
 #### **Usage:**
+
 ```javascript
 // Safe wallet debit
 const result = await processWalletDebit(
@@ -29,7 +32,7 @@ const result = await processWalletDebit(
   amount,
   "ORDER",
   "Payment for order #123",
-  { orderId: "order_123" }
+  { orderId: "order_123" },
 );
 
 // Safe wallet credit
@@ -38,18 +41,20 @@ const result = await processWalletCredit(
   amount,
   "REFERRAL_BONUS",
   "Referral bonus for 3 users",
-  { referralCount: 3 }
+  { referralCount: 3 },
 );
 ```
 
 ### **2. Centralized Calculation Service**
 
 #### **Problem Solved:**
+
 - Inconsistent calculations between frontend and backend
 - Duplicate calculation logic scattered across files
 - Difficult to maintain and update business rules
 
 #### **Solution:**
+
 - **File:** `backend/utils/walletCalculationService.js`
 - **Features:**
   - Single source of truth for all wallet calculations
@@ -58,6 +63,7 @@ const result = await processWalletCredit(
   - Exportable calculation helpers for frontend
 
 #### **Key Functions:**
+
 ```javascript
 // Calculate referral bonus amount
 const bonusAmount = calculateReferralBonusAmount(totalReferrals);
@@ -72,11 +78,13 @@ const offset = await calculateWalletOffset(userId, totalAmount, requestedUse);
 ### **3. Performance Optimization with Caching**
 
 #### **Problem Solved:**
+
 - Multiple database queries for the same data
 - Slow response times for frequently accessed wallet data
 - No caching strategy for wallet operations
 
 #### **Solution:**
+
 - **File:** `backend/utils/cacheManager.js`
 - **Features:**
   - In-memory caching with TTL (Time To Live)
@@ -85,6 +93,7 @@ const offset = await calculateWalletOffset(userId, totalAmount, requestedUse);
   - Cache statistics and monitoring
 
 #### **Cache Keys:**
+
 - `wallet_data:userId` - Complete wallet data
 - `wallet_stats:userId` - Wallet statistics
 - `wallet_balance:userId` - Current balance (60s TTL)
@@ -92,13 +101,14 @@ const offset = await calculateWalletOffset(userId, totalAmount, requestedUse);
 - `user_referral_info:userId` - Referral information
 
 #### **Usage:**
+
 ```javascript
 // Get data with cache fallback
 const { data, fromCache } = await getDataWithCache(
   userId,
   CACHE_KEYS.WALLET_DATA,
   () => fetchWalletDataFromDB(userId),
-  300 // 5 minutes TTL
+  300, // 5 minutes TTL
 );
 
 // Invalidate cache on updates
@@ -108,11 +118,13 @@ await invalidateWalletCache(userId);
 ### **4. Comprehensive Logging System**
 
 #### **Problem Solved:**
+
 - Limited audit trail for wallet operations
 - Difficult debugging of wallet issues
 - No performance monitoring
 
 #### **Solution:**
+
 - **File:** `backend/utils/walletLogger.js`
 - **Features:**
   - Structured logging for all wallet operations
@@ -121,6 +133,7 @@ await invalidateWalletCache(userId);
   - Audit trail for compliance
 
 #### **Log Categories:**
+
 - Balance changes
 - Transaction creation/failure
 - Referral bonus processing
@@ -132,11 +145,13 @@ await invalidateWalletCache(userId);
 ### **5. Error Recovery Mechanisms**
 
 #### **Problem Solved:**
+
 - No rollback mechanism for failed transactions
 - Data inconsistency after partial failures
 - No recovery tools for corrupted data
 
 #### **Solution:**
+
 - **File:** `backend/utils/walletTransactionService.js`
 - **Features:**
   - Automatic transaction rollback
@@ -145,6 +160,7 @@ await invalidateWalletCache(userId);
   - Recovery logging
 
 #### **Rollback Function:**
+
 ```javascript
 // Rollback a specific transaction
 const result = await rollbackWalletTransaction(transactionId);
@@ -153,11 +169,13 @@ const result = await rollbackWalletTransaction(transactionId);
 ### **6. Frontend-Backend Consistency**
 
 #### **Problem Solved:**
+
 - Different calculation logic in frontend and backend
 - Inconsistent display of wallet data
 - Frontend calculations not matching backend
 
 #### **Solution:**
+
 - **File:** `frontend/src/utils/walletCalculationHelpers.js`
 - **Features:**
   - Identical calculation functions as backend
@@ -168,13 +186,16 @@ const result = await rollbackWalletTransaction(transactionId);
 ## 🔧 **API Changes**
 
 ### **New Endpoints:**
+
 - `POST /api/wallet/invalidate-cache` - Invalidate wallet cache
 
 ### **Enhanced Endpoints:**
+
 - `GET /api/wallet` - Now includes aggregated statistics and caching
 - `POST /api/wallet/calculate-offset` - Uses centralized calculation service
 
 ### **Response Format:**
+
 ```json
 {
   "balance": 1500,
@@ -205,30 +226,36 @@ const result = await rollbackWalletTransaction(transactionId);
 ## 📊 **Performance Improvements**
 
 ### **Database Queries:**
+
 - **Before:** 5-8 separate queries per wallet request
 - **After:** 1-2 aggregated queries with MongoDB aggregation pipeline
 
 ### **Response Times:**
+
 - **Before:** 200-500ms average
 - **After:** 50-150ms average (with cache hits)
 
 ### **Cache Hit Rate:**
+
 - **Target:** 80%+ for frequently accessed data
 - **Implementation:** 5-minute TTL for wallet data, 1-minute for balance
 
 ## 🔒 **Security Enhancements**
 
 ### **Transaction Safety:**
+
 - Atomic operations prevent race conditions
 - Session-based transactions ensure consistency
 - Automatic rollback on failures
 
 ### **Audit Trail:**
+
 - Complete logging of all wallet operations
 - Transaction metadata for tracking
 - Security event monitoring
 
 ### **Validation:**
+
 - Comprehensive input validation
 - Balance validation before operations
 - Transaction metadata validation
@@ -236,10 +263,11 @@ const result = await rollbackWalletTransaction(transactionId);
 ## 🧪 **Testing Recommendations**
 
 ### **Unit Tests:**
+
 ```javascript
 // Test calculation functions
-describe('Wallet Calculations', () => {
-  test('calculateReferralBonusAmount', () => {
+describe("Wallet Calculations", () => {
+  test("calculateReferralBonusAmount", () => {
     expect(calculateReferralBonusAmount(3)).toBe(500);
     expect(calculateReferralBonusAmount(6)).toBe(1000);
     expect(calculateReferralBonusAmount(9)).toBe(1500);
@@ -247,15 +275,17 @@ describe('Wallet Calculations', () => {
 });
 
 // Test transaction safety
-describe('Wallet Transactions', () => {
-  test('processWalletDebit with insufficient balance', async () => {
-    await expect(processWalletDebit(userId, 1000, 'ORDER', 'Test'))
-      .rejects.toThrow('Insufficient balance');
+describe("Wallet Transactions", () => {
+  test("processWalletDebit with insufficient balance", async () => {
+    await expect(
+      processWalletDebit(userId, 1000, "ORDER", "Test"),
+    ).rejects.toThrow("Insufficient balance");
   });
 });
 ```
 
 ### **Integration Tests:**
+
 - Concurrent wallet operations
 - Cache invalidation scenarios
 - Error recovery mechanisms
@@ -264,6 +294,7 @@ describe('Wallet Transactions', () => {
 ## 📈 **Monitoring & Maintenance**
 
 ### **Key Metrics to Monitor:**
+
 - Cache hit rate
 - Transaction success rate
 - Average response time
@@ -271,6 +302,7 @@ describe('Wallet Transactions', () => {
 - Database query performance
 
 ### **Maintenance Tasks:**
+
 - Regular cache cleanup
 - Log rotation and archiving
 - Database index optimization
@@ -279,6 +311,7 @@ describe('Wallet Transactions', () => {
 ## 🚀 **Deployment Notes**
 
 ### **Environment Variables:**
+
 ```bash
 # Cache configuration
 CACHE_TTL=300
@@ -290,11 +323,13 @@ LOG_WALLET_OPERATIONS=true
 ```
 
 ### **Database Requirements:**
+
 - MongoDB 4.4+ (for aggregation features)
 - Proper indexes on wallet and transaction collections
 - Transaction support enabled
 
 ### **Performance Tuning:**
+
 - Monitor cache memory usage
 - Adjust TTL values based on usage patterns
 - Optimize aggregation pipelines for large datasets
@@ -302,11 +337,13 @@ LOG_WALLET_OPERATIONS=true
 ## 🔄 **Migration Guide**
 
 ### **For Existing Data:**
+
 1. No data migration required
 2. New services are backward compatible
 3. Gradual rollout possible
 
 ### **For Frontend Integration:**
+
 1. Update API calls to use new response format
 2. Replace local calculations with backend data
 3. Implement cache invalidation on user actions
@@ -314,12 +351,14 @@ LOG_WALLET_OPERATIONS=true
 ## 📞 **Support & Troubleshooting**
 
 ### **Common Issues:**
+
 1. **Cache not updating:** Check cache invalidation calls
 2. **Slow performance:** Monitor cache hit rates
 3. **Transaction failures:** Check database transaction support
 4. **Calculation inconsistencies:** Verify using centralized service
 
 ### **Debug Tools:**
+
 - Cache statistics endpoint
 - Transaction rollback function
 - Comprehensive logging
@@ -336,6 +375,6 @@ The wallet system improvements provide:
 ✅ **Consistency:** Centralized calculations and data validation  
 ✅ **Reliability:** Error recovery and rollback mechanisms  
 ✅ **Maintainability:** Clean architecture and comprehensive logging  
-✅ **Scalability:** Optimized queries and caching strategy  
+✅ **Scalability:** Optimized queries and caching strategy
 
 The system is now production-ready with enterprise-grade features for handling high-concurrency wallet operations.

@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const paymentHistorySchema = new mongoose.Schema(
   {
@@ -92,10 +92,10 @@ const paymentHistorySchema = new mongoose.Schema(
   {
     timestamps: true,
   },
-)
+);
 
 // Index for efficient queries
-paymentHistorySchema.index({ userId: 1, createdAt: -1 })
-paymentHistorySchema.index({ status: 1, createdAt: -1 })
+paymentHistorySchema.index({ userId: 1, createdAt: -1 });
+paymentHistorySchema.index({ status: 1, createdAt: -1 });
 
-export default mongoose.model("PaymentHistory", paymentHistorySchema)
+export default mongoose.model("PaymentHistory", paymentHistorySchema);

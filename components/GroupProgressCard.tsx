@@ -1,38 +1,41 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 
 interface GroupProgressProps {
-  productId: string
-  productTitle: string
-  onJoinGroup?: () => void
+  productId: string;
+  productTitle: string;
+  onJoinGroup?: () => void;
 }
 
-export default function GroupProgressCard({ productId, productTitle, onJoinGroup }: GroupProgressProps) {
-  const [groupData, setGroupData] = useState(null as any)
-  const [loading, setLoading] = useState(true)
+export default function GroupProgressCard({
+  productId,
+  productTitle,
+  onJoinGroup,
+}: GroupProgressProps) {
+  const [groupData, setGroupData] = useState(null as any);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchGroupStatus()
+    fetchGroupStatus();
 
-    
-    const interval = setInterval(fetchGroupStatus, 30000)
-    return () => clearInterval(interval)
-  }, [productId])
+    const interval = setInterval(fetchGroupStatus, 30000);
+    return () => clearInterval(interval);
+  }, [productId]);
 
   const fetchGroupStatus = async () => {
     try {
-      const response = await fetch(`/api/group/group-status/${productId}`)
+      const response = await fetch(`/api/group/group-status/${productId}`);
       if (response.ok) {
-        const data = await response.json()
-        setGroupData(data)
+        const data = await response.json();
+        setGroupData(data);
       }
     } catch (err) {
-      console.error("Error fetching group status:", err)
+      console.error("Error fetching group status:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -43,7 +46,7 @@ export default function GroupProgressCard({ productId, productTitle, onJoinGroup
           <div className="h-4 bg-gray-200 rounded w-1/2"></div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!groupData) {
@@ -57,10 +60,11 @@ export default function GroupProgressCard({ productId, productTitle, onJoinGroup
           Start Group Buy
         </button>
       </div>
-    )
+    );
   }
 
-  const { progressPercentage, participantCount, unitsRemaining, status } = groupData
+  const { progressPercentage, participantCount, unitsRemaining, status } =
+    groupData;
 
   return (
     <div className="w-full border rounded-lg">
@@ -69,7 +73,9 @@ export default function GroupProgressCard({ productId, productTitle, onJoinGroup
           <h4 className="text-sm font-medium">{productTitle}</h4>
           <span
             className={`px-2 py-1 text-xs rounded-full ${
-              status === "secured" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+              status === "secured"
+                ? "bg-green-100 text-green-800"
+                : "bg-yellow-100 text-yellow-800"
             }`}
           >
             {status === "secured" ? "✅ Secured" : "⏳ Forming"}
@@ -116,5 +122,5 @@ export default function GroupProgressCard({ productId, productTitle, onJoinGroup
         )}
       </div>
     </div>
-  )
+  );
 }

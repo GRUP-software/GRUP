@@ -1,55 +1,64 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 
 interface WalletSliderProps {
-  subtotal: number
-  walletBalance: number
-  onWalletChange: (useWallet: boolean, amount: number) => void
+  subtotal: number;
+  walletBalance: number;
+  onWalletChange: (useWallet: boolean, amount: number) => void;
 }
 
-export default function WalletSlider({ subtotal, walletBalance, onWalletChange }: WalletSliderProps) {
-  const [useWallet, setUseWallet] = useState(false)
-  const [walletAmount, setWalletAmount] = useState(0)
+export default function WalletSlider({
+  subtotal,
+  walletBalance,
+  onWalletChange,
+}: WalletSliderProps) {
+  const [useWallet, setUseWallet] = useState(false);
+  const [walletAmount, setWalletAmount] = useState(0);
 
-  const maxUsable = Math.min(walletBalance, subtotal)
+  const maxUsable = Math.min(walletBalance, subtotal);
 
   useEffect(() => {
     if (useWallet) {
-      setWalletAmount(maxUsable)
+      setWalletAmount(maxUsable);
     } else {
-      setWalletAmount(0)
+      setWalletAmount(0);
     }
-  }, [useWallet, maxUsable])
+  }, [useWallet, maxUsable]);
 
   useEffect(() => {
-    onWalletChange(useWallet, walletAmount)
-  }, [useWallet, walletAmount, onWalletChange])
+    onWalletChange(useWallet, walletAmount);
+  }, [useWallet, walletAmount, onWalletChange]);
 
   const handleSliderChange = (e: any) => {
-    setWalletAmount(Number.parseInt(e.target.value))
-  }
+    setWalletAmount(Number.parseInt(e.target.value));
+  };
 
   const handleSwitchChange = (checked: boolean) => {
-    setUseWallet(checked)
+    setUseWallet(checked);
     if (!checked) {
-      setWalletAmount(0)
+      setWalletAmount(0);
     }
-  }
+  };
 
   if (walletBalance === 0) {
     return (
       <div className="border-2 border-dashed rounded-lg p-4 text-center">
-        💳<p className="text-sm text-gray-500 mt-2">No wallet balance available</p>
+        💳
+        <p className="text-sm text-gray-500 mt-2">
+          No wallet balance available
+        </p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="border rounded-lg">
       <div className="p-4 pb-3 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-2">💳 Use Wallet Balance</h3>
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            💳 Use Wallet Balance
+          </h3>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -66,7 +75,9 @@ export default function WalletSlider({ subtotal, walletBalance, onWalletChange }
         <div className="space-y-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Available Balance:</span>
-            <span className="px-2 py-1 bg-gray-100 rounded text-sm font-medium">₦{walletBalance.toLocaleString()}</span>
+            <span className="px-2 py-1 bg-gray-100 rounded text-sm font-medium">
+              ₦{walletBalance.toLocaleString()}
+            </span>
           </div>
 
           {useWallet && (
@@ -121,5 +132,5 @@ export default function WalletSlider({ subtotal, walletBalance, onWalletChange }
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import express from "express"
-import { verifyToken } from "../middleware/authMiddleware.js"
+import express from "express";
+import { verifyToken } from "../middleware/authMiddleware.js";
 import {
   getActiveGroupBuys,
   getUserGroupBuys,
@@ -16,46 +16,44 @@ import {
   updateGroupBuyStatus,
   getGroupBuyStatusHistory,
   getGroupBuysByStatus,
-} from "../controllers/groupBuyController.js"
+} from "../controllers/groupBuyController.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // Specific routes MUST come before dynamic routes
 // Get all active group buys
-router.get("/active", getActiveGroupBuys)
+router.get("/active", getActiveGroupBuys);
 
 // Get all group buys with filtering (admin)
-router.get("/all", getAllGroupBuys)
+router.get("/all", getAllGroupBuys);
 
 // Get user's group buy participations
-router.get("/my-groups", verifyToken, getUserGroupBuys)
+router.get("/my-groups", verifyToken, getUserGroupBuys);
 
 // Get user's group buy statistics
-router.get("/my-stats", verifyToken, getUserGroupBuyStats)
+router.get("/my-stats", verifyToken, getUserGroupBuyStats);
 
 // Get group buy statistics
-router.get("/stats", getGroupBuyStats)
+router.get("/stats", getGroupBuyStats);
 
 // Get group buys needing manual review (admin)
-router.get("/manual-review", verifyToken, getManualReviewGroupBuys)
+router.get("/manual-review", verifyToken, getManualReviewGroupBuys);
 
 // Get group buy for specific product
-router.get("/product/:productId", getGroupBuyByProduct)
+router.get("/product/:productId", getGroupBuyByProduct);
 
 // Get group buy status for specific product
-router.get("/group-status/:productId", getGroupBuyStatus)
-
-
+router.get("/group-status/:productId", getGroupBuyStatus);
 
 // Get single group buy by ID (MUST be after specific routes)
-router.get("/:id", getGroupBuyById)
+router.get("/:id", getGroupBuyById);
 
 // Admin routes
-router.post("/:id/review", verifyToken, reviewGroupBuy)
-router.patch("/:id/mvu", verifyToken, updateGroupBuyMVU)
-router.patch("/:id/fail", verifyToken, markGroupBuyAsFailed)
-router.put("/admin/:id/status", verifyToken, updateGroupBuyStatus)
-router.get("/admin/:id/history", verifyToken, getGroupBuyStatusHistory)
-router.get("/admin/by-status", verifyToken, getGroupBuysByStatus)
+router.post("/:id/review", verifyToken, reviewGroupBuy);
+router.patch("/:id/mvu", verifyToken, updateGroupBuyMVU);
+router.patch("/:id/fail", verifyToken, markGroupBuyAsFailed);
+router.put("/admin/:id/status", verifyToken, updateGroupBuyStatus);
+router.get("/admin/:id/history", verifyToken, getGroupBuyStatusHistory);
+router.get("/admin/by-status", verifyToken, getGroupBuysByStatus);
 
-export default router
+export default router;

@@ -1,6 +1,6 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const { Schema } = mongoose
+const { Schema } = mongoose;
 
 const liveUserSessionSchema = new Schema(
   {
@@ -13,10 +13,13 @@ const liveUserSessionSchema = new Schema(
   {
     timestamps: true,
   },
-)
+);
 
 // Auto-expire sessions after 5 minutes of inactivity
-liveUserSessionSchema.index({ lastActivity: 1 }, { expireAfterSeconds: 300 })
+liveUserSessionSchema.index({ lastActivity: 1 }, { expireAfterSeconds: 300 });
 
-const LiveUserSession = mongoose.model("LiveUserSession", liveUserSessionSchema)
-export default LiveUserSession
+const LiveUserSession = mongoose.model(
+  "LiveUserSession",
+  liveUserSessionSchema,
+);
+export default LiveUserSession;

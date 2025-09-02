@@ -1,11 +1,11 @@
-import express from 'express';
-import { verifyToken } from '../middleware/authMiddleware.js';
-import notificationService from '../services/notificationService.js';
+import express from "express";
+import { verifyToken } from "../middleware/authMiddleware.js";
+import notificationService from "../services/notificationService.js";
 
 const router = express.Router();
 
 // Get user notifications with pagination and filters
-router.get('/', verifyToken, async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { page, limit, category, read, sortBy, sortOrder } = req.query;
@@ -14,182 +14,191 @@ router.get('/', verifyToken, async (req, res) => {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
       category: category || null,
-      read: read === 'true' ? true : read === 'false' ? false : null,
-      sortBy: sortBy || 'createdAt',
-      sortOrder: sortOrder || 'desc'
+      read: read === "true" ? true : read === "false" ? false : null,
+      sortBy: sortBy || "createdAt",
+      sortOrder: sortOrder || "desc",
     };
 
-    const result = await notificationService.getUserNotifications(userId, options);
-    
+    const result = await notificationService.getUserNotifications(
+      userId,
+      options,
+    );
+
     res.json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error("Error fetching notifications:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch notifications'
+      message: "Failed to fetch notifications",
     });
   }
 });
 
 // Get unread count
-router.get('/unread-count', verifyToken, async (req, res) => {
+router.get("/unread-count", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const count = await notificationService.getUnreadCount(userId);
-    
+
     res.json({
       success: true,
-      data: { unreadCount: count }
+      data: { unreadCount: count },
     });
   } catch (error) {
-    console.error('Error fetching unread count:', error);
+    console.error("Error fetching unread count:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch unread count'
+      message: "Failed to fetch unread count",
     });
   }
 });
 
 // Mark notification as read
-router.patch('/:notificationId/read', verifyToken, async (req, res) => {
+router.patch("/:notificationId/read", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { notificationId } = req.params;
 
-    const notification = await notificationService.markAsRead(userId, notificationId);
-    
+    const notification = await notificationService.markAsRead(
+      userId,
+      notificationId,
+    );
+
     if (!notification) {
       return res.status(404).json({
         success: false,
-        message: 'Notification not found'
+        message: "Notification not found",
       });
     }
 
     res.json({
       success: true,
-      data: { notification }
+      data: { notification },
     });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error("Error marking notification as read:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to mark notification as read'
+      message: "Failed to mark notification as read",
     });
   }
 });
 
 // Mark all notifications as read
-router.patch('/mark-all-read', verifyToken, async (req, res) => {
+router.patch("/mark-all-read", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const result = await notificationService.markAllAsRead(userId);
-    
+
     res.json({
       success: true,
-      data: { updatedCount: result.modifiedCount }
+      data: { updatedCount: result.modifiedCount },
     });
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
+    console.error("Error marking all notifications as read:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to mark all notifications as read'
+      message: "Failed to mark all notifications as read",
     });
   }
 });
 
 // Clear all notifications for user (must come before /:notificationId route)
-router.delete('/clear-all', verifyToken, async (req, res) => {
+router.delete("/clear-all", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const result = await notificationService.clearAllNotifications(userId);
-    
+
     res.json({
       success: true,
-      message: 'All notifications cleared successfully',
-      data: { deletedCount: result.deletedCount }
+      message: "All notifications cleared successfully",
+      data: { deletedCount: result.deletedCount },
     });
   } catch (error) {
-    console.error('Error clearing all notifications:', error);
+    console.error("Error clearing all notifications:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to clear all notifications'
+      message: "Failed to clear all notifications",
     });
   }
 });
 
 // Delete notification
-router.delete('/:notificationId', verifyToken, async (req, res) => {
+router.delete("/:notificationId", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { notificationId } = req.params;
 
-    const notification = await notificationService.deleteNotification(userId, notificationId);
-    
+    const notification = await notificationService.deleteNotification(
+      userId,
+      notificationId,
+    );
+
     if (!notification) {
       return res.status(404).json({
         success: false,
-        message: 'Notification not found'
+        message: "Notification not found",
       });
     }
 
     res.json({
       success: true,
-      message: 'Notification deleted successfully'
+      message: "Notification deleted successfully",
     });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    console.error("Error deleting notification:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete notification'
+      message: "Failed to delete notification",
     });
   }
 });
 
 // Health check endpoint for notifications
-router.get('/health', (req, res) => {
+router.get("/health", (req, res) => {
   res.json({
     success: true,
-    message: 'Notification system is running',
+    message: "Notification system is running",
     timestamp: new Date().toISOString(),
     endpoints: {
-      getNotifications: 'GET /',
-      getUnreadCount: 'GET /unread-count',
-      markAsRead: 'PATCH /:id/read',
-      markAllAsRead: 'PATCH /mark-all-read',
-      deleteNotification: 'DELETE /:id'
-    }
+      getNotifications: "GET /",
+      getUnreadCount: "GET /unread-count",
+      markAsRead: "PATCH /:id/read",
+      markAllAsRead: "PATCH /mark-all-read",
+      deleteNotification: "DELETE /:id",
+    },
   });
 });
 
 // Test endpoint to create a sample notification
-router.post('/test', verifyToken, async (req, res) => {
+router.post("/test", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const testNotification = await notificationService.createNotification({
       userId,
-      type: 'info',
-      category: 'system',
-      title: 'Test Notification',
-      message: 'This is a test notification to verify the system is working!',
+      type: "info",
+      category: "system",
+      title: "Test Notification",
+      message: "This is a test notification to verify the system is working!",
       data: { test: true, timestamp: new Date().toISOString() },
-      priority: 'medium'
+      priority: "medium",
     });
-    
+
     res.json({
       success: true,
-      message: 'Test notification created successfully',
-      data: { notification: testNotification }
+      message: "Test notification created successfully",
+      data: { notification: testNotification },
     });
   } catch (error) {
-    console.error('Error creating test notification:', error);
+    console.error("Error creating test notification:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create test notification'
+      message: "Failed to create test notification",
     });
   }
 });

@@ -13,12 +13,14 @@ This document outlines the complete solution for handling users who forget their
 ## Complete User Flow
 
 ### Scenario 1: User Remembers Recovery Key ✅
+
 1. User goes to `/forgot-password`
 2. User enters email + recovery key
 3. System verifies and allows password reset
 4. User sets new password and logs in
 
 ### Scenario 2: User Forgot Recovery Key ✅
+
 1. User goes to `/forgot-password`
 2. User clicks "Request Recovery Key Reset"
 3. User submits request with email, phone, and reason
@@ -34,14 +36,15 @@ This document outlines the complete solution for handling users who forget their
 ### Database Schema Updates
 
 **User Model (`backend/models/User.js`)**
+
 ```javascript
 // Recovery key reset request tracking
 recoveryKeyResetRequest: {
   requestedAt: { type: Date },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['pending', 'approved', 'rejected', 'completed'],
-    default: null 
+    default: null
   },
   approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
   approvedAt: { type: Date },
@@ -53,10 +56,12 @@ recoveryKeyResetRequest: {
 ### New API Endpoints
 
 #### User Endpoints
+
 - `POST /api/auth/request-recovery-key-reset` - Submit recovery key reset request
 - `POST /api/auth/use-temporary-recovery-key` - Use temporary key to set new recovery key
 
 #### Admin Endpoints
+
 - `GET /api/auth/recovery-key-reset-requests` - Get all pending requests
 - `POST /api/auth/approve-recovery-key-reset/:userId` - Approve request
 - `POST /api/auth/reject-recovery-key-reset/:userId` - Reject request
@@ -64,24 +69,29 @@ recoveryKeyResetRequest: {
 ### Controller Methods
 
 **`requestRecoveryKeyReset`** - Handles user requests for recovery key resets
+
 - Validates email and phone match existing user
 - Prevents duplicate pending requests
 - Creates recovery key reset request record
 
 **`getRecoveryKeyResetRequests`** - Admin endpoint to view pending requests
+
 - Returns all pending requests with user details
 - Used by admin panel
 
 **`approveRecoveryKeyReset`** - Admin approves request
+
 - Generates temporary recovery key (valid 24 hours)
 - Updates request status to 'approved'
 - Returns temporary key for admin to share
 
 **`rejectRecoveryKeyReset`** - Admin rejects request
+
 - Updates request status to 'rejected'
 - Requires rejection reason
 
 **`useTemporaryRecoveryKey`** - User uses temporary key
+
 - Validates temporary key and expiration
 - Allows user to set new permanent recovery key
 - Marks request as 'completed'
@@ -91,11 +101,13 @@ recoveryKeyResetRequest: {
 ### Enhanced Forgot Password Page
 
 **`frontend/src/pages/accounts/ForgotPassword.jsx`**
+
 - **Step 1:** Verify recovery key (original functionality)
 - **Step 2:** Reset password (original functionality)
 - **Step 3:** Request recovery key reset (new functionality)
 
 **New Features:**
+
 - Toggle between password reset and recovery key reset request
 - Form validation for phone number format
 - Success/error message handling
@@ -104,6 +116,7 @@ recoveryKeyResetRequest: {
 ### New Component: Use Temporary Recovery Key
 
 **`frontend/src/pages/accounts/UseTemporaryRecoveryKey.jsx`**
+
 - Form for users to enter temporary key
 - Validation for new recovery key requirements
 - Success feedback and automatic redirect
@@ -112,6 +125,7 @@ recoveryKeyResetRequest: {
 ### Admin Panel
 
 **`backend/public/admin-recovery-key-requests.html`**
+
 - View all pending recovery key reset requests
 - Approve requests (generates temporary key)
 - Reject requests (with reason)
@@ -120,18 +134,21 @@ recoveryKeyResetRequest: {
 ## Security Features
 
 ### Data Protection
+
 - ✅ All recovery keys hashed with bcrypt
 - ✅ Temporary keys expire after 24 hours
 - ✅ No plaintext storage of any keys
 - ✅ Request status tracking prevents abuse
 
 ### Access Control
+
 - ✅ Admin-only approval system
 - ✅ Authentication required for admin endpoints
 - ✅ User verification via email + phone combination
 - ✅ Request deduplication prevents spam
 
 ### Validation
+
 - ✅ Phone number format validation (+234XXXXXXXXXX)
 - ✅ Recovery key minimum length (8 characters)
 - ✅ Email format validation
@@ -142,33 +159,37 @@ recoveryKeyResetRequest: {
 ### For Users Who Forgot Recovery Key
 
 1. **Request Submission**
+
    ```
-   User → /forgot-password → "Request Recovery Key Reset" 
+   User → /forgot-password → "Request Recovery Key Reset"
    → Fill form (email, phone, reason) → Submit
    ```
 
 2. **Admin Review**
+
    ```
-   Admin → /admin-recovery-key-requests → Review request 
+   Admin → /admin-recovery-key-requests → Review request
    → Approve/Reject → If approved, contact user via WhatsApp
    ```
 
 3. **User Recovery**
    ```
-   User → /use-temporary-recovery-key → Enter temp key 
+   User → /use-temporary-recovery-key → Enter temp key
    → Set new recovery key → Success → Can now reset password
    ```
 
 ### For Admins
 
 1. **Access Admin Panel**
+
    ```
    Admin → /admin-recovery-key-requests → View pending requests
    ```
 
 2. **Review Requests**
+
    ```
-   Admin → Click "Approve" → System generates temp key 
+   Admin → Click "Approve" → System generates temp key
    → Admin copies temp key → Contacts user via WhatsApp
    ```
 
@@ -180,6 +201,7 @@ recoveryKeyResetRequest: {
 ## API Documentation
 
 ### Request Recovery Key Reset
+
 ```http
 POST /api/auth/request-recovery-key-reset
 Content-Type: application/json
@@ -192,6 +214,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Recovery key reset request submitted successfully. An admin will review your request.",
@@ -200,6 +223,7 @@ Content-Type: application/json
 ```
 
 ### Use Temporary Recovery Key
+
 ```http
 POST /api/auth/use-temporary-recovery-key
 Content-Type: application/json
@@ -212,6 +236,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Recovery key updated successfully. You can now use this key to reset your password."
@@ -219,12 +244,14 @@ Content-Type: application/json
 ```
 
 ### Admin: Get Pending Requests
+
 ```http
 GET /api/auth/recovery-key-reset-requests
 Authorization: Bearer <admin_token>
 ```
 
 **Response:**
+
 ```json
 {
   "requests": [
@@ -240,12 +267,14 @@ Authorization: Bearer <admin_token>
 ```
 
 ### Admin: Approve Request
+
 ```http
 POST /api/auth/approve-recovery-key-reset/:userId
 Authorization: Bearer <admin_token>
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Recovery key reset request approved",
@@ -259,6 +288,7 @@ Authorization: Bearer <admin_token>
 ### Common Error Scenarios
 
 1. **Invalid Email/Phone Combination**
+
    ```json
    {
      "message": "User not found with provided email and phone number"
@@ -266,6 +296,7 @@ Authorization: Bearer <admin_token>
    ```
 
 2. **Duplicate Request**
+
    ```json
    {
      "message": "You already have a pending recovery key reset request. Please wait for admin approval."
@@ -273,6 +304,7 @@ Authorization: Bearer <admin_token>
    ```
 
 3. **Invalid Temporary Key**
+
    ```json
    {
      "message": "Invalid temporary recovery key"
@@ -280,6 +312,7 @@ Authorization: Bearer <admin_token>
    ```
 
 4. **Expired Temporary Key**
+
    ```json
    {
      "message": "Temporary recovery key has expired"
@@ -296,6 +329,7 @@ Authorization: Bearer <admin_token>
 ## Testing Checklist
 
 ### User Flow Testing
+
 - [ ] Submit recovery key reset request
 - [ ] Validate phone number format
 - [ ] Check duplicate request prevention
@@ -304,6 +338,7 @@ Authorization: Bearer <admin_token>
 - [ ] Test password reset with new recovery key
 
 ### Admin Flow Testing
+
 - [ ] View pending requests
 - [ ] Approve request (generate temp key)
 - [ ] Reject request (with reason)
@@ -311,6 +346,7 @@ Authorization: Bearer <admin_token>
 - [ ] Test request status updates
 
 ### Security Testing
+
 - [ ] Verify bcrypt hashing of recovery keys
 - [ ] Test temporary key expiration
 - [ ] Validate admin-only access
@@ -320,14 +356,17 @@ Authorization: Bearer <admin_token>
 ## Deployment Notes
 
 ### Environment Variables
+
 - `JWT_SECRET` - Used for admin authentication
 - `MONGO_URI` - Database connection
 
 ### Database Migration
+
 - New `recoveryKeyResetRequest` field added to User model
 - Existing users will have `null` for this field (no impact)
 
 ### Admin Setup
+
 - Ensure admin users have proper authentication
 - Set up admin panel access at `/admin-recovery-key-requests`
 - Train admins on the approval process
@@ -335,12 +374,14 @@ Authorization: Bearer <admin_token>
 ## Monitoring and Maintenance
 
 ### What to Monitor
+
 - Number of recovery key reset requests
 - Approval/rejection rates
 - Temporary key usage rates
 - Failed attempts and errors
 
 ### Maintenance Tasks
+
 - Clean up expired temporary keys (optional)
 - Review rejected requests for patterns
 - Monitor for abuse or spam
@@ -349,6 +390,7 @@ Authorization: Bearer <admin_token>
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. **WhatsApp Integration** - Automate admin notifications
 2. **SMS Verification** - Add phone verification step
 3. **Request Analytics** - Track request patterns
@@ -356,6 +398,7 @@ Authorization: Bearer <admin_token>
 5. **Audit Logging** - Detailed activity tracking
 
 ### Security Enhancements
+
 1. **Rate Limiting** - Limit request frequency
 2. **IP Tracking** - Monitor request sources
 3. **Device Fingerprinting** - Additional verification
@@ -381,6 +424,7 @@ Authorization: Bearer <admin_token>
    - Confirm request approval status
 
 ### Debug Steps
+
 1. Check server logs for errors
 2. Verify database records
 3. Test API endpoints manually

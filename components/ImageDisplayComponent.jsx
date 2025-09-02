@@ -1,10 +1,17 @@
 const ImageDisplayComponent = (props) => {
-  const { record, property } = props
-  const images = record.params[property.path] || []
+  const { record, property } = props;
+  const images = record.params[property.path] || [];
 
   if (!images || images.length === 0) {
     return (
-      <div style={{ padding: "20px", textAlign: "center", border: "2px dashed #ccc", borderRadius: "8px" }}>
+      <div
+        style={{
+          padding: "20px",
+          textAlign: "center",
+          border: "2px dashed #ccc",
+          borderRadius: "8px",
+        }}
+      >
         <div style={{ fontSize: "48px", marginBottom: "10px" }}>📷</div>
         <p style={{ color: "#666", margin: 0 }}>No images uploaded</p>
         <div
@@ -19,7 +26,9 @@ const ImageDisplayComponent = (props) => {
           }}
         >
           <strong>📝 How to upload images:</strong>
-          <ol style={{ margin: "5px 0", paddingLeft: "20px", textAlign: "left" }}>
+          <ol
+            style={{ margin: "5px 0", paddingLeft: "20px", textAlign: "left" }}
+          >
             <li>
               Use API: <code>POST /api/products/{"{productId}"}/images</code>
             </li>
@@ -30,7 +39,7 @@ const ImageDisplayComponent = (props) => {
           </ol>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -64,7 +73,8 @@ const ImageDisplayComponent = (props) => {
                 display: "block",
               }}
               onError={(e) => {
-                e.target.src = "/placeholder.svg?height=150&width=150&text=Error"
+                e.target.src =
+                  "/placeholder.svg?height=150&width=150&text=Error";
               }}
             />
             <div
@@ -93,17 +103,28 @@ const ImageDisplayComponent = (props) => {
           color: "#2d5a2d",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}
+        >
           <strong>
-            ✅ {images.length} image{images.length !== 1 ? "s" : ""} uploaded successfully
+            ✅ {images.length} image{images.length !== 1 ? "s" : ""} uploaded
+            successfully
           </strong>
         </div>
         <div style={{ fontSize: "12px", color: "#4a6741" }}>
           <strong>🔗 Image URLs:</strong>
           <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
             {images.slice(0, 3).map((url, index) => (
-              <li key={index} style={{ marginBottom: "2px", wordBreak: "break-all" }}>
-                <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "#2d5a2d" }}>
+              <li
+                key={index}
+                style={{ marginBottom: "2px", wordBreak: "break-all" }}
+              >
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#2d5a2d" }}
+                >
                   {url.length > 50 ? `${url.substring(0, 50)}...` : url}
                 </a>
               </li>
@@ -113,7 +134,7 @@ const ImageDisplayComponent = (props) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ImageDisplayComponent
+export default ImageDisplayComponent;
