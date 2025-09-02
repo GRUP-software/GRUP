@@ -10,10 +10,21 @@ import crypto from "crypto"
 // Flutterwave 3DES encryption function
 const encryptFlutterwavePayload = (payload, encryptionKey) => {
   try {
-    const cipher = crypto.createCipher('des-ede3', encryptionKey);
+    // Convert the encryption key to a proper 24-byte buffer for 3DES
+    const key = Buffer.from(encryptionKey, 'utf8').slice(0, 24);
+    
+    // Create a random IV (Initialization Vector) - 8 bytes for 3DES
+    const iv = crypto.randomBytes(8);
+    
+    // Create cipher using 3DES-EDE3
+    const cipher = crypto.createCipheriv('des-ede3', key, iv);
+    
+    // Encrypt the payload
     let encrypted = cipher.update(JSON.stringify(payload), 'utf8', 'base64');
     encrypted += cipher.final('base64');
-    return encrypted;
+    
+    // Return the encrypted data with IV prepended (Flutterwave format)
+    return iv.toString('base64') + encrypted;
   } catch (error) {
     console.error('❌ Encryption error:', error);
     throw new Error('Failed to encrypt payload');
