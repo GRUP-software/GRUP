@@ -16,9 +16,16 @@ import config from "../config/environment.js" // Import environment configuratio
 const encryptFlutterwavePayload = (payload, encryptionKey) => {
   try {
     // Convert the encryption key to a proper 24-byte buffer for 3DES
-    const key = Buffer.from(encryptionKey, 'utf8').slice(0, 24);
+    let key = Buffer.from(encryptionKey, 'utf8');
     
-    // Create a random IV (Initialization Vector) - 8 bytes for 3DES
+    // Ensure key is exactly 24 bytes (pad with zeros if shorter, truncate if longer)
+    if (key.length < 24) {
+      key = Buffer.concat([key, Buffer.alloc(24 - key.length)]);
+    } else if (key.length > 24) {
+      key = key.slice(0, 24);
+    }
+    
+    // Create a random IV (Initialization Vector) - exactly 8 bytes for 3DES
     const iv = crypto.randomBytes(8);
     
     // Create cipher using 3DES-EDE3
@@ -32,6 +39,11 @@ const encryptFlutterwavePayload = (payload, encryptionKey) => {
     return iv.toString('base64') + encrypted;
   } catch (error) {
     console.error('❌ Encryption error:', error);
+    console.error('❌ Encryption details:', {
+      keyLength: encryptionKey ? encryptionKey.length : 'undefined',
+      payloadType: typeof payload,
+      errorCode: error.code
+    });
     throw new Error('Failed to encrypt payload');
   }
 };
