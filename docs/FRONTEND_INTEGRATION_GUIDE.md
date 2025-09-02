@@ -46,7 +46,7 @@
 ```javascript
 // Frontend should send paymentMethod parameter:
 {
-  "paymentMethod": "wallet_only" | "wallet_and_paystack" | "paystack_only",
+  "paymentMethod": "wallet_only" | "wallet_and_flutterwave" | "flutterwave_only",
   "walletUse": 1000, // Amount to use from wallet
   // ... other payment data
 }
@@ -66,15 +66,15 @@
   "groupBuys": [...]
 }
 
-// Partial wallet + Paystack response:
+// Partial wallet + Flutterwave response:
 {
   "success": true,
-  "message": "Partial wallet payment initialized, redirecting to Paystack",
-  "authorization_url": "https://checkout.paystack.com/...",
+  "message": "Partial wallet payment initialized, redirecting to Flutterwave",
+  "authorization_url": "https://checkout.flutterwave.com/...",
   "walletUse": 1000,
-  "paystackAmount": 500,
+  "flutterwaveAmount": 500,
   "currentWalletBalance": 1500, // Not deducted yet
-  "message": "Wallet balance will be deducted after Paystack payment succeeds"
+  "message": "Wallet balance will be deducted after Flutterwave payment succeeds"
 }
 ```
 
@@ -145,7 +145,7 @@ const initializePayment = async (paymentData) => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      paymentMethod: paymentData.paymentMethod, // 'wallet_only' | 'wallet_and_paystack' | 'paystack_only'
+      paymentMethod: paymentData.paymentMethod, // 'wallet_only' | 'wallet_and_flutterwave' | 'flutterwave_only'
       walletUse: paymentData.walletUse,
       deliveryAddress: paymentData.deliveryAddress,
       phone: paymentData.phone,
@@ -158,7 +158,7 @@ const initializePayment = async (paymentData) => {
   
   if (data.success) {
     if (data.authorization_url) {
-      // Redirect to Paystack
+      // Redirect to Flutterwave
       window.location.href = data.authorization_url;
     } else {
       // Wallet-only payment completed
@@ -208,8 +208,8 @@ const getTransactionHistory = async (filters = {}) => {
 ```javascript
 // Payment method selector
 <select onChange={(e) => setPaymentMethod(e.target.value)}>
-  <option value="paystack_only">Paystack Only</option>
-  <option value="wallet_and_paystack">Wallet + Paystack</option>
+  <option value="flutterwave_only">Flutterwave Only</option>
+<option value="wallet_and_flutterwave">Wallet + Flutterwave</option>
   <option value="wallet_only">Wallet Only</option>
 </select>
 
@@ -246,8 +246,8 @@ const getTransactionHistory = async (filters = {}) => {
 
 ### **1. Wallet Deduction Timing**
 - **Wallet-only payments**: Deducted immediately
-- **Partial wallet + Paystack**: Deducted only after Paystack success
-- **Paystack-only**: No wallet deduction
+- **Partial wallet + Flutterwave**: Deducted only after Flutterwave success
+- **Flutterwave-only**: No wallet deduction
 
 ### **2. Error Handling**
 ```javascript
@@ -290,7 +290,7 @@ const CartComponent = () => {
   
   const handleCheckout = () => {
     const paymentData = {
-      paymentMethod: walletUse >= cartData.totalPrice ? 'wallet_only' : 'wallet_and_paystack',
+      paymentMethod: walletUse >= cartData.totalPrice ? 'wallet_only' : 'wallet_and_flutterwave',
       walletUse: walletUse,
       // ... other payment data
     };
@@ -315,8 +315,8 @@ const CartComponent = () => {
 
 ### **Integration Testing:**
 - [ ] Wallet-only payments complete successfully
-- [ ] Partial wallet + Paystack redirects correctly
-- [ ] Paystack-only payments work normally
+- [ ] Partial wallet + Flutterwave redirects correctly
+- [ ] Flutterwave-only payments work normally
 - [ ] Transaction records are created properly
 - [ ] Referral bonuses are tracked correctly
 - [ ] Cart clears after successful payment

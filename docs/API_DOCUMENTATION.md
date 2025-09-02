@@ -255,7 +255,7 @@ Initialize payment with wallet integration.
 **Request:**
 ```json
 {
-  "paymentMethod": "wallet_only|wallet_and_paystack|paystack_only",
+  "paymentMethod": "wallet_only|wallet_and_flutterwave|flutterwave_only",
   "walletUse": 1000,
   "deliveryAddress": {
     "street": "123 Main St",
@@ -290,27 +290,27 @@ Initialize payment with wallet integration.
 }
 ```
 
-**Response for Partial Wallet + Paystack:**
+**Response for Partial Wallet + Flutterwave:**
 ```json
 {
   "success": true,
-  "message": "Partial wallet payment initialized, redirecting to Paystack",
-  "authorization_url": "https://checkout.paystack.com/...",
+  "message": "Partial wallet payment initialized, redirecting to Flutterwave",
+  "authorization_url": "https://checkout.flutterwave.com/...",
   "reference": "GRP_abc123_1234567890",
   "paymentHistoryId": "payment_history_id",
   "walletUse": 1000,
-  "paystackAmount": 500,
+  "flutterwaveAmount": 500,
   "totalAmount": 1500,
   "currentWalletBalance": 1500,
-  "message": "Wallet balance will be deducted after Paystack payment succeeds"
+  "message": "Wallet balance will be deducted after Flutterwave payment succeeds"
 }
 ```
 
-**Response for Paystack-Only:**
+**Response for Flutterwave-Only:**
 ```json
 {
   "success": true,
-  "authorization_url": "https://checkout.paystack.com/...",
+  "authorization_url": "https://checkout.flutterwave.com/...",
   "reference": "GRP_abc123_1234567890",
   "paymentHistoryId": "payment_history_id",
   "amount": 1500,
@@ -407,15 +407,15 @@ Validate a referral code.
 - **Accumulation**: Bonuses accumulate (6 referrals = ₦1000, 9 referrals = ₦1500)
 
 ### 5.2 Wallet Usage Rules
-- **Partial Payments**: Can use wallet for partial payment + Paystack
+- **Partial Payments**: Can use wallet for partial payment + Flutterwave
 - **Deduction Timing**: Wallet only deducted after successful payment confirmation
 - **Balance Validation**: System validates sufficient balance before payment
 - **Transaction Records**: All wallet activities are recorded with metadata
 
 ### 5.3 Payment Flow
 1. **Wallet-Only**: Immediate completion, wallet deducted immediately
-2. **Partial Wallet**: Wallet validated but not deducted until Paystack succeeds
-3. **Paystack-Only**: Standard Paystack flow
+2. **Partial Wallet**: Wallet validated but not deducted until Flutterwave succeeds
+3. **Flutterwave-Only**: Standard Flutterwave flow
 
 ### 5.4 Data Consistency
 - All wallet transactions include metadata (order ID, group buy ID, etc.)
@@ -468,7 +468,7 @@ const payment = await fetch('/api/payment/initialize', {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    paymentMethod: 'wallet_and_paystack',
+    paymentMethod: 'wallet_and_flutterwave',
     walletUse: 1000,
     deliveryAddress: { street: '123 Main St', city: 'Lagos', state: 'Lagos' },
     phone: '+2348012345678',
@@ -480,7 +480,7 @@ const paymentData = await payment.json();
 
 if (paymentData.success) {
   if (paymentData.authorization_url) {
-    // Redirect to Paystack
+    // Redirect to Flutterwave
     window.location.href = paymentData.authorization_url;
   } else {
     // Wallet-only payment completed
@@ -511,8 +511,8 @@ const transactions = await fetch('/api/wallet/transactions?type=credit&reason=RE
 ### 8.2 Payment Testing
 1. Add items to cart
 2. Test wallet-only payment
-3. Test partial wallet + Paystack payment
-4. Test Paystack-only payment
+3. Test partial wallet + Flutterwave payment
+4. Test Flutterwave-only payment
 5. Verify wallet balance updates correctly
 6. Verify transaction records are created
 

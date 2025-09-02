@@ -45,9 +45,10 @@ NODE_ENV=development
 # Frontend
 FRONTEND_URL=http://localhost:4000
 
-# Payment (Paystack)
-PAYSTACK_SECRET_KEY=your-paystack-secret-key
-PAYSTACK_PUBLIC_KEY=your-paystack-public-key
+# Payment (Flutterwave)
+FLUTTERWAVE_SECRET_KEY=your-flutterwave-secret-key
+FLUTTERWAVE_PUBLIC_KEY=your-flutterwave-public-key
+FLUTTERWAVE_ENCRYPTION_KEY=your-flutterwave-encryption-key
 
 # Email (for OTP and notifications)
 EMAIL_HOST=smtp.gmail.com

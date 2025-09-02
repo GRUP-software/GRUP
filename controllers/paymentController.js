@@ -47,7 +47,7 @@ const createOrderFromPayment = async (paymentHistory) => {
       deliveryAddress: paymentHistory.metadata?.deliveryAddress || {},
       totalAmount: paymentHistory.amount,
       walletUsed: paymentHistory.walletUsed,
-      paystackAmount: paymentHistory.paystackAmount,
+      flutterwaveAmount: paymentHistory.flutterwaveAmount,
       progress: [
         {
           status: "groups_forming",
@@ -325,14 +325,14 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
         suggestions: [
           "Add more funds to your wallet",
           "Use a smaller wallet amount",
-          "Pay the full amount via Paystack",
+          "Pay the full amount via Flutterwave",
         ],
       })
     }
 
     // Update payment history with wallet usage
     paymentHistory.walletUsed = walletUse
-    paymentHistory.paystackAmount = 0
+    paymentHistory.flutterwaveAmount = 0
     await paymentHistory.save()
 
     // Deduct the amount from wallet
@@ -970,7 +970,7 @@ export const initializePayment = async (req, res) => {
       cartItems,
       amount: totalPrice,
       walletUsed: 0, // Will be set based on payment method
-      paystackAmount: totalPrice, // Will be set based on payment method
+              flutterwaveAmount: totalPrice, // Will be set based on payment method
       status: "pending",
       metadata: {
         deliveryAddress: {
@@ -1091,7 +1091,7 @@ export const handleFlutterwaveWebhook = async (req, res) => {
         await notificationService.notifyPaymentSuccess(
           paymentHistory.userId,
           paymentHistory.amount,
-          "paystack",
+          "flutterwave",
           order._id,
         )
 
@@ -1133,20 +1133,20 @@ export const verifyPayment = async (req, res) => {
       })
     }
 
-    // Verify with Paystack
-    const paystackResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+    // Verify with Flutterwave
+    const flutterwaveResponse = await fetch(`https://api.flutterwave.com/v3/transactions/${reference}/verify`, {
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
       },
     })
 
-    const paystackResult = await paystackResponse.json()
+    const flutterwaveResult = await flutterwaveResponse.json()
 
     res.json({
       success: true,
       data: {
         paymentHistory,
-        paystackVerification: paystackResult,
+        flutterwaveVerification: flutterwaveResult,
       },
     })
   } catch (error) {

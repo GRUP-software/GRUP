@@ -6,7 +6,7 @@
 - [ ] `NODE_ENV=production` is set
 - [ ] `MONGODB_URI` points to production database (MongoDB Atlas recommended)
 - [ ] `JWT_SECRET` is a strong, unique secret (64+ characters)
-- [ ] `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` are production keys
+- [ ] `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_PUBLIC_KEY`, and `FLUTTERWAVE_ENCRYPTION_KEY` are production keys
 - [ ] `FRONTEND_URL` points to production frontend domain
 - [ ] `EMAIL_USER` and `EMAIL_PASS` are production email credentials
 - [ ] `CLOUDINARY_*` credentials are correct

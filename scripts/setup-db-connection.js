@@ -46,8 +46,9 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
 # Other configurations...
-PAYSTACK_SECRET_KEY=your-paystack-secret-key
-PAYSTACK_PUBLIC_KEY=your-paystack-public-key
+FLUTTERWAVE_SECRET_KEY=your-flutterwave-secret-key
+FLUTTERWAVE_PUBLIC_KEY=your-flutterwave-public-key
+FLUTTERWAVE_ENCRYPTION_KEY=your-flutterwave-encryption-key
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
