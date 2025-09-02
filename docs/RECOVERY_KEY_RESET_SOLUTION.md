@@ -160,43 +160,43 @@ recoveryKeyResetRequest: {
 
 1. **Request Submission**
 
-   ```
-   User → /forgot-password → "Request Recovery Key Reset"
-   → Fill form (email, phone, reason) → Submit
-   ```
+    ```
+    User → /forgot-password → "Request Recovery Key Reset"
+    → Fill form (email, phone, reason) → Submit
+    ```
 
 2. **Admin Review**
 
-   ```
-   Admin → /admin-recovery-key-requests → Review request
-   → Approve/Reject → If approved, contact user via WhatsApp
-   ```
+    ```
+    Admin → /admin-recovery-key-requests → Review request
+    → Approve/Reject → If approved, contact user via WhatsApp
+    ```
 
 3. **User Recovery**
-   ```
-   User → /use-temporary-recovery-key → Enter temp key
-   → Set new recovery key → Success → Can now reset password
-   ```
+    ```
+    User → /use-temporary-recovery-key → Enter temp key
+    → Set new recovery key → Success → Can now reset password
+    ```
 
 ### For Admins
 
 1. **Access Admin Panel**
 
-   ```
-   Admin → /admin-recovery-key-requests → View pending requests
-   ```
+    ```
+    Admin → /admin-recovery-key-requests → View pending requests
+    ```
 
 2. **Review Requests**
 
-   ```
-   Admin → Click "Approve" → System generates temp key
-   → Admin copies temp key → Contacts user via WhatsApp
-   ```
+    ```
+    Admin → Click "Approve" → System generates temp key
+    → Admin copies temp key → Contacts user via WhatsApp
+    ```
 
 3. **Manage Requests**
-   ```
-   Admin → Click "Reject" → Provide reason → Request rejected
-   ```
+    ```
+    Admin → Click "Reject" → Provide reason → Request rejected
+    ```
 
 ## API Documentation
 
@@ -217,8 +217,8 @@ Content-Type: application/json
 
 ```json
 {
-  "message": "Recovery key reset request submitted successfully. An admin will review your request.",
-  "requestId": "user_id_here"
+    "message": "Recovery key reset request submitted successfully. An admin will review your request.",
+    "requestId": "user_id_here"
 }
 ```
 
@@ -239,7 +239,7 @@ Content-Type: application/json
 
 ```json
 {
-  "message": "Recovery key updated successfully. You can now use this key to reset your password."
+    "message": "Recovery key updated successfully. You can now use this key to reset your password."
 }
 ```
 
@@ -254,15 +254,15 @@ Authorization: Bearer <admin_token>
 
 ```json
 {
-  "requests": [
-    {
-      "userId": "user_id",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "phone": "+2341234567890",
-      "requestedAt": "2024-01-01T12:00:00.000Z"
-    }
-  ]
+    "requests": [
+        {
+            "userId": "user_id",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "phone": "+2341234567890",
+            "requestedAt": "2024-01-01T12:00:00.000Z"
+        }
+    ]
 }
 ```
 
@@ -277,9 +277,9 @@ Authorization: Bearer <admin_token>
 
 ```json
 {
-  "message": "Recovery key reset request approved",
-  "temporaryKey": "temp_john_1234567890",
-  "expiresAt": "2024-01-02T12:00:00.000Z"
+    "message": "Recovery key reset request approved",
+    "temporaryKey": "temp_john_1234567890",
+    "expiresAt": "2024-01-02T12:00:00.000Z"
 }
 ```
 
@@ -289,42 +289,42 @@ Authorization: Bearer <admin_token>
 
 1. **Invalid Email/Phone Combination**
 
-   ```json
-   {
-     "message": "User not found with provided email and phone number"
-   }
-   ```
+    ```json
+    {
+        "message": "User not found with provided email and phone number"
+    }
+    ```
 
 2. **Duplicate Request**
 
-   ```json
-   {
-     "message": "You already have a pending recovery key reset request. Please wait for admin approval."
-   }
-   ```
+    ```json
+    {
+        "message": "You already have a pending recovery key reset request. Please wait for admin approval."
+    }
+    ```
 
 3. **Invalid Temporary Key**
 
-   ```json
-   {
-     "message": "Invalid temporary recovery key"
-   }
-   ```
+    ```json
+    {
+        "message": "Invalid temporary recovery key"
+    }
+    ```
 
 4. **Expired Temporary Key**
 
-   ```json
-   {
-     "message": "Temporary recovery key has expired"
-   }
-   ```
+    ```json
+    {
+        "message": "Temporary recovery key has expired"
+    }
+    ```
 
 5. **Weak Recovery Key**
-   ```json
-   {
-     "message": "New recovery key must be at least 8 characters long"
-   }
-   ```
+    ```json
+    {
+        "message": "New recovery key must be at least 8 characters long"
+    }
+    ```
 
 ## Testing Checklist
 
@@ -409,19 +409,19 @@ Authorization: Bearer <admin_token>
 ### Common Issues
 
 1. **User can't submit request**
-   - Check email/phone combination
-   - Verify phone number format
-   - Check for existing pending request
+    - Check email/phone combination
+    - Verify phone number format
+    - Check for existing pending request
 
 2. **Admin can't approve request**
-   - Verify admin authentication
-   - Check request status
-   - Ensure proper permissions
+    - Verify admin authentication
+    - Check request status
+    - Ensure proper permissions
 
 3. **Temporary key not working**
-   - Check key expiration
-   - Verify key format
-   - Confirm request approval status
+    - Check key expiration
+    - Verify key format
+    - Confirm request approval status
 
 ### Debug Steps
 

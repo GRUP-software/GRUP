@@ -18,30 +18,30 @@ This document outlines the comprehensive improvements made to the wallet system 
 
 - **File:** `backend/utils/walletTransactionService.js`
 - **Features:**
-  - MongoDB transactions with session management
-  - Atomic balance updates using `$inc` operator
-  - Automatic rollback on failure
-  - Comprehensive error handling and logging
+    - MongoDB transactions with session management
+    - Atomic balance updates using `$inc` operator
+    - Automatic rollback on failure
+    - Comprehensive error handling and logging
 
 #### **Usage:**
 
 ```javascript
 // Safe wallet debit
 const result = await processWalletDebit(
-  userId,
-  amount,
-  "ORDER",
-  "Payment for order #123",
-  { orderId: "order_123" },
+    userId,
+    amount,
+    'ORDER',
+    'Payment for order #123',
+    { orderId: 'order_123' }
 );
 
 // Safe wallet credit
 const result = await processWalletCredit(
-  userId,
-  amount,
-  "REFERRAL_BONUS",
-  "Referral bonus for 3 users",
-  { referralCount: 3 },
+    userId,
+    amount,
+    'REFERRAL_BONUS',
+    'Referral bonus for 3 users',
+    { referralCount: 3 }
 );
 ```
 
@@ -57,10 +57,10 @@ const result = await processWalletCredit(
 
 - **File:** `backend/utils/walletCalculationService.js`
 - **Features:**
-  - Single source of truth for all wallet calculations
-  - Consistent referral bonus logic (₦500 per 3 referrals)
-  - Aggregated statistics with MongoDB aggregation pipelines
-  - Exportable calculation helpers for frontend
+    - Single source of truth for all wallet calculations
+    - Consistent referral bonus logic (₦500 per 3 referrals)
+    - Aggregated statistics with MongoDB aggregation pipelines
+    - Exportable calculation helpers for frontend
 
 #### **Key Functions:**
 
@@ -87,10 +87,10 @@ const offset = await calculateWalletOffset(userId, totalAmount, requestedUse);
 
 - **File:** `backend/utils/cacheManager.js`
 - **Features:**
-  - In-memory caching with TTL (Time To Live)
-  - Cache invalidation on wallet updates
-  - Cache fallback pattern for data fetching
-  - Cache statistics and monitoring
+    - In-memory caching with TTL (Time To Live)
+    - Cache invalidation on wallet updates
+    - Cache fallback pattern for data fetching
+    - Cache statistics and monitoring
 
 #### **Cache Keys:**
 
@@ -105,10 +105,10 @@ const offset = await calculateWalletOffset(userId, totalAmount, requestedUse);
 ```javascript
 // Get data with cache fallback
 const { data, fromCache } = await getDataWithCache(
-  userId,
-  CACHE_KEYS.WALLET_DATA,
-  () => fetchWalletDataFromDB(userId),
-  300, // 5 minutes TTL
+    userId,
+    CACHE_KEYS.WALLET_DATA,
+    () => fetchWalletDataFromDB(userId),
+    300 // 5 minutes TTL
 );
 
 // Invalidate cache on updates
@@ -127,10 +127,10 @@ await invalidateWalletCache(userId);
 
 - **File:** `backend/utils/walletLogger.js`
 - **Features:**
-  - Structured logging for all wallet operations
-  - Performance metrics tracking
-  - Security event logging
-  - Audit trail for compliance
+    - Structured logging for all wallet operations
+    - Performance metrics tracking
+    - Security event logging
+    - Audit trail for compliance
 
 #### **Log Categories:**
 
@@ -154,10 +154,10 @@ await invalidateWalletCache(userId);
 
 - **File:** `backend/utils/walletTransactionService.js`
 - **Features:**
-  - Automatic transaction rollback
-  - Manual rollback function for admin use
-  - Data consistency validation
-  - Recovery logging
+    - Automatic transaction rollback
+    - Manual rollback function for admin use
+    - Data consistency validation
+    - Recovery logging
 
 #### **Rollback Function:**
 
@@ -178,10 +178,10 @@ const result = await rollbackWalletTransaction(transactionId);
 
 - **File:** `frontend/src/utils/walletCalculationHelpers.js`
 - **Features:**
-  - Identical calculation functions as backend
-  - Consistent currency formatting
-  - Transaction display helpers
-  - Validation functions
+    - Identical calculation functions as backend
+    - Consistent currency formatting
+    - Transaction display helpers
+    - Validation functions
 
 ## 🔧 **API Changes**
 
@@ -266,21 +266,21 @@ const result = await rollbackWalletTransaction(transactionId);
 
 ```javascript
 // Test calculation functions
-describe("Wallet Calculations", () => {
-  test("calculateReferralBonusAmount", () => {
-    expect(calculateReferralBonusAmount(3)).toBe(500);
-    expect(calculateReferralBonusAmount(6)).toBe(1000);
-    expect(calculateReferralBonusAmount(9)).toBe(1500);
-  });
+describe('Wallet Calculations', () => {
+    test('calculateReferralBonusAmount', () => {
+        expect(calculateReferralBonusAmount(3)).toBe(500);
+        expect(calculateReferralBonusAmount(6)).toBe(1000);
+        expect(calculateReferralBonusAmount(9)).toBe(1500);
+    });
 });
 
 // Test transaction safety
-describe("Wallet Transactions", () => {
-  test("processWalletDebit with insufficient balance", async () => {
-    await expect(
-      processWalletDebit(userId, 1000, "ORDER", "Test"),
-    ).rejects.toThrow("Insufficient balance");
-  });
+describe('Wallet Transactions', () => {
+    test('processWalletDebit with insufficient balance', async () => {
+        await expect(
+            processWalletDebit(userId, 1000, 'ORDER', 'Test')
+        ).rejects.toThrow('Insufficient balance');
+    });
 });
 ```
 

@@ -121,26 +121,26 @@
 ```javascript
 // Get wallet data
 const getWalletData = async () => {
-  const response = await fetch("/api/wallet", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await response.json();
+    const response = await fetch('/api/wallet', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
 
-  // Use data.balance, data.stats, data.referralInfo
-  return data;
+    // Use data.balance, data.stats, data.referralInfo
+    return data;
 };
 
 // Calculate wallet offset for checkout
 const calculateWalletOffset = async (totalAmount, requestedWalletUse) => {
-  const response = await fetch("/api/wallet/calculate-offset", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ totalAmount, requestedWalletUse }),
-  });
-  return await response.json();
+    const response = await fetch('/api/wallet/calculate-offset', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ totalAmount, requestedWalletUse }),
+    });
+    return await response.json();
 };
 ```
 
@@ -149,35 +149,35 @@ const calculateWalletOffset = async (totalAmount, requestedWalletUse) => {
 ```javascript
 // Initialize payment with wallet integration
 const initializePayment = async (paymentData) => {
-  const response = await fetch("/api/payment/initialize", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      paymentMethod: paymentData.paymentMethod, // 'wallet_only' | 'wallet_and_flutterwave' | 'flutterwave_only'
-      walletUse: paymentData.walletUse,
-      deliveryAddress: paymentData.deliveryAddress,
-      phone: paymentData.phone,
-      cartId: paymentData.cartId,
-      callback_url: paymentData.callback_url,
-    }),
-  });
+    const response = await fetch('/api/payment/initialize', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            paymentMethod: paymentData.paymentMethod, // 'wallet_only' | 'wallet_and_flutterwave' | 'flutterwave_only'
+            walletUse: paymentData.walletUse,
+            deliveryAddress: paymentData.deliveryAddress,
+            phone: paymentData.phone,
+            cartId: paymentData.cartId,
+            callback_url: paymentData.callback_url,
+        }),
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (data.success) {
-    if (data.authorization_url) {
-      // Redirect to Flutterwave
-      window.location.href = data.authorization_url;
+    if (data.success) {
+        if (data.authorization_url) {
+            // Redirect to Flutterwave
+            window.location.href = data.authorization_url;
+        } else {
+            // Wallet-only payment completed
+            handlePaymentSuccess(data);
+        }
     } else {
-      // Wallet-only payment completed
-      handlePaymentSuccess(data);
+        handlePaymentError(data);
     }
-  } else {
-    handlePaymentError(data);
-  }
 };
 ```
 
@@ -186,16 +186,16 @@ const initializePayment = async (paymentData) => {
 ```javascript
 // Get transaction history with filters
 const getTransactionHistory = async (filters = {}) => {
-  const params = new URLSearchParams();
-  if (filters.type) params.append("type", filters.type);
-  if (filters.reason) params.append("reason", filters.reason);
-  if (filters.page) params.append("page", filters.page);
-  if (filters.limit) params.append("limit", filters.limit);
+    const params = new URLSearchParams();
+    if (filters.type) params.append('type', filters.type);
+    if (filters.reason) params.append('reason', filters.reason);
+    if (filters.page) params.append('page', filters.page);
+    if (filters.limit) params.append('limit', filters.limit);
 
-  const response = await fetch(`/api/wallet/transactions?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return await response.json();
+    const response = await fetch(`/api/wallet/transactions?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return await response.json();
 };
 ```
 
@@ -208,12 +208,12 @@ const getTransactionHistory = async (filters = {}) => {
 ```javascript
 // Show wallet balance prominently
 <div className="wallet-balance">
-  <h3>Wallet Balance</h3>
-  <div className="balance-amount">₦{walletData.balance}</div>
-  <div className="wallet-stats">
-    <span>Total Earned: ₦{walletData.stats.totalEarned}</span>
-    <span>Total Spent: ₦{walletData.stats.totalSpent}</span>
-  </div>
+    <h3>Wallet Balance</h3>
+    <div className="balance-amount">₦{walletData.balance}</div>
+    <div className="wallet-stats">
+        <span>Total Earned: ₦{walletData.stats.totalEarned}</span>
+        <span>Total Spent: ₦{walletData.stats.totalSpent}</span>
+    </div>
 </div>
 ```
 
@@ -243,21 +243,23 @@ const getTransactionHistory = async (filters = {}) => {
 ```javascript
 // Transaction list with metadata
 {
-  transactions.map((transaction) => (
-    <div key={transaction.id} className="transaction-item">
-      <div className="transaction-type">{transaction.type}</div>
-      <div className="transaction-amount">₦{transaction.amount}</div>
-      <div className="transaction-description">{transaction.description}</div>
-      <div className="transaction-date">
-        {formatDate(transaction.createdAt)}
-      </div>
-      {transaction.metadata.orderTrackingNumber && (
-        <div className="transaction-order">
-          Order: {transaction.metadata.orderTrackingNumber}
+    transactions.map((transaction) => (
+        <div key={transaction.id} className="transaction-item">
+            <div className="transaction-type">{transaction.type}</div>
+            <div className="transaction-amount">₦{transaction.amount}</div>
+            <div className="transaction-description">
+                {transaction.description}
+            </div>
+            <div className="transaction-date">
+                {formatDate(transaction.createdAt)}
+            </div>
+            {transaction.metadata.orderTrackingNumber && (
+                <div className="transaction-order">
+                    Order: {transaction.metadata.orderTrackingNumber}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  ));
+    ));
 }
 ```
 
@@ -276,11 +278,11 @@ const getTransactionHistory = async (filters = {}) => {
 ```javascript
 // Handle payment errors
 const handlePaymentError = (error) => {
-  if (error.message === "Insufficient wallet balance") {
-    showError("You don't have enough wallet balance for this payment");
-  } else if (error.walletDeduction === "none") {
-    showError("No wallet amount was deducted. Please try again.");
-  }
+    if (error.message === 'Insufficient wallet balance') {
+        showError("You don't have enough wallet balance for this payment");
+    } else if (error.walletDeduction === 'none') {
+        showError('No wallet amount was deducted. Please try again.');
+    }
 };
 ```
 
@@ -289,14 +291,18 @@ const handlePaymentError = (error) => {
 ```javascript
 // Show referral progress
 <div className="referral-progress">
-  <div className="progress-bar">
-    <div
-      className="progress-fill"
-      style={{ width: `${((referralInfo.totalReferrals % 3) / 3) * 100}%` }}
-    ></div>
-  </div>
-  <span>{referralInfo.totalReferrals}/3 referrals</span>
-  <span>Next bonus at: {referralInfo.referralStats.nextBonusAt} referrals</span>
+    <div className="progress-bar">
+        <div
+            className="progress-fill"
+            style={{
+                width: `${((referralInfo.totalReferrals % 3) / 3) * 100}%`,
+            }}
+        ></div>
+    </div>
+    <span>{referralInfo.totalReferrals}/3 referrals</span>
+    <span>
+        Next bonus at: {referralInfo.referralStats.nextBonusAt} referrals
+    </span>
 </div>
 ```
 
@@ -305,25 +311,25 @@ const handlePaymentError = (error) => {
 ```javascript
 // Cart with wallet integration
 const CartComponent = () => {
-  const [cartData, setCartData] = useState(null);
-  const [walletUse, setWalletUse] = useState(0);
+    const [cartData, setCartData] = useState(null);
+    const [walletUse, setWalletUse] = useState(0);
 
-  useEffect(() => {
-    // Get cart data with wallet balance
-    fetchCartData();
-  }, []);
+    useEffect(() => {
+        // Get cart data with wallet balance
+        fetchCartData();
+    }, []);
 
-  const handleCheckout = () => {
-    const paymentData = {
-      paymentMethod:
-        walletUse >= cartData.totalPrice
-          ? "wallet_only"
-          : "wallet_and_flutterwave",
-      walletUse: walletUse,
-      // ... other payment data
+    const handleCheckout = () => {
+        const paymentData = {
+            paymentMethod:
+                walletUse >= cartData.totalPrice
+                    ? 'wallet_only'
+                    : 'wallet_and_flutterwave',
+            walletUse: walletUse,
+            // ... other payment data
+        };
+        initializePayment(paymentData);
     };
-    initializePayment(paymentData);
-  };
 };
 ```
 
