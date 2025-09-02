@@ -23,22 +23,14 @@ const encryptFlutterwavePayload = async (payload, encryptionKey) => {
     // Generate a 12-character nonce as required by Flutterwave
     const nonce = crypto.randomBytes(12).toString('base64').slice(0, 12);
     
-    // Use the encryption key directly (it's not base64 encoded)
-    // Pad or truncate to 32 bytes for AES-256-GCM
-    let key = Buffer.from(encryptionKey, 'utf8');
-    if (key.length < 32) {
-      // Pad with zeros if key is too short
-      const paddedKey = Buffer.alloc(32, 0);
-      key.copy(paddedKey);
-      key = paddedKey;
-    } else if (key.length > 32) {
-      // Truncate if key is too long
-      key = key.slice(0, 32);
-    }
+    // Generate encryption key from secret key as Flutterwave expects
+    // Use SHA-256 hash of the secret key to create a 32-byte encryption key
+    const secretKey = config.FLUTTERWAVE.SECRET_KEY;
+    const key = crypto.createHash('sha256').update(secretKey).digest();
     
     // Debug: Log key generation details
     console.log('🔍 Encryption key generation:', {
-      originalKeyLength: encryptionKey.length,
+      secretKeyLength: secretKey.length,
       finalKeyLength: key.length,
       nonce: nonce,
       nonceLength: nonce.length,
