@@ -55,7 +55,7 @@ const config = {
   FLUTTERWAVE: {
     SECRET_KEY: process.env.FLUTTERWAVE_SECRET_KEY || '',
     PUBLIC_KEY: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
-    ENCRYPTION_KEY: process.env.FLUTTERWAVE_ENCRYPTION_KEY || process.env.FLUTTERWAVE_SECRET_KEY || ''
+    ENCRYPTION_KEY: process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
   },
   
   // Socket.IO
