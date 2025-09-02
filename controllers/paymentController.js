@@ -656,8 +656,8 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
       })
     }
 
-    // Encrypt the payload for Flutterwave
-    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
+    // Encrypt the payload for Flutterwave using the secret key
+    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.SECRET_KEY);
 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
@@ -781,8 +781,8 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
       })
     }
 
-    // Encrypt the payload for Flutterwave
-    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
+    // Encrypt the payload for Flutterwave using the secret key
+    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.SECRET_KEY);
 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
