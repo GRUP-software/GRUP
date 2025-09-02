@@ -504,7 +504,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
   }
 }
 
-// Process partial wallet + Paystack payment
+// Process partial wallet + Flutterwave payment
 const processPartialWalletPayment = async (paymentHistory, walletUse, callback_url, res) => {
   try {
     // Validate wallet balance (but don't deduct yet!)
@@ -531,13 +531,13 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
         suggestions: [
           "Add more funds to your wallet",
           "Use a smaller wallet amount",
-          "Pay the full amount via Paystack",
+          "Pay the full amount via Flutterwave",
         ],
       })
     }
 
     // 🔧 FIX: Simple wallet balance validation (no sessions needed for validation)
-    // The actual wallet deduction will happen in the webhook after Paystack success
+    // The actual wallet deduction will happen in the webhook after Flutterwave success
     if (wallet.balance < walletUse) {
       return res.status(400).json({
         message: "Insufficient wallet balance",
@@ -550,24 +550,24 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
         suggestions: [
           "Add more funds to your wallet",
           "Use a smaller wallet amount",
-          "Pay the full amount via Paystack",
+          "Pay the full amount via Flutterwave",
         ],
       })
     }
 
-    // Calculate remaining amount for Paystack
-    const paystackAmount = paymentHistory.amount - walletUse
+    // Calculate remaining amount for Flutterwave
+    const flutterwaveAmount = paymentHistory.amount - walletUse
 
     // Update payment history with wallet usage info (but don't deduct yet!)
     paymentHistory.walletUsed = walletUse
-    paymentHistory.paystackAmount = paystackAmount
-    paymentHistory.status = "pending" // Keep as pending until Paystack succeeds
+    paymentHistory.flutterwaveAmount = flutterwaveAmount
+    paymentHistory.status = "pending" // Keep as pending until Flutterwave succeeds
     await paymentHistory.save()
 
-    // Initialize Paystack payment for remaining amount
-    const paystackData = {
+    // Initialize Flutterwave payment for remaining amount
+    const flutterwaveData = {
       email: paymentHistory.userId.email || "customer@grup.com",
-      amount: Math.round(paystackAmount * 100), // Convert to kobo
+      amount: Math.round(flutterwaveAmount * 100), // Convert to kobo
       reference: paymentHistory.referenceId,
       callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
@@ -591,36 +591,36 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
       },
     }
 
-    // Check if Paystack secret key is configured
-    if (!process.env.PAYSTACK_SECRET_KEY) {
-      console.error("❌ PAYSTACK_SECRET_KEY is not configured")
+    // Check if Flutterwave secret key is configured
+    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+      console.error("❌ FLUTTERWAVE_SECRET_KEY is not configured")
       return res.status(500).json({
         success: false,
         message: "Payment service configuration error",
         details: "Payment gateway is not properly configured. Please contact support.",
-        error: "PAYSTACK_SECRET_KEY not found",
+        error: "FLUTTERWAVE_SECRET_KEY not found",
       })
     }
 
-    const response = await fetch("https://api.paystack.co/transaction/initialize", {
+    const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(paystackData),
+      body: JSON.stringify(flutterwaveData),
     })
 
     if (!response.ok) {
-      console.error(`❌ Paystack API error: ${response.status} ${response.statusText}`)
+      console.error(`❌ Flutterwave API error: ${response.status} ${response.statusText}`)
       const errorText = await response.text()
-      console.error(`❌ Paystack error details: ${errorText}`)
+      console.error(`❌ Flutterwave error details: ${errorText}`)
 
       return res.status(500).json({
         success: false,
         message: "Payment service temporarily unavailable",
         details: "Unable to connect to payment gateway. Please try again later.",
-        error: `Paystack API error: ${response.status}`,
+        error: `Flutterwave API error: ${response.status}`,
         suggestions: [
           "Check your internet connection",
           "Try again in a few minutes",
@@ -632,28 +632,28 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
     const data = await response.json()
 
     if (data.status) {
-      // Update payment history with Paystack reference
-      paymentHistory.paystackReference = data.data.reference
+      // Update payment history with Flutterwave reference
+      paymentHistory.flutterwaveReference = data.data.reference
       await paymentHistory.save()
 
       res.json({
         success: true,
-        message: "Partial wallet payment initialized, redirecting to Paystack",
+        message: "Partial wallet payment initialized, redirecting to Flutterwave",
         authorization_url: data.data.authorization_url,
         reference: paymentHistory.referenceId,
         paymentHistoryId: paymentHistory._id,
         walletUse: walletUse,
-        paystackAmount: paystackAmount,
+        flutterwaveAmount: flutterwaveAmount,
         totalAmount: paymentHistory.amount,
         currentWalletBalance: wallet.balance, // Show current balance (not deducted yet)
-        message: "Wallet balance will be deducted after Paystack payment succeeds",
+        message: "Wallet balance will be deducted after Flutterwave payment succeeds",
       })
     } else {
       // No wallet deduction needed since we didn't deduct anything
 
       res.status(400).json({
         success: false,
-        message: "Failed to initialize Paystack payment",
+        message: "Failed to initialize Flutterwave payment",
         details: "Unable to connect to payment gateway. Please try again or contact support.",
         error: data.message,
         walletDeduction: "none", // Clarify no wallet was deducted
@@ -679,11 +679,11 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
   }
 }
 
-// Process Paystack-only payment (existing logic)
-const processPaystackOnlyPayment = async (paymentHistory, callback_url, res) => {
+// Process Flutterwave-only payment (existing logic)
+const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) => {
   try {
-    // Initialize Paystack payment
-    const paystackData = {
+    // Initialize Flutterwave payment
+    const flutterwaveData = {
       email: paymentHistory.userId.email || "customer@grup.com",
       amount: Math.round(paymentHistory.amount * 100), // Convert to kobo
       reference: paymentHistory.referenceId,
@@ -702,36 +702,36 @@ const processPaystackOnlyPayment = async (paymentHistory, callback_url, res) => 
       },
     }
 
-    // Check if Paystack secret key is configured
-    if (!process.env.PAYSTACK_SECRET_KEY) {
-      console.error("❌ PAYSTACK_SECRET_KEY is not configured")
+    // Check if Flutterwave secret key is configured
+    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+      console.error("❌ FLUTTERWAVE_SECRET_KEY is not configured")
       return res.status(500).json({
         success: false,
         message: "Payment service configuration error",
         details: "Payment gateway is not properly configured. Please contact support.",
-        error: "PAYSTACK_SECRET_KEY not found",
+        error: "FLUTTERWAVE_SECRET_KEY not found",
       })
     }
 
-    const response = await fetch("https://api.paystack.co/transaction/initialize", {
+    const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(paystackData),
+      body: JSON.stringify(flutterwaveData),
     })
 
     if (!response.ok) {
-      console.error(`❌ Paystack API error: ${response.status} ${response.statusText}`)
+      console.error(`❌ Flutterwave API error: ${response.status} ${response.statusText}`)
       const errorText = await response.text()
-      console.error(`❌ Paystack error details: ${errorText}`)
+      console.error(`❌ Flutterwave error details: ${errorText}`)
 
       return res.status(500).json({
         success: false,
         message: "Payment service temporarily unavailable",
         details: "Unable to connect to payment gateway. Please try again later.",
-        error: `Paystack API error: ${response.status}`,
+        error: `Flutterwave API error: ${response.status}`,
         suggestions: [
           "Check your internet connection",
           "Try again in a few minutes",
@@ -743,13 +743,13 @@ const processPaystackOnlyPayment = async (paymentHistory, callback_url, res) => 
     const data = await response.json()
 
     if (data.status) {
-      // Update payment history with Paystack reference
-      paymentHistory.paystackReference = data.data.reference
+      // Update payment history with Flutterwave reference
+      paymentHistory.flutterwaveReference = data.data.reference
       await paymentHistory.save()
       
-      console.log(`🔍 Paystack Payment Debug:`)
+      console.log(`🔍 Flutterwave Payment Debug:`)
       console.log(`   Internal Reference: ${paymentHistory.referenceId}`)
-      console.log(`   Paystack Reference: ${data.data.reference}`)
+      console.log(`   Flutterwave Reference: ${data.data.reference}`)
       console.log(`   PaymentHistory ID: ${paymentHistory._id}`)
 
       res.json({
@@ -776,7 +776,7 @@ const processPaystackOnlyPayment = async (paymentHistory, callback_url, res) => 
       })
     }
   } catch (error) {
-    console.error("❌ Paystack-only payment processing error:", error)
+    console.error("❌ Flutterwave-only payment processing error:", error)
     res.status(500).json({
       message: "Payment processing failed",
       details: "An unexpected error occurred while processing your payment. Please try again.",
@@ -798,7 +798,7 @@ export const initializePayment = async (req, res) => {
       useWallet,
       cartId,
       callback_url,
-      paymentMethod = "paystack_only", // New: payment method parameter
+      paymentMethod = "flutterwave_only", // New: payment method parameter
       walletUse = 0, // New: explicit wallet amount
     } = req.body
     const userId = req.user.id
@@ -988,12 +988,11 @@ export const initializePayment = async (req, res) => {
     // Route based on payment method
     if (paymentMethod === "wallet_only") {
       return await processWalletOnlyPayment(paymentHistory, walletUse, res)
-    } else if (paymentMethod === "wallet_and_paystack") {
+    } else if (paymentMethod === "wallet_and_flutterwave") {
       return await processPartialWalletPayment(paymentHistory, walletUse, callback_url, res)
     } else {
-      // Default: paystack_only
-
-      return await processPaystackOnlyPayment(paymentHistory, callback_url, res)
+      // Default: flutterwave_only
+      return await processFlutterwaveOnlyPayment(paymentHistory, callback_url, res)
     }
   } catch (error) {
     console.error("❌ Payment initialization error:", error)
@@ -1010,21 +1009,21 @@ export const initializePayment = async (req, res) => {
   }
 }
 
-export const handlePaystackWebhook = async (req, res) => {
+export const handleFlutterwaveWebhook = async (req, res) => {
   try {
     const event = req.body
 
     const hash = crypto
-      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
+      .createHmac("sha512", process.env.FLUTTERWAVE_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest("hex")
 
-    if (hash !== req.headers["x-paystack-signature"]) {
+    if (hash !== req.headers["x-flutterwave-signature"]) {
       console.error("❌ Invalid webhook signature")
       return res.status(400).json({ message: "Invalid signature" })
     }
 
-    if (event.event === "charge.success") {
+    if (event.event === "charge.completed") {
       const { reference, metadata } = event.data
 
       // Find PaymentHistory by reference (not Order)
@@ -1040,7 +1039,7 @@ export const handlePaystackWebhook = async (req, res) => {
       }
 
       paymentHistory.status = "paid"
-      paymentHistory.paystackReference = reference
+      paymentHistory.flutterwaveReference = reference
       await paymentHistory.save()
 
       // Process group buys first

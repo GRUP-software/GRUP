@@ -141,7 +141,7 @@ const adminJs = new AdminJS({
           referenceId: {
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
-          paystackReference: {
+          flutterwaveReference: {
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
           userId: {
@@ -160,7 +160,7 @@ const adminJs = new AdminJS({
             type: 'number',
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
-          paystackAmount: {
+          flutterwaveAmount: {
             type: 'number',
             isVisible: { list: true, filter: true, show: true, edit: false },
           },
@@ -192,7 +192,7 @@ const adminJs = new AdminJS({
           delete: { isAccessible: false },
         },
         listProperties: ['referenceId', 'userId', 'amount', 'status', 'createdAt'],
-        showProperties: ['referenceId', 'paystackReference', 'userId', 'orderId', 'amount', 'walletUsed', 'paystackAmount', 'status', 'cartItems', 'groupBuysCreated', 'metadata', 'createdAt', 'updatedAt'],
+        showProperties: ['referenceId', 'flutterwaveReference', 'userId', 'orderId', 'amount', 'walletUsed', 'flutterwaveAmount', 'status', 'cartItems', 'groupBuysCreated', 'metadata', 'createdAt', 'updatedAt'],
         perPage: 200,
       },
     },

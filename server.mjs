@@ -367,7 +367,7 @@ const startServer = async () => {
       logger.info(`🖼️  Upload Tool: http://${HOST}:${PORT}/admin-upload.html`);
       logger.info(`📡 API Status: http://${HOST}:${PORT}/api/status`);
       logger.info(`🏥 Health Check: http://${HOST}:${PORT}/health`);
-      logger.info(`🔗 Webhook: http://${HOST}:${PORT}/api/webhook/paystack`);
+      logger.info(`🔗 Webhook: http://${HOST}:${PORT}/api/webhook/flutterwave`);
       logger.info(`👥 Group Buy: http://${HOST}:${PORT}/api/groupbuy`);
       logger.info(`🔍 Manual Review: http://${HOST}:${PORT}/api/groupbuy/manual-review`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
