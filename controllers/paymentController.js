@@ -12,55 +12,52 @@ import Product from "../models/Product.js" // Import Product model
 import { calculateBaseUnitQuantity } from "../utils/sellingUnitHelper.js"
 import config from "../config/environment.js" // Import environment configuration
 
-// Flutterwave AES encryption function
-const encryptFlutterwavePayload = (payload, encryptionKey) => {
+// Flutterwave AES-GCM encryption function (official implementation)
+const encryptFlutterwavePayload = async (payload, encryptionKey) => {
   try {
     // Validate encryption key
     if (!encryptionKey || typeof encryptionKey !== 'string') {
       throw new Error('Invalid encryption key provided');
     }
 
-    // Use the encryption key directly as provided by Flutterwave
-    // Flutterwave expects the encryption key to be used as-is
-    let key = encryptionKey;
+    // Generate a 12-character nonce as required by Flutterwave
+    const nonce = crypto.randomBytes(12).toString('base64').slice(0, 12);
     
-    // If the key is shorter than 32 bytes, pad it with zeros
-    if (key.length < 32) {
-      key = key.padEnd(32, '0');
-    } else if (key.length > 32) {
-      key = key.substring(0, 32);
-    }
-    
-    // Convert to Buffer for crypto operations
-    key = Buffer.from(key, 'utf8');
+    // Decode the base64 encryption key as per Flutterwave docs
+    const decodedKeyBytes = Buffer.from(encryptionKey, 'base64');
     
     // Debug: Log key generation details
     console.log('🔍 Encryption key generation:', {
       originalKeyLength: encryptionKey.length,
-      finalKeyLength: key.length,
-      keyType: 'Buffer'
+      decodedKeyLength: decodedKeyBytes.length,
+      nonce: nonce,
+      nonceLength: nonce.length
     });
     
-    // Create a random IV (Initialization Vector) - exactly 16 bytes for AES
-    const iv = crypto.randomBytes(16);
+    // Use Node.js crypto for AES-GCM encryption
+    const iv = Buffer.from(nonce, 'utf8');
     
-    // Create cipher using AES-256-CBC (more secure and widely supported)
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    // Create cipher using AES-256-GCM (Flutterwave standard)
+    const cipher = crypto.createCipheriv('aes-256-gcm', decodedKeyBytes, iv);
     
     // Encrypt the payload
     let encrypted = cipher.update(JSON.stringify(payload), 'utf8', 'base64');
     encrypted += cipher.final('base64');
     
+    // Get the auth tag for GCM mode
+    const authTag = cipher.getAuthTag();
+    
     // Debug: Log encryption success
     console.log('✅ Payload encrypted successfully:', {
       payloadLength: JSON.stringify(payload).length,
       encryptedLength: encrypted.length,
-      ivLength: iv.length,
-      totalLength: iv.toString('base64').length + encrypted.length
+      nonceLength: nonce.length,
+      authTagLength: authTag.length,
+      totalLength: nonce.length + encrypted.length + authTag.toString('base64').length
     });
     
-    // Return the encrypted data with IV prepended (Flutterwave format)
-    return iv.toString('base64') + encrypted;
+    // Return the encrypted data with nonce and auth tag (Flutterwave GCM format)
+    return nonce + encrypted + authTag.toString('base64');
   } catch (error) {
     console.error('❌ Encryption error:', error);
     console.error('❌ Encryption details:', {
@@ -665,7 +662,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
     }
 
     // Encrypt the payload for Flutterwave using the encryption key
-    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
+    const encryptedPayload = await encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
@@ -790,7 +787,7 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
     }
 
     // Encrypt the payload for Flutterwave using the encryption key
-    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
+    const encryptedPayload = await encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
