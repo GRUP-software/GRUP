@@ -12,6 +12,19 @@ import Product from "../models/Product.js" // Import Product model
 import { calculateBaseUnitQuantity } from "../utils/sellingUnitHelper.js"
 import config from "../config/environment.js" // Import environment configuration
 
+// Flutterwave 3DES encryption function
+const encryptFlutterwavePayload = (payload, encryptionKey) => {
+  try {
+    const cipher = crypto.createCipher('des-ede3', encryptionKey);
+    let encrypted = cipher.update(JSON.stringify(payload), 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+    return encrypted;
+  } catch (error) {
+    console.error('❌ Encryption error:', error);
+    throw new Error('Failed to encrypt payload');
+  }
+};
+
 // Import formatCartItems function from cartController
 const formatCartItems = (cartItems) => {
   return cartItems.map((item) => ({
@@ -603,13 +616,19 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
       })
     }
 
+    // Encrypt the payload for Flutterwave
+    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
+
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.FLUTTERWAVE.SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(flutterwaveData),
+      body: JSON.stringify({
+        ...flutterwaveData,
+        client: encryptedPayload
+      }),
     })
 
     if (!response.ok) {
@@ -722,13 +741,19 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
       })
     }
 
+    // Encrypt the payload for Flutterwave
+    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
+
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.FLUTTERWAVE.SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(flutterwaveData),
+      body: JSON.stringify({
+        ...flutterwaveData,
+        client: encryptedPayload
+      }),
     })
 
     if (!response.ok) {
