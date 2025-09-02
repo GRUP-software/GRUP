@@ -10,6 +10,7 @@ import { processGroupBuys } from "./paymentController.js"
 import notificationService from "../services/notificationService.js"
 import { processWalletDebit } from "../utils/walletTransactionService.js"
 import { invalidateWalletCache } from "../utils/cacheManager.js"
+import config from "../config/environment.js" // Import environment configuration
 
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
@@ -100,7 +101,7 @@ export const handleFlutterwaveWebhook = async (req, res) => {
     
     // Verify Flutterwave signature
     const hash = crypto
-      .createHmac("sha512", process.env.FLUTTERWAVE_SECRET_KEY)
+      .createHmac("sha512", config.FLUTTERWAVE_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest("hex")
 

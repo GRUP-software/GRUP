@@ -10,6 +10,7 @@ import { nanoid } from "nanoid"
 import mongoose from "mongoose"
 import Product from "../models/Product.js" // Import Product model
 import { calculateBaseUnitQuantity } from "../utils/sellingUnitHelper.js"
+import config from "../config/environment.js" // Import environment configuration
 
 // Import formatCartItems function from cartController
 const formatCartItems = (cartItems) => {
@@ -592,7 +593,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
     }
 
     // Check if Flutterwave secret key is configured
-    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+    if (!config.flutterwave.secretKey) {
       console.error("❌ FLUTTERWAVE_SECRET_KEY is not configured")
       return res.status(500).json({
         success: false,
@@ -605,7 +606,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        Authorization: `Bearer ${config.flutterwave.secretKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(flutterwaveData),
@@ -703,7 +704,7 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
     }
 
     // Check if Flutterwave secret key is configured
-    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+    if (!config.flutterwave.secretKey) {
       console.error("❌ FLUTTERWAVE_SECRET_KEY is not configured")
       return res.status(500).json({
         success: false,
@@ -716,7 +717,7 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        Authorization: `Bearer ${config.flutterwave.secretKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(flutterwaveData),
@@ -1014,7 +1015,7 @@ export const handleFlutterwaveWebhook = async (req, res) => {
     const event = req.body
 
     const hash = crypto
-      .createHmac("sha512", process.env.FLUTTERWAVE_SECRET_KEY)
+      .createHmac("sha512", config.flutterwave.secretKey)
       .update(JSON.stringify(req.body))
       .digest("hex")
 
@@ -1136,7 +1137,7 @@ export const verifyPayment = async (req, res) => {
     // Verify with Flutterwave
     const flutterwaveResponse = await fetch(`https://api.flutterwave.com/v3/transactions/${reference}/verify`, {
       headers: {
-        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        Authorization: `Bearer ${config.flutterwave.secretKey}`,
       },
     })
 
