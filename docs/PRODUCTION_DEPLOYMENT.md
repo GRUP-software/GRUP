@@ -38,9 +38,10 @@ CLOUDINARY_API_KEY=946915641663984
 CLOUDINARY_API_SECRET=MU6_2U6tpzbJ-VbnqfQ-_OEQeWc
 CLOUDINARY_FOLDER=grup
 
-# Paystack (Use production keys)
-PAYSTACK_SECRET_KEY=sk_live_your_production_key
-PAYSTACK_PUBLIC_KEY=pk_live_your_production_key
+# Flutterwave (Use production keys)
+FLUTTERWAVE_SECRET_KEY=FLWSECK_your_production_key
+FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_your_production_key
+FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_your_encryption_key
 
 # Frontend URL (Your production domain)
 SOCKET_CORS_ORIGIN=https://your-domain.com
@@ -68,7 +69,7 @@ Update your frontend to point to your production backend:
 
 ```javascript
 // In your frontend configuration
-const API_BASE_URL = 'https://your-backend-domain.com/api';
+const API_BASE_URL = "https://your-backend-domain.com/api";
 ```
 
 ## 📤 Uploading Images in Production
@@ -114,6 +115,7 @@ You can also upload directly to Cloudinary using their dashboard:
 Visit: `https://your-domain.com/api/upload/info`
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -149,10 +151,12 @@ Add these headers to your production server:
 ```javascript
 // Security headers
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  }),
+);
 ```
 
 ## 📊 Monitoring and Maintenance
@@ -185,6 +189,7 @@ grep "cloudinary" /var/log/your-app.log
 If you need to move images from development to production:
 
 1. **Export from Cloudinary:**
+
    ```bash
    # Use Cloudinary CLI or API to download images
    cloudinary download grup/development/ --folder grup/production/
@@ -195,7 +200,17 @@ If you need to move images from development to production:
    // Update UploadedImage records with new URLs
    db.uploadedimages.updateMany(
      { url: /development/ },
-     { $set: { url: { $replaceAll: { input: "$url", find: "development", replacement: "production" } } } }
+     {
+       $set: {
+         url: {
+           $replaceAll: {
+             input: "$url",
+             find: "development",
+             replacement: "production",
+           },
+         },
+       },
+     },
    );
    ```
 
@@ -204,16 +219,19 @@ If you need to move images from development to production:
 ### Common Production Issues
 
 **Issue:** Images not uploading
+
 - **Check:** Cloudinary credentials in environment variables
 - **Check:** Network connectivity to Cloudinary
 - **Check:** File size limits (10MB max)
 
 **Issue:** 401 Unauthorized errors
+
 - **Check:** JWT token validity
 - **Check:** Admin authentication
 - **Check:** CORS configuration
 
 **Issue:** Images not appearing in admin panel
+
 - **Check:** Database connection
 - **Check:** UploadedImage model creation
 - **Check:** Admin panel permissions
@@ -241,7 +259,3 @@ Before going live:
 ---
 
 **🎯 Your production setup is now ready! Images will automatically be stored in the `grup/production/` folder and will be completely separate from your development images.**
-
-
-
-

@@ -1,5 +1,5 @@
-import { v2 as cloudinary } from 'cloudinary';
-import config from '../config/environment.js';
+import { v2 as cloudinary } from "cloudinary";
+import config from "../config/environment.js";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -30,13 +30,10 @@ class CloudinaryService {
     try {
       const uploadOptions = {
         folder: this.folder,
-        resource_type: 'image',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-        transformation: [
-          { quality: 'auto:good' },
-          { fetch_format: 'auto' }
-        ],
-        ...options
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+        transformation: [{ quality: "auto:good" }, { fetch_format: "auto" }],
+        ...options,
       };
 
       if (publicId) {
@@ -44,9 +41,9 @@ class CloudinaryService {
       }
 
       const result = await cloudinary.uploader.upload(file, uploadOptions);
-      
+
       console.log(`✅ Image uploaded successfully: ${result.public_id}`);
-      
+
       return {
         success: true,
         public_id: result.public_id,
@@ -55,10 +52,10 @@ class CloudinaryService {
         height: result.height,
         format: result.format,
         bytes: result.bytes,
-        folder: result.folder
+        folder: result.folder,
       };
     } catch (error) {
-      console.error('❌ Cloudinary upload error:', error);
+      console.error("❌ Cloudinary upload error:", error);
       throw new Error(`Failed to upload image: ${error.message}`);
     }
   }
@@ -79,10 +76,10 @@ class CloudinaryService {
 
       const results = await Promise.all(uploadPromises);
       console.log(`✅ ${results.length} images uploaded successfully`);
-      
+
       return results;
     } catch (error) {
-      console.error('❌ Multiple images upload error:', error);
+      console.error("❌ Multiple images upload error:", error);
       throw new Error(`Failed to upload multiple images: ${error.message}`);
     }
   }
@@ -95,15 +92,15 @@ class CloudinaryService {
   async deleteImage(publicId) {
     try {
       const result = await cloudinary.uploader.destroy(publicId);
-      
-      if (result.result === 'ok') {
+
+      if (result.result === "ok") {
         console.log(`✅ Image deleted successfully: ${publicId}`);
-        return { success: true, message: 'Image deleted successfully' };
+        return { success: true, message: "Image deleted successfully" };
       } else {
         throw new Error(`Failed to delete image: ${result.result}`);
       }
     } catch (error) {
-      console.error('❌ Cloudinary delete error:', error);
+      console.error("❌ Cloudinary delete error:", error);
       throw new Error(`Failed to delete image: ${error.message}`);
     }
   }
@@ -115,13 +112,15 @@ class CloudinaryService {
    */
   async deleteMultipleImages(publicIds) {
     try {
-      const deletePromises = publicIds.map(publicId => this.deleteImage(publicId));
+      const deletePromises = publicIds.map((publicId) =>
+        this.deleteImage(publicId),
+      );
       const results = await Promise.all(deletePromises);
-      
+
       console.log(`✅ ${results.length} images deleted successfully`);
       return results;
     } catch (error) {
-      console.error('❌ Multiple images delete error:', error);
+      console.error("❌ Multiple images delete error:", error);
       throw new Error(`Failed to delete multiple images: ${error.message}`);
     }
   }
@@ -134,19 +133,16 @@ class CloudinaryService {
   generateUploadPreset(options = {}) {
     const presetOptions = {
       folder: this.folder,
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-      transformation: [
-        { quality: 'auto:good' },
-        { fetch_format: 'auto' }
-      ],
-      ...options
+      allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+      transformation: [{ quality: "auto:good" }, { fetch_format: "auto" }],
+      ...options,
     };
 
     return {
       cloud_name: cloudinary.config().cloud_name,
-      upload_preset: 'grup_upload_preset', // You'll need to create this in Cloudinary dashboard
+      upload_preset: "grup_upload_preset", // You'll need to create this in Cloudinary dashboard
       folder: this.folder,
-      options: presetOptions
+      options: presetOptions,
     };
   }
 
@@ -159,7 +155,7 @@ class CloudinaryService {
   getImageUrl(publicId, transformations = {}) {
     return cloudinary.url(publicId, {
       secure: true,
-      ...transformations
+      ...transformations,
     });
   }
 
@@ -171,7 +167,7 @@ class CloudinaryService {
     return {
       cloud_name: cloudinary.config().cloud_name,
       folder: this.folder,
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || "development",
     };
   }
 }

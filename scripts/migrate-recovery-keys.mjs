@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import User from '../models/User.js';
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import User from "../models/User.js";
 
 // Load environment variables
 dotenv.config();
@@ -9,21 +9,23 @@ async function migrateRecoveryKeys() {
   try {
     // Connect to database
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to database');
+    console.log("✅ Connected to database");
 
     // Find users without secret recovery key
     const usersWithoutRecoveryKey = await User.find({
       $or: [
         { secretRecoveryKey: { $exists: false } },
         { secretRecoveryKey: null },
-        { secretRecoveryKey: '' }
-      ]
+        { secretRecoveryKey: "" },
+      ],
     });
 
-    console.log(`📊 Found ${usersWithoutRecoveryKey.length} users without secret recovery key`);
+    console.log(
+      `📊 Found ${usersWithoutRecoveryKey.length} users without secret recovery key`,
+    );
 
     if (usersWithoutRecoveryKey.length === 0) {
-      console.log('✅ All users already have secret recovery keys');
+      console.log("✅ All users already have secret recovery keys");
       return;
     }
 
@@ -31,24 +33,25 @@ async function migrateRecoveryKeys() {
     // In a real scenario, you might want to force these users to set their own
     for (const user of usersWithoutRecoveryKey) {
       // Generate a temporary recovery key based on user's email and a timestamp
-      const tempRecoveryKey = `temp_${user.email.split('@')[0]}_${Date.now()}`;
-      
+      const tempRecoveryKey = `temp_${user.email.split("@")[0]}_${Date.now()}`;
+
       // Update user with temporary recovery key
       await User.findByIdAndUpdate(user._id, {
-        secretRecoveryKey: tempRecoveryKey
+        secretRecoveryKey: tempRecoveryKey,
       });
 
       console.log(`✅ Set temporary recovery key for ${user.email}`);
     }
 
-    console.log('✅ Migration completed successfully');
-    console.log('⚠️  IMPORTANT: Users with temporary recovery keys should be prompted to set their own recovery key on next login');
-
+    console.log("✅ Migration completed successfully");
+    console.log(
+      "⚠️  IMPORTANT: Users with temporary recovery keys should be prompted to set their own recovery key on next login",
+    );
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
+    console.error("❌ Migration failed:", error.message);
   } finally {
     await mongoose.disconnect();
-    console.log('✅ Disconnected from database');
+    console.log("✅ Disconnected from database");
   }
 }
 

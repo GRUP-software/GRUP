@@ -1,34 +1,48 @@
-import Product from "../models/Product.js"
-import Order from "../models/order.js"
-import mongoose from "mongoose" // Declare mongoose variable
+import Product from "../models/Product.js";
+import Order from "../models/order.js";
+import mongoose from "mongoose"; // Declare mongoose variable
 
 // AI-powered product recommendations
 export const getRecommendations = async (req, res) => {
   try {
-    const userId = req.user.id
+    const userId = req.user.id;
 
     // Get user's purchase history
     const userOrders = await Order.find({
       user: userId,
       paymentStatus: "paid",
-    }).populate("items.product")
+    }).populate("items.product");
 
-    const purchasedProducts = userOrders.flatMap((order) => order.items.map((item) => item.product._id.toString()))
+    const purchasedProducts = userOrders.flatMap((order) =>
+      order.items.map((item) => item.product._id.toString()),
+    );
 
     const purchasedCategories = [
-      ...new Set(userOrders.flatMap((order) => order.items.map((item) => item.product.category))),
-    ]
+      ...new Set(
+        userOrders.flatMap((order) =>
+          order.items.map((item) => item.product.category),
+        ),
+      ),
+    ];
 
     // Find similar users (collaborative filtering)
     const similarUsers = await Order.aggregate([
       { $match: { paymentStatus: "paid", user: { $ne: userId } } },
       { $unwind: "$items" },
-      { $match: { "items.product": { $in: purchasedProducts.map((id) => new mongoose.Types.ObjectId(id)) } } },
+      {
+        $match: {
+          "items.product": {
+            $in: purchasedProducts.map((id) => new mongoose.Types.ObjectId(id)),
+          },
+        },
+      },
       {
         $group: {
           _id: "$user",
           commonProducts: { $addToSet: "$items.product" },
-          totalSpent: { $sum: { $multiply: ["$items.quantity", "$items.price"] } },
+          totalSpent: {
+            $sum: { $multiply: ["$items.quantity", "$items.price"] },
+          },
         },
       },
       {
@@ -38,14 +52,22 @@ export const getRecommendations = async (req, res) => {
       },
       { $sort: { similarity: -1 } },
       { $limit: 10 },
-    ])
+    ]);
 
     // Get products bought by similar users
-    const similarUserIds = similarUsers.map((user) => user._id)
+    const similarUserIds = similarUsers.map((user) => user._id);
     const recommendedFromSimilar = await Order.aggregate([
       { $match: { user: { $in: similarUserIds }, paymentStatus: "paid" } },
       { $unwind: "$items" },
-      { $match: { "items.product": { $nin: purchasedProducts.map((id) => new mongoose.Types.ObjectId(id)) } } },
+      {
+        $match: {
+          "items.product": {
+            $nin: purchasedProducts.map(
+              (id) => new mongoose.Types.ObjectId(id),
+            ),
+          },
+        },
+      },
       {
         $group: {
           _id: "$items.product",
@@ -55,7 +77,14 @@ export const getRecommendations = async (req, res) => {
       },
       { $sort: { score: -1 } },
       { $limit: 5 },
-      { $lookup: { from: "products", localField: "_id", foreignField: "_id", as: "product" } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
       { $unwind: "$product" },
       {
         $project: {
@@ -64,7 +93,7 @@ export const getRecommendations = async (req, res) => {
           reason: "Users with similar purchases also bought this",
         },
       },
-    ])
+    ]);
 
     // Category-based recommendations
     const categoryRecommendations = await Product.find({
@@ -73,11 +102,19 @@ export const getRecommendations = async (req, res) => {
       stock: { $gt: 0 },
     })
       .limit(5)
-      .lean()
+      .lean();
 
     // Trending products (high group activity)
     const trendingProducts = await Product.aggregate([
-      { $match: { _id: { $nin: purchasedProducts.map((id) => new mongoose.Types.ObjectId(id)) } } },
+      {
+        $match: {
+          _id: {
+            $nin: purchasedProducts.map(
+              (id) => new mongoose.Types.ObjectId(id),
+            ),
+          },
+        },
+      },
       {
         $lookup: {
           from: "groupbuys",
@@ -87,7 +124,9 @@ export const getRecommendations = async (req, res) => {
               $match: {
                 $expr: { $eq: ["$productId", "$$productId"] },
                 status: "forming",
-                createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+                createdAt: {
+                  $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                },
               },
             },
             { $count: "count" },
@@ -97,7 +136,9 @@ export const getRecommendations = async (req, res) => {
       },
       {
         $addFields: {
-          groupActivity: { $ifNull: [{ $arrayElemAt: ["$recentGroups.count", 0] }, 0] },
+          groupActivity: {
+            $ifNull: [{ $arrayElemAt: ["$recentGroups.count", 0] }, 0],
+          },
         },
       },
       { $match: { groupActivity: { $gt: 0 } } },
@@ -110,15 +151,15 @@ export const getRecommendations = async (req, res) => {
           reason: "Trending - High group purchase activity",
         },
       },
-    ])
+    ]);
 
     // Seasonal recommendations (mock - you can enhance with real seasonal data)
-    const currentMonth = new Date().getMonth()
+    const currentMonth = new Date().getMonth();
     const seasonalCategories = {
       0: ["Vegetables", "Fruits"], // January
       1: ["Vegetables", "Fruits"], // February
       // ... add more seasonal mappings
-    }
+    };
 
     const recommendations = {
       collaborative: recommendedFromSimilar,
@@ -130,14 +171,17 @@ export const getRecommendations = async (req, res) => {
       trending: trendingProducts,
       personalized: true,
       timestamp: new Date().toISOString(),
-    }
+    };
 
-    res.json(recommendations)
+    res.json(recommendations);
   } catch (error) {
-    console.error("Recommendations error:", error)
-    res.status(500).json({ message: "Error generating recommendations", error: error.message })
+    console.error("Recommendations error:", error);
+    res.status(500).json({
+      message: "Error generating recommendations",
+      error: error.message,
+    });
   }
-}
+};
 
 // Smart inventory alerts
 export const getInventoryAlerts = async (req, res) => {
@@ -160,10 +204,14 @@ export const getInventoryAlerts = async (req, res) => {
             {
               $match: {
                 $expr: { $eq: ["$items.product", "$$productId"] },
-                createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+                createdAt: {
+                  $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                },
               },
             },
-            { $group: { _id: null, weeklyDemand: { $sum: "$items.quantity" } } },
+            {
+              $group: { _id: null, weeklyDemand: { $sum: "$items.quantity" } },
+            },
           ],
           as: "demand",
         },
@@ -173,15 +221,26 @@ export const getInventoryAlerts = async (req, res) => {
           activeGroupDemand: {
             $sum: {
               $map: {
-                input: { $filter: { input: "$activeGroups", cond: { $eq: ["$$this.status", "forming"] } } },
+                input: {
+                  $filter: {
+                    input: "$activeGroups",
+                    cond: { $eq: ["$$this.status", "forming"] },
+                  },
+                },
                 as: "group",
                 in: "$$group.currentQty",
               },
             },
           },
-          weeklyDemand: { $ifNull: [{ $arrayElemAt: ["$demand.weeklyDemand", 0] }, 0] },
+          weeklyDemand: {
+            $ifNull: [{ $arrayElemAt: ["$demand.weeklyDemand", 0] }, 0],
+          },
           daysUntilStockout: {
-            $cond: [{ $gt: ["$weeklyDemand", 0] }, { $divide: [{ $multiply: ["$stock", 7] }, "$weeklyDemand"] }, 999],
+            $cond: [
+              { $gt: ["$weeklyDemand", 0] },
+              { $divide: [{ $multiply: ["$stock", 7] }, "$weeklyDemand"] },
+              999,
+            ],
           },
         },
       },
@@ -208,7 +267,12 @@ export const getInventoryAlerts = async (req, res) => {
               "LOW_STOCK",
               {
                 $cond: [
-                  { $gte: ["$activeGroupDemand", { $multiply: ["$stock", 0.8] }] },
+                  {
+                    $gte: [
+                      "$activeGroupDemand",
+                      { $multiply: ["$stock", 0.8] },
+                    ],
+                  },
                   "HIGH_GROUP_DEMAND",
                   "PREDICTED_STOCKOUT",
                 ],
@@ -227,7 +291,7 @@ export const getInventoryAlerts = async (req, res) => {
         },
       },
       { $sort: { severity: 1, daysUntilStockout: 1 } },
-    ])
+    ]);
 
     res.json({
       alerts,
@@ -237,9 +301,12 @@ export const getInventoryAlerts = async (req, res) => {
         medium: alerts.filter((a) => a.severity === "MEDIUM").length,
       },
       timestamp: new Date().toISOString(),
-    })
+    });
   } catch (error) {
-    console.error("Inventory alerts error:", error)
-    res.status(500).json({ message: "Error fetching inventory alerts", error: error.message })
+    console.error("Inventory alerts error:", error);
+    res.status(500).json({
+      message: "Error fetching inventory alerts",
+      error: error.message,
+    });
   }
-}
+};

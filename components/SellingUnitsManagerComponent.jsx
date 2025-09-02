@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
 const SellingUnitsManagerComponent = (props) => {
-  const { onChange, property, record } = props
+  const { onChange, property, record } = props;
   const sellingUnits = record.params[property.path] || {
     enabled: false,
     baseUnit: "",
     baseUnitName: "",
     baseUnitPrice: 0,
     options: [],
-  }
+  };
 
   const handleToggleEnabled = () => {
-    const updated = { ...sellingUnits, enabled: !sellingUnits.enabled }
-    onChange(property.path, updated)
-  }
+    const updated = { ...sellingUnits, enabled: !sellingUnits.enabled };
+    onChange(property.path, updated);
+  };
 
   const handleBaseConfigChange = (field, value) => {
-    const updated = { ...sellingUnits, [field]: value }
-    onChange(property.path, updated)
-  }
+    const updated = { ...sellingUnits, [field]: value };
+    onChange(property.path, updated);
+  };
 
   const handleAddOption = () => {
     const newOption = {
@@ -30,33 +30,33 @@ const SellingUnitsManagerComponent = (props) => {
       image: "",
       description: "",
       isActive: true,
-    }
+    };
     const updated = {
       ...sellingUnits,
       options: [...sellingUnits.options, newOption],
-    }
-    onChange(property.path, updated)
-  }
+    };
+    onChange(property.path, updated);
+  };
 
   const handleOptionChange = (index, field, value) => {
-    const updatedOptions = [...sellingUnits.options]
-    updatedOptions[index][field] = value
-    const updated = { ...sellingUnits, options: updatedOptions }
-    onChange(property.path, updated)
-  }
+    const updatedOptions = [...sellingUnits.options];
+    updatedOptions[index][field] = value;
+    const updated = { ...sellingUnits, options: updatedOptions };
+    onChange(property.path, updated);
+  };
 
   const handleRemoveOption = (index) => {
-    const updatedOptions = sellingUnits.options.filter((_, i) => i !== index)
-    const updated = { ...sellingUnits, options: updatedOptions }
-    onChange(property.path, updated)
-  }
+    const updatedOptions = sellingUnits.options.filter((_, i) => i !== index);
+    const updated = { ...sellingUnits, options: updatedOptions };
+    onChange(property.path, updated);
+  };
 
   const calculatePrice = (option) => {
     if (option.priceType === "manual" && option.customPrice > 0) {
-      return option.customPrice
+      return option.customPrice;
     }
-    return (sellingUnits.baseUnitPrice || 0) * (option.baseUnitQuantity || 1)
-  }
+    return (sellingUnits.baseUnitPrice || 0) * (option.baseUnitQuantity || 1);
+  };
 
   return (
     <div style={{ marginBottom: "1rem" }}>
@@ -70,21 +70,37 @@ const SellingUnitsManagerComponent = (props) => {
           marginBottom: "15px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <div>
-            <h4 style={{ margin: "0 0 5px 0", color: "#0056b3" }}>📦 Selling Units Manager</h4>
+            <h4 style={{ margin: "0 0 5px 0", color: "#0056b3" }}>
+              📦 Selling Units Manager
+            </h4>
             <p style={{ margin: "0", fontSize: "13px", color: "#495057" }}>
-              Configure different quantity options with base unit calculations (e.g., 1 Paint, Half Bag, Full Bag)
+              Configure different quantity options with base unit calculations
+              (e.g., 1 Paint, Half Bag, Full Bag)
             </p>
           </div>
-          <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+          <label
+            style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+          >
             <input
               type="checkbox"
               checked={sellingUnits.enabled}
               onChange={handleToggleEnabled}
               style={{ marginRight: "8px", transform: "scale(1.2)" }}
             />
-            <span style={{ fontWeight: "bold", color: sellingUnits.enabled ? "#28a745" : "#6c757d" }}>
+            <span
+              style={{
+                fontWeight: "bold",
+                color: sellingUnits.enabled ? "#28a745" : "#6c757d",
+              }}
+            >
               {sellingUnits.enabled ? "Enabled" : "Disabled"}
             </span>
           </label>
@@ -102,10 +118,12 @@ const SellingUnitsManagerComponent = (props) => {
           }}
         >
           <div style={{ fontSize: "48px", marginBottom: "15px" }}>⚖️</div>
-          <h4 style={{ color: "#666", marginBottom: "10px" }}>Selling Units Disabled</h4>
+          <h4 style={{ color: "#666", marginBottom: "10px" }}>
+            Selling Units Disabled
+          </h4>
           <p style={{ color: "#888", fontSize: "14px", marginBottom: "20px" }}>
-            Enable selling units to offer different quantity options like "1 Paint", "Half Bag", "Full Bag" with base
-            unit calculations
+            Enable selling units to offer different quantity options like "1
+            Paint", "Half Bag", "Full Bag" with base unit calculations
           </p>
           <button
             type="button"
@@ -135,17 +153,35 @@ const SellingUnitsManagerComponent = (props) => {
               backgroundColor: "#f8fff8",
             }}
           >
-            <h5 style={{ margin: "0 0 15px 0", color: "#28a745" }}>⚙️ Base Unit Configuration</h5>
+            <h5 style={{ margin: "0 0 15px 0", color: "#28a745" }}>
+              ⚙️ Base Unit Configuration
+            </h5>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px", marginBottom: "15px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "15px",
+                marginBottom: "15px",
+              }}
+            >
               <div>
-                <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "5px",
+                    fontWeight: "bold",
+                    fontSize: "13px",
+                  }}
+                >
                   Base Unit (Plural) *
                 </label>
                 <input
                   type="text"
                   value={sellingUnits.baseUnit || ""}
-                  onChange={(e) => handleBaseConfigChange("baseUnit", e.target.value)}
+                  onChange={(e) =>
+                    handleBaseConfigChange("baseUnit", e.target.value)
+                  }
                   placeholder="e.g., paints, 250g portions, pieces"
                   style={{
                     width: "100%",
@@ -158,13 +194,22 @@ const SellingUnitsManagerComponent = (props) => {
               </div>
 
               <div>
-                <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "5px",
+                    fontWeight: "bold",
+                    fontSize: "13px",
+                  }}
+                >
                   Base Unit Name (Singular) *
                 </label>
                 <input
                   type="text"
                   value={sellingUnits.baseUnitName || ""}
-                  onChange={(e) => handleBaseConfigChange("baseUnitName", e.target.value)}
+                  onChange={(e) =>
+                    handleBaseConfigChange("baseUnitName", e.target.value)
+                  }
                   placeholder="e.g., paint, 250g portion, piece"
                   style={{
                     width: "100%",
@@ -178,13 +223,25 @@ const SellingUnitsManagerComponent = (props) => {
             </div>
 
             <div>
-              <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "5px",
+                  fontWeight: "bold",
+                  fontSize: "13px",
+                }}
+              >
                 Base Unit Price (₦) *
               </label>
               <input
                 type="number"
                 value={sellingUnits.baseUnitPrice || 0}
-                onChange={(e) => handleBaseConfigChange("baseUnitPrice", Number.parseFloat(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleBaseConfigChange(
+                    "baseUnitPrice",
+                    Number.parseFloat(e.target.value) || 0,
+                  )
+                }
                 placeholder="Price per base unit"
                 style={{
                   width: "200px",
@@ -194,16 +251,26 @@ const SellingUnitsManagerComponent = (props) => {
                   fontSize: "13px",
                 }}
               />
-              <small style={{ display: "block", color: "#666", fontSize: "11px", marginTop: "3px" }}>
-                This is the price for 1 {sellingUnits.baseUnitName || "base unit"}. All calculations will be based on
-                this.
+              <small
+                style={{
+                  display: "block",
+                  color: "#666",
+                  fontSize: "11px",
+                  marginTop: "3px",
+                }}
+              >
+                This is the price for 1{" "}
+                {sellingUnits.baseUnitName || "base unit"}. All calculations
+                will be based on this.
               </small>
             </div>
           </div>
 
           {/* Selling Options */}
           <div>
-            <h5 style={{ margin: "0 0 15px 0", color: "#333" }}>🛒 Selling Options</h5>
+            <h5 style={{ margin: "0 0 15px 0", color: "#333" }}>
+              🛒 Selling Options
+            </h5>
 
             {sellingUnits.options.length === 0 ? (
               <div
@@ -217,7 +284,9 @@ const SellingUnitsManagerComponent = (props) => {
                 }}
               >
                 <div style={{ fontSize: "36px", marginBottom: "10px" }}>🛍️</div>
-                <p style={{ color: "#666", marginBottom: "15px" }}>No selling options added yet</p>
+                <p style={{ color: "#666", marginBottom: "15px" }}>
+                  No selling options added yet
+                </p>
                 <button
                   type="button"
                   onClick={handleAddOption}
@@ -256,13 +325,33 @@ const SellingUnitsManagerComponent = (props) => {
                         marginBottom: "15px",
                       }}
                     >
-                      <h6 style={{ margin: 0, color: "#333" }}>🏷️ Option #{index + 1}</h6>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <label style={{ display: "flex", alignItems: "center", fontSize: "12px" }}>
+                      <h6 style={{ margin: 0, color: "#333" }}>
+                        🏷️ Option #{index + 1}
+                      </h6>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                        }}
+                      >
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            fontSize: "12px",
+                          }}
+                        >
                           <input
                             type="checkbox"
                             checked={option.isActive}
-                            onChange={(e) => handleOptionChange(index, "isActive", e.target.checked)}
+                            onChange={(e) =>
+                              handleOptionChange(
+                                index,
+                                "isActive",
+                                e.target.checked,
+                              )
+                            }
                             style={{ marginRight: "5px" }}
                           />
                           Active
@@ -285,15 +374,31 @@ const SellingUnitsManagerComponent = (props) => {
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px", marginBottom: "15px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "15px",
+                        marginBottom: "15px",
+                      }}
+                    >
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
                           Option Name *
                         </label>
                         <input
                           type="text"
                           value={option.name || ""}
-                          onChange={(e) => handleOptionChange(index, "name", e.target.value)}
+                          onChange={(e) =>
+                            handleOptionChange(index, "name", e.target.value)
+                          }
                           placeholder="e.g., 1_paint, half_bag, full_bag"
                           style={{
                             width: "100%",
@@ -306,13 +411,26 @@ const SellingUnitsManagerComponent = (props) => {
                       </div>
 
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
                           Display Name *
                         </label>
                         <input
                           type="text"
                           value={option.displayName || ""}
-                          onChange={(e) => handleOptionChange(index, "displayName", e.target.value)}
+                          onChange={(e) =>
+                            handleOptionChange(
+                              index,
+                              "displayName",
+                              e.target.value,
+                            )
+                          }
                           placeholder="e.g., 1 Paint, Half Bag, Full Bag"
                           style={{
                             width: "100%",
@@ -326,17 +444,33 @@ const SellingUnitsManagerComponent = (props) => {
                     </div>
 
                     <div
-                      style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px", marginBottom: "15px" }}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gap: "15px",
+                        marginBottom: "15px",
+                      }}
                     >
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
                           Base Unit Quantity *
                         </label>
                         <input
                           type="number"
                           value={option.baseUnitQuantity || 1}
                           onChange={(e) =>
-                            handleOptionChange(index, "baseUnitQuantity", Number.parseInt(e.target.value) || 1)
+                            handleOptionChange(
+                              index,
+                              "baseUnitQuantity",
+                              Number.parseInt(e.target.value) || 1,
+                            )
                           }
                           placeholder="1"
                           min="1"
@@ -354,12 +488,25 @@ const SellingUnitsManagerComponent = (props) => {
                       </div>
 
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
                           Pricing Type
                         </label>
                         <select
                           value={option.priceType || "calculated"}
-                          onChange={(e) => handleOptionChange(index, "priceType", e.target.value)}
+                          onChange={(e) =>
+                            handleOptionChange(
+                              index,
+                              "priceType",
+                              e.target.value,
+                            )
+                          }
                           style={{
                             width: "100%",
                             padding: "8px",
@@ -374,15 +521,28 @@ const SellingUnitsManagerComponent = (props) => {
                       </div>
 
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
-                          {option.priceType === "manual" ? "Custom Price (₦)" : "Calculated Price (₦)"}
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
+                          {option.priceType === "manual"
+                            ? "Custom Price (₦)"
+                            : "Calculated Price (₦)"}
                         </label>
                         {option.priceType === "manual" ? (
                           <input
                             type="number"
                             value={option.customPrice || 0}
                             onChange={(e) =>
-                              handleOptionChange(index, "customPrice", Number.parseFloat(e.target.value) || 0)
+                              handleOptionChange(
+                                index,
+                                "customPrice",
+                                Number.parseFloat(e.target.value) || 0,
+                              )
                             }
                             placeholder="Enter custom price"
                             style={{
@@ -410,15 +570,30 @@ const SellingUnitsManagerComponent = (props) => {
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "15px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 2fr",
+                        gap: "15px",
+                      }}
+                    >
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
                           Option Image URL
                         </label>
                         <input
                           type="text"
                           value={option.image || ""}
-                          onChange={(e) => handleOptionChange(index, "image", e.target.value)}
+                          onChange={(e) =>
+                            handleOptionChange(index, "image", e.target.value)
+                          }
                           placeholder="https://example.com/image.jpg"
                           style={{
                             width: "100%",
@@ -431,13 +606,26 @@ const SellingUnitsManagerComponent = (props) => {
                       </div>
 
                       <div>
-                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "13px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "5px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
                           Description (Optional)
                         </label>
                         <input
                           type="text"
                           value={option.description || ""}
-                          onChange={(e) => handleOptionChange(index, "description", e.target.value)}
+                          onChange={(e) =>
+                            handleOptionChange(
+                              index,
+                              "description",
+                              e.target.value,
+                            )
+                          }
                           placeholder="Brief description of this option"
                           style={{
                             width: "100%",
@@ -460,11 +648,21 @@ const SellingUnitsManagerComponent = (props) => {
                         borderRadius: "4px",
                       }}
                     >
-                      <strong style={{ fontSize: "12px", color: "#495057" }}>Preview:</strong>
-                      <div style={{ fontSize: "13px", color: "#6c757d", marginTop: "5px" }}>
-                        Customer sees: "{option.displayName}" (₦{calculatePrice(option).toLocaleString()})
+                      <strong style={{ fontSize: "12px", color: "#495057" }}>
+                        Preview:
+                      </strong>
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          color: "#6c757d",
+                          marginTop: "5px",
+                        }}
+                      >
+                        Customer sees: "{option.displayName}" (₦
+                        {calculatePrice(option).toLocaleString()})
                         <br />
-                        Cart shows: "{option.displayName} ({option.baseUnitQuantity} {sellingUnits.baseUnitName}
+                        Cart shows: "{option.displayName} (
+                        {option.baseUnitQuantity} {sellingUnits.baseUnitName}
                         {option.baseUnitQuantity > 1 ? "s" : ""})"
                       </div>
                     </div>
@@ -509,24 +707,28 @@ const SellingUnitsManagerComponent = (props) => {
         <strong>💡 How Selling Units Work:</strong>
         <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
           <li>
-            <strong>Base Unit:</strong> The smallest purchaseable unit (e.g., "paint", "250g portion")
+            <strong>Base Unit:</strong> The smallest purchaseable unit (e.g.,
+            "paint", "250g portion")
           </li>
           <li>
-            <strong>Selling Options:</strong> Different quantities customers can buy (e.g., "Half Bag" = 6 paints)
+            <strong>Selling Options:</strong> Different quantities customers can
+            buy (e.g., "Half Bag" = 6 paints)
           </li>
           <li>
             <strong>Auto Calculate:</strong> Price = Base Unit Price × Quantity
           </li>
           <li>
-            <strong>Manual Price:</strong> Set custom price regardless of calculation
+            <strong>Manual Price:</strong> Set custom price regardless of
+            calculation
           </li>
           <li>
-            <strong>Cart Display:</strong> Shows both user selection and base unit equivalent
+            <strong>Cart Display:</strong> Shows both user selection and base
+            unit equivalent
           </li>
         </ul>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SellingUnitsManagerComponent
+export default SellingUnitsManagerComponent;

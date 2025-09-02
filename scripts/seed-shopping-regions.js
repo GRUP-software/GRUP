@@ -1,17 +1,15 @@
-import mongoose from "mongoose"
-import ShoppingRegion from "../models/ShoppingRegion.js"
-import dotenv from "dotenv"
+import mongoose from "mongoose";
+import ShoppingRegion from "../models/ShoppingRegion.js";
+import dotenv from "dotenv";
 
-dotenv.config()
+dotenv.config();
 
 const seedShoppingRegions = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI)
+    await mongoose.connect(process.env.MONGO_URI);
 
-    
-    await ShoppingRegion.deleteMany({})
+    await ShoppingRegion.deleteMany({});
 
-    
     const regions = [
       {
         name: "lagos",
@@ -114,16 +112,16 @@ const seedShoppingRegions = async () => {
           cashOnDelivery: true,
         },
       },
-    ]
+    ];
 
-    await ShoppingRegion.insertMany(regions)
-    console.log(" Shopping regions seeded successfully")
+    await ShoppingRegion.insertMany(regions);
+    console.log(" Shopping regions seeded successfully");
 
-    process.exit(0)
+    process.exit(0);
   } catch (err) {
-    console.error("Error seeding shopping regions:", err)
-    process.exit(1)
+    console.error("Error seeding shopping regions:", err);
+    process.exit(1);
   }
-}
+};
 
-seedShoppingRegions()
+seedShoppingRegions();

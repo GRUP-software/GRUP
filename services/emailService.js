@@ -1,14 +1,14 @@
-import nodemailer from 'nodemailer';
-import config from '../config/environment.js';
-import logger from '../utils/logger.js';
+import nodemailer from "nodemailer";
+import config from "../config/environment.js";
+import logger from "../utils/logger.js";
 
 class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
     // Initialize email service without blocking the main application
-    this.init().catch(error => {
-      logger.error('❌ Email service initialization failed:', error);
+    this.init().catch((error) => {
+      logger.error("❌ Email service initialization failed:", error);
       this.isConfigured = false;
     });
   }
@@ -17,7 +17,7 @@ class EmailService {
     try {
       // Temporarily disable email service to prevent connection errors
       // Uncomment the code below when you have valid email credentials
-      
+
       /*
       // Check if email configuration is available and not empty
       if (config.EMAIL.HOST && config.EMAIL.USER && config.EMAIL.PASS && 
@@ -44,13 +44,14 @@ class EmailService {
         this.isConfigured = false;
       }
       */
-      
+
       // For now, just disable email service
-      logger.info('ℹ️ Email service temporarily disabled - in-app notifications only');
+      logger.info(
+        "ℹ️ Email service temporarily disabled - in-app notifications only",
+      );
       this.isConfigured = false;
-      
     } catch (error) {
-      logger.error('❌ Email service configuration failed:', error);
+      logger.error("❌ Email service configuration failed:", error);
       this.isConfigured = false;
     }
   }
@@ -58,12 +59,12 @@ class EmailService {
   async sendEmail(to, subject, htmlContent, textContent = null) {
     if (!this.isConfigured || !this.transporter) {
       logger.warn(`📧 Email not sent to ${to} - email service not configured`);
-      return { success: false, message: 'Email service not configured' };
+      return { success: false, message: "Email service not configured" };
     }
 
     try {
       const mailOptions = {
-        from: `"${config.EMAIL.FROM_NAME || 'Grup Team'}" <${config.EMAIL.USER}>`,
+        from: `"${config.EMAIL.FROM_NAME || "Grup Team"}" <${config.EMAIL.USER}>`,
         to,
         subject,
         html: htmlContent,
@@ -80,23 +81,31 @@ class EmailService {
   }
 
   stripHtml(html) {
-    return html.replace(/<[^>]*>/g, '');
+    return html.replace(/<[^>]*>/g, "");
   }
 
   // Email templates
   generateOrderStatusEmail(data) {
-    const { orderId, trackingNumber, status, message, customerName, items, totalAmount } = data;
-    
+    const {
+      orderId,
+      trackingNumber,
+      status,
+      message,
+      customerName,
+      items,
+      totalAmount,
+    } = data;
+
     const statusColors = {
-      'processing': '#3b82f6',
-      'packaged': '#10b981',
-      'ready_for_pickup': '#f59e0b',
-      'out_for_delivery': '#8b5cf6',
-      'delivered': '#059669',
-      'cancelled': '#ef4444'
+      processing: "#3b82f6",
+      packaged: "#10b981",
+      ready_for_pickup: "#f59e0b",
+      out_for_delivery: "#8b5cf6",
+      delivered: "#059669",
+      cancelled: "#ef4444",
     };
 
-    const color = statusColors[status] || '#6b7280';
+    const color = statusColors[status] || "#6b7280";
 
     return `
       <!DOCTYPE html>
@@ -127,7 +136,7 @@ class EmailService {
           
           <div class="content">
             <h2>Your order status has been updated</h2>
-            <p><span class="status-badge">${status.replace('_', ' ')}</span></p>
+            <p><span class="status-badge">${status.replace("_", " ")}</span></p>
             
             <div class="order-details">
               <h3>Order Details</h3>
@@ -135,14 +144,22 @@ class EmailService {
               <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
               <p><strong>Total Amount:</strong> ₦${totalAmount?.toLocaleString()}</p>
               
-              ${items ? `
+              ${
+                items
+                  ? `
                 <h4>Items:</h4>
-                ${items.map(item => `
+                ${items
+                  .map(
+                    (item) => `
                   <div class="item">
                     <strong>${item.productName}</strong> - ₦${item.price?.toLocaleString()}
                   </div>
-                `).join('')}
-              ` : ''}
+                `,
+                  )
+                  .join("")}
+              `
+                  : ""
+              }
             </div>
             
             <p><strong>Status Message:</strong> ${message}</p>
@@ -161,18 +178,29 @@ class EmailService {
   }
 
   generateGroupBuyStatusEmail(data) {
-    const { productName, groupBuyId, newStatus, oldStatus, customerName, progressPercentage, fulfillmentData } = data;
-    
+    const {
+      productName,
+      groupBuyId,
+      newStatus,
+      oldStatus,
+      customerName,
+      progressPercentage,
+      fulfillmentData,
+    } = data;
+
     const statusMessages = {
-      'secured': 'Your group buy has been secured and is ready for processing!',
-      'processing': 'Your order is now being processed!',
-      'packaging': 'Your order is being packaged for delivery!',
-      'ready_for_pickup': 'Your order is ready for pickup!',
-      'delivered': 'Your order has been delivered!',
-      'failed': 'Unfortunately, your group buy has failed. A refund will be processed to your wallet.'
+      secured: "Your group buy has been secured and is ready for processing!",
+      processing: "Your order is now being processed!",
+      packaging: "Your order is being packaged for delivery!",
+      ready_for_pickup: "Your order is ready for pickup!",
+      delivered: "Your order has been delivered!",
+      failed:
+        "Unfortunately, your group buy has failed. A refund will be processed to your wallet.",
     };
 
-    const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`;
+    const message =
+      statusMessages[newStatus] ||
+      `Your group buy status has been updated to ${newStatus}`;
 
     return `
       <!DOCTYPE html>
@@ -201,25 +229,29 @@ class EmailService {
           
           <div class="content">
             <h2>Group Buy Status Changed</h2>
-            <p><span class="status-badge">${newStatus.replace('_', ' ')}</span></p>
+            <p><span class="status-badge">${newStatus.replace("_", " ")}</span></p>
             
             <div class="product-details">
               <h3>Product Details</h3>
               <p><strong>Product:</strong> ${productName}</p>
               <p><strong>Group Buy ID:</strong> ${groupBuyId}</p>
-              ${progressPercentage ? `<p><strong>Progress:</strong> ${progressPercentage}%</p>` : ''}
+              ${progressPercentage ? `<p><strong>Progress:</strong> ${progressPercentage}%</p>` : ""}
             </div>
             
             <p><strong>Status Message:</strong> ${message}</p>
             
-            ${fulfillmentData ? `
+            ${
+              fulfillmentData
+                ? `
               <div class="product-details">
                 <h3>Fulfillment Details</h3>
-                ${fulfillmentData.deliveryMethod ? `<p><strong>Delivery Method:</strong> ${fulfillmentData.deliveryMethod}</p>` : ''}
-                ${fulfillmentData.pickupLocation ? `<p><strong>Pickup Location:</strong> ${fulfillmentData.pickupLocation}</p>` : ''}
-                ${fulfillmentData.trackingNumber ? `<p><strong>Tracking Number:</strong> ${fulfillmentData.trackingNumber}</p>` : ''}
+                ${fulfillmentData.deliveryMethod ? `<p><strong>Delivery Method:</strong> ${fulfillmentData.deliveryMethod}</p>` : ""}
+                ${fulfillmentData.pickupLocation ? `<p><strong>Pickup Location:</strong> ${fulfillmentData.pickupLocation}</p>` : ""}
+                ${fulfillmentData.trackingNumber ? `<p><strong>Tracking Number:</strong> ${fulfillmentData.trackingNumber}</p>` : ""}
               </div>
-            ` : ''}
+            `
+                : ""
+            }
             
             <a href="${config.FRONTEND_URL}/account/orders" class="button">View Your Orders</a>
           </div>
@@ -235,7 +267,14 @@ class EmailService {
   }
 
   generatePaymentConfirmationEmail(data) {
-    const { orderId, trackingNumber, amount, paymentMethod, customerName, items } = data;
+    const {
+      orderId,
+      trackingNumber,
+      amount,
+      paymentMethod,
+      customerName,
+      items,
+    } = data;
 
     return `
       <!DOCTYPE html>
@@ -321,7 +360,7 @@ class EmailService {
               <h3>Refund Details</h3>
               <p><strong>Amount:</strong> ₦${amount?.toLocaleString()}</p>
               <p><strong>Reason:</strong> ${reason}</p>
-              ${orderId ? `<p><strong>Order ID:</strong> ${orderId}</p>` : ''}
+              ${orderId ? `<p><strong>Order ID:</strong> ${orderId}</p>` : ""}
             </div>
             
             <a href="${config.FRONTEND_URL}/account/wallet" class="button">View Your Wallet</a>
@@ -338,18 +377,19 @@ class EmailService {
   }
 
   generateAdminActionNotificationEmail(data) {
-    const { actionType, actionDetails, customerName, adminName, timestamp } = data;
+    const { actionType, actionDetails, customerName, adminName, timestamp } =
+      data;
 
     const actionTitles = {
-      'order_status_update': 'Order Status Updated',
-      'group_buy_status_update': 'Group Buy Status Updated',
-      'order_cancelled': 'Order Cancelled',
-      'refund_processed': 'Refund Processed',
-      'delivery_scheduled': 'Delivery Scheduled',
-      'pickup_ready': 'Order Ready for Pickup'
+      order_status_update: "Order Status Updated",
+      group_buy_status_update: "Group Buy Status Updated",
+      order_cancelled: "Order Cancelled",
+      refund_processed: "Refund Processed",
+      delivery_scheduled: "Delivery Scheduled",
+      pickup_ready: "Order Ready for Pickup",
     };
 
-    const title = actionTitles[actionType] || 'Admin Action Notification';
+    const title = actionTitles[actionType] || "Admin Action Notification";
 
     return `
       <!DOCTYPE html>
@@ -386,9 +426,9 @@ class EmailService {
               <p><strong>Admin:</strong> ${adminName}</p>
               <p><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p>
               
-              ${actionDetails.orderId ? `<p><strong>Order ID:</strong> ${actionDetails.orderId}</p>` : ''}
-              ${actionDetails.trackingNumber ? `<p><strong>Tracking Number:</strong> ${actionDetails.trackingNumber}</p>` : ''}
-              ${actionDetails.amount ? `<p><strong>Amount:</strong> ₦${actionDetails.amount.toLocaleString()}</p>` : ''}
+              ${actionDetails.orderId ? `<p><strong>Order ID:</strong> ${actionDetails.orderId}</p>` : ""}
+              ${actionDetails.trackingNumber ? `<p><strong>Tracking Number:</strong> ${actionDetails.trackingNumber}</p>` : ""}
+              ${actionDetails.amount ? `<p><strong>Amount:</strong> ₦${actionDetails.amount.toLocaleString()}</p>` : ""}
             </div>
             
             <a href="${config.FRONTEND_URL}/account/orders" class="button">View Your Orders</a>

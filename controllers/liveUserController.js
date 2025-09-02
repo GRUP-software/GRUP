@@ -1,10 +1,10 @@
-import LiveUserSession from "../models/LiveUserSession.js"
-import User from "../models/User.js"
+import LiveUserSession from "../models/LiveUserSession.js";
+import User from "../models/User.js";
 
 export const updateUserActivity = async (req, res) => {
   try {
-    const userId = req.user.id
-    const { currentPage, socketId } = req.body
+    const userId = req.user.id;
+    const { currentPage, socketId } = req.body;
 
     await LiveUserSession.findOneAndUpdate(
       { userId },
@@ -16,91 +16,98 @@ export const updateUserActivity = async (req, res) => {
         isActive: true,
       },
       { upsert: true, new: true },
-    )
+    );
 
     // Update user online status
     await User.findByIdAndUpdate(userId, {
       isOnline: true,
       lastSeen: new Date(),
       socketId,
-    })
+    });
 
-    res.json({ message: "Activity updated" })
+    res.json({ message: "Activity updated" });
   } catch (err) {
-    console.error("Update activity error:", err)
-    res.status(500).json({ message: "Error updating activity", error: err.message })
+    console.error("Update activity error:", err);
+    res
+      .status(500)
+      .json({ message: "Error updating activity", error: err.message });
   }
-}
+};
 
 export const getLiveUserCount = async (req, res) => {
   try {
     // Count active sessions from last 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const activeUsers = await LiveUserSession.countDocuments({
       lastActivity: { $gte: fiveMinutesAgo },
       isActive: true,
-    })
+    });
 
     // If called as API endpoint (with res object)
     if (res) {
-      res.json({ liveUsers: activeUsers })
+      res.json({ liveUsers: activeUsers });
     }
 
     // Return the count for internal use
-    return { liveUsers: activeUsers }
+    return { liveUsers: activeUsers };
   } catch (err) {
-    console.error("Get live user count error:", err)
+    console.error("Get live user count error:", err);
 
     // If called as API endpoint
     if (res) {
-      res.status(500).json({ message: "Error fetching live user count", error: err.message })
+      res.status(500).json({
+        message: "Error fetching live user count",
+        error: err.message,
+      });
     }
 
     // Return default for internal use
-    return { liveUsers: 0 }
+    return { liveUsers: 0 };
   }
-}
+};
 
 // Add a separate utility function for internal use
 export const getLiveUserCountUtil = async () => {
   try {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const activeUsers = await LiveUserSession.countDocuments({
       lastActivity: { $gte: fiveMinutesAgo },
       isActive: true,
-    })
+    });
 
-    return activeUsers
+    return activeUsers;
   } catch (err) {
-    console.error("Get live user count utility error:", err)
-    return 0
+    console.error("Get live user count utility error:", err);
+    return 0;
   }
-}
+};
 
 export const userDisconnected = async (socketId, res) => {
   try {
-    await LiveUserSession.findOneAndUpdate({ socketId }, { isActive: false })
+    await LiveUserSession.findOneAndUpdate({ socketId }, { isActive: false });
 
-    const session = await LiveUserSession.findOne({ socketId })
+    const session = await LiveUserSession.findOne({ socketId });
     if (session) {
       await User.findByIdAndUpdate(session.userId, {
         isOnline: false,
         lastSeen: new Date(),
-      })
+      });
     }
 
-    console.log(`User disconnected: ${socketId}`)
+    console.log(`User disconnected: ${socketId}`);
 
     // If called as API endpoint (with res object)
     if (res) {
-      res.json({ message: "User disconnected" })
+      res.json({ message: "User disconnected" });
     }
   } catch (err) {
-    console.error("User disconnect error:", err)
+    console.error("User disconnect error:", err);
 
     // If called as API endpoint
     if (res) {
-      res.status(500).json({ message: "Error disconnecting user", error: err.message })
+      res
+        .status(500)
+        .json({ message: "Error disconnecting user", error: err.message });
     }
   }
-}
+};

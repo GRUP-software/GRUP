@@ -1,7 +1,7 @@
-import mongoose from "mongoose"
-import slugify from "slugify"
+import mongoose from "mongoose";
+import slugify from "slugify";
 
-const { Schema } = mongoose
+const { Schema } = mongoose;
 
 const productSchema = new Schema(
   {
@@ -64,51 +64,57 @@ const productSchema = new Schema(
   {
     timestamps: true,
   },
-)
+);
 
 productSchema.methods.calculateSellingUnitPrice = function (optionName) {
-  if (!this.sellingUnits.enabled) return this.price
+  if (!this.sellingUnits.enabled) return this.price;
 
-  const option = this.sellingUnits.options.find((opt) => opt.name === optionName)
-  if (!option) return this.price
+  const option = this.sellingUnits.options.find(
+    (opt) => opt.name === optionName,
+  );
+  if (!option) return this.price;
 
   if (option.priceType === "manual" && option.customPrice > 0) {
-    return option.customPrice
+    return option.customPrice;
   }
 
   // Use current product price instead of baseUnitPrice to respect discounts
   // Find the total base units that make up the full product
-  const fullProductBaseUnits = this.sellingUnits.options.reduce((total, opt) => {
-    return Math.max(total, opt.baseUnitQuantity)
-  }, 0)
-  
+  const fullProductBaseUnits = this.sellingUnits.options.reduce(
+    (total, opt) => {
+      return Math.max(total, opt.baseUnitQuantity);
+    },
+    0,
+  );
+
   // Calculate price per base unit from current product price
-  const basePrice = fullProductBaseUnits > 0 ? this.price / fullProductBaseUnits : this.price
-  return Math.round(basePrice * option.baseUnitQuantity)
-}
+  const basePrice =
+    fullProductBaseUnits > 0 ? this.price / fullProductBaseUnits : this.price;
+  return Math.round(basePrice * option.baseUnitQuantity);
+};
 
 productSchema.methods.getActiveSellingUnits = function () {
-  if (!this.sellingUnits.enabled) return []
-  return this.sellingUnits.options.filter((option) => option.isActive)
-}
+  if (!this.sellingUnits.enabled) return [];
+  return this.sellingUnits.options.filter((option) => option.isActive);
+};
 
 // Generate slug from title before saving
 productSchema.pre("save", function (next) {
   if (this.isModified("title") || !this.slug) {
-    this.slug = slugify(this.title, { lower: true, strict: true })
+    this.slug = slugify(this.title, { lower: true, strict: true });
   }
-  next()
-})
+  next();
+});
 
 // Custom toJSON method to handle undefined/null values for AdminJS
-productSchema.methods.toJSON = function() {
+productSchema.methods.toJSON = function () {
   const obj = this.toObject();
-  
+
   // Only set defaults for fields that are actually undefined/null
   if (obj.sellingUnits === undefined || obj.sellingUnits === null) {
     obj.sellingUnits = {
       enabled: false,
-      options: []
+      options: [],
     };
   }
   if (obj.variants === undefined || obj.variants === null) {
@@ -117,9 +123,9 @@ productSchema.methods.toJSON = function() {
   if (obj.images === undefined || obj.images === null) {
     obj.images = [];
   }
-  
+
   return obj;
 };
 
-const Product = mongoose.model("Product", productSchema)
-export default Product
+const Product = mongoose.model("Product", productSchema);
+export default Product;

@@ -1,16 +1,16 @@
-import mongoose from "mongoose"
-import GroupBuy from "../models/GroupBuy.js"
-import Order from "../models/order.js"
-import Wallet from "../models/Wallet.js"
-import Transaction from "../models/Transaction.js"
-import Product from "../models/Product.js"
-import logger from "../utils/logger.js"
-import notificationService from "../services/notificationService.js"
+import mongoose from "mongoose";
+import GroupBuy from "../models/GroupBuy.js";
+import Order from "../models/order.js";
+import Wallet from "../models/Wallet.js";
+import Transaction from "../models/Transaction.js";
+import Product from "../models/Product.js";
+import logger from "../utils/logger.js";
+import notificationService from "../services/notificationService.js";
 
 // Get all active group buys
 export const getActiveGroupBuys = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query
+    const { page = 1, limit = 10 } = req.query;
 
     const groupBuys = await GroupBuy.find({
       status: { $in: ["active", "successful"] },
@@ -19,21 +19,24 @@ export const getActiveGroupBuys = async (req, res) => {
       .populate("productId", "title price images description unitTag slug")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .skip((page - 1) * limit);
 
     const total = await GroupBuy.countDocuments({
       status: { $in: ["active", "successful"] },
       expiresAt: { $gt: new Date() },
-    })
+    });
 
     const enrichedGroupBuys = groupBuys.map((groupBuy) => ({
       ...groupBuy.toObject(),
       progressPercentage: groupBuy.getProgressPercentage(),
       timeRemaining: Math.max(0, groupBuy.expiresAt - new Date()),
       isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
-      spotsRemaining: Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold),
+      spotsRemaining: Math.max(
+        0,
+        groupBuy.minimumViableUnits - groupBuy.unitsSold,
+      ),
       canAcceptMore: groupBuy.canAcceptMoreParticipants(),
-    }))
+    }));
 
     res.json({
       success: true,
@@ -44,29 +47,31 @@ export const getActiveGroupBuys = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get active group buys error:", error)
-    res.status(500).json({ message: "Error fetching group buys", error: error.message })
+    logger.error("Get active group buys error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching group buys", error: error.message });
   }
-}
+};
 
 // Get group buy by product ID
 export const getGroupBuyByProduct = async (req, res) => {
   try {
-    const { productId } = req.params
+    const { productId } = req.params;
 
     const groupBuy = await GroupBuy.findOne({
       productId,
       status: { $in: ["active", "successful"] },
       expiresAt: { $gt: new Date() },
-    }).populate("productId", "title price images description unitTag slug")
+    }).populate("productId", "title price images description unitTag slug");
 
     if (!groupBuy) {
-      const product = await Product.findById(productId)
+      const product = await Product.findById(productId);
 
       if (!product) {
-        return res.status(404).json({ message: "Product not found" })
+        return res.status(404).json({ message: "Product not found" });
       }
 
       // Return default GroupBuy data structure that frontend expects
@@ -87,13 +92,13 @@ export const getGroupBuyByProduct = async (req, res) => {
         spotsRemaining: product.minimumViableUnits || 20,
         canAcceptMore: true,
         hasActiveGroupBuy: false,
-      }
+      };
 
       return res.json({
         success: true,
         hasActiveGroupBuy: false,
         data: defaultGroupBuyData,
-      })
+      });
     }
 
     const enrichedGroupBuy = {
@@ -101,35 +106,48 @@ export const getGroupBuyByProduct = async (req, res) => {
       progressPercentage: groupBuy.getProgressPercentage(),
       timeRemaining: Math.max(0, groupBuy.expiresAt - new Date()),
       isViable: groupBuy.unitsSold >= groupBuy.minimumViableUnits,
-      spotsRemaining: Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold),
+      spotsRemaining: Math.max(
+        0,
+        groupBuy.minimumViableUnits - groupBuy.unitsSold,
+      ),
       canAcceptMore: groupBuy.canAcceptMoreParticipants(),
       hasActiveGroupBuy: true,
-    }
+    };
 
     res.json({
       success: true,
       hasActiveGroupBuy: true,
       data: enrichedGroupBuy,
-    })
+    });
   } catch (error) {
-    logger.error("Get group buy by product error:", error)
-    res.status(500).json({ message: "Error fetching group buy", error: error.message })
+    logger.error("Get group buy by product error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching group buy", error: error.message });
   }
-}
+};
 
 // Get all group buys with enhanced filtering
 export const getAllGroupBuys = async (req, res) => {
   try {
-    const { status, productId, page = 1, limit = 10, sortBy = "createdAt", sortOrder = "desc", userId } = req.query
+    const {
+      status,
+      productId,
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      userId,
+    } = req.query;
 
     // Build filter object
-    const filter = {}
-    if (status) filter.status = status
-    if (productId) filter.productId = productId
+    const filter = {};
+    if (status) filter.status = status;
+    if (productId) filter.productId = productId;
 
     // Build sort object
-    const sort = {}
-    sort[sortBy] = sortOrder === "desc" ? -1 : 1
+    const sort = {};
+    sort[sortBy] = sortOrder === "desc" ? -1 : 1;
 
     const groupBuys = await GroupBuy.find(filter)
       .populate("productId", "title price images category slug")
@@ -137,22 +155,22 @@ export const getAllGroupBuys = async (req, res) => {
       .populate("paymentHistories", "referenceId amount status createdAt")
       .sort(sort)
       .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .skip((page - 1) * limit);
 
-    const total = await GroupBuy.countDocuments(filter)
+    const total = await GroupBuy.countDocuments(filter);
 
     // Enhanced response with user-specific data if userId provided
     const enhancedGroupBuys = groupBuys.map((groupBuy) => {
-      const groupBuyObj = groupBuy.toObject()
+      const groupBuyObj = groupBuy.toObject();
 
       // Add computed fields
-      groupBuyObj.progressPercentage = groupBuy.getProgressPercentage()
-      groupBuyObj.participantCount = groupBuy.getParticipantCount()
-      groupBuyObj.isExpired = groupBuy.isExpired()
+      groupBuyObj.progressPercentage = groupBuy.getProgressPercentage();
+      groupBuyObj.participantCount = groupBuy.getParticipantCount();
+      groupBuyObj.isExpired = groupBuy.isExpired();
 
       // Add user-specific data if userId provided
       if (userId) {
-        const userParticipation = groupBuy.getParticipant(userId)
+        const userParticipation = groupBuy.getParticipant(userId);
         if (userParticipation) {
           groupBuyObj.userParticipation = {
             userQuantity: userParticipation.quantity,
@@ -160,16 +178,19 @@ export const getAllGroupBuys = async (req, res) => {
             userTotalSpent: userParticipation.amount,
             userContributionPercentage:
               groupBuy.minimumViableUnits > 0
-                ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
+                ? Math.round(
+                    (userParticipation.quantity / groupBuy.minimumViableUnits) *
+                      100,
+                  )
                 : 0,
             userJoinedAt: userParticipation.joinedAt,
             userPurchaseCount: userParticipation.paymentHistories.length,
-          }
+          };
         }
       }
 
-      return groupBuyObj
-    })
+      return groupBuyObj;
+    });
 
     res.json({
       success: true,
@@ -180,103 +201,114 @@ export const getAllGroupBuys = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get all group buys error:", error)
-    res.status(500).json({ message: "Error fetching group buys", error: error.message })
+    logger.error("Get all group buys error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching group buys", error: error.message });
   }
-}
+};
 
 // Get user's group buys with enhanced data and sorting
 export const getUserGroupBuys = async (req, res) => {
   try {
-    const userId = req.user.id
+    const userId = req.user.id;
 
     // Ensure userId is properly converted to ObjectId for consistent comparison
-    const userIdObj = new mongoose.Types.ObjectId(userId)
+    const userIdObj = new mongoose.Types.ObjectId(userId);
 
-    const { status, page = 1, limit = 50, sortBy = "createdAt", sortOrder = "desc" } = req.query
+    const {
+      status,
+      page = 1,
+      limit = 50,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
 
     // Build filter
-    const filter = { "participants.userId": userIdObj }
-    if (status) filter.status = status
+    const filter = { "participants.userId": userIdObj };
+    if (status) filter.status = status;
 
     // Build sort object
-    const sort = {}
-    sort[sortBy] = sortOrder === "desc" ? -1 : 1
+    const sort = {};
+    sort[sortBy] = sortOrder === "desc" ? -1 : 1;
 
     const groupBuys = await GroupBuy.find(filter)
       .populate("productId", "title price images category slug unitTag")
       .populate("participants.userId", "firstName lastName email")
       .sort(sort)
       .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .skip((page - 1) * limit);
 
-    const total = await GroupBuy.countDocuments(filter)
+    const total = await GroupBuy.countDocuments(filter);
 
     // Enhanced response with user-specific data and progress information
     const userGroupBuys = groupBuys.map((groupBuy) => {
-      const userParticipation = groupBuy.getParticipant(userIdObj)
+      const userParticipation = groupBuy.getParticipant(userIdObj);
 
-      const progressPercentage = groupBuy.getProgressPercentage()
-      const isExpired = groupBuy.isExpired()
-      const timeRemaining = Math.max(0, groupBuy.expiresAt - new Date())
-      const participantCount = groupBuy.getParticipantCount()
-      const spotsRemaining = Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold)
+      const progressPercentage = groupBuy.getProgressPercentage();
+      const isExpired = groupBuy.isExpired();
+      const timeRemaining = Math.max(0, groupBuy.expiresAt - new Date());
+      const participantCount = groupBuy.getParticipantCount();
+      const spotsRemaining = Math.max(
+        0,
+        groupBuy.minimumViableUnits - groupBuy.unitsSold,
+      );
 
       // Determine display status
-      let displayStatus = groupBuy.status
-      let statusLabel = ""
-      let statusColor = ""
+      let displayStatus = groupBuy.status;
+      let statusLabel = "";
+      let statusColor = "";
 
       if (groupBuy.status === "active") {
         if (isExpired) {
-          displayStatus = "failed"
-          statusLabel = "Expired"
-          statusColor = "red"
+          displayStatus = "failed";
+          statusLabel = "Expired";
+          statusColor = "red";
         } else if (progressPercentage >= 100) {
-          displayStatus = "successful"
-          statusLabel = "Successful"
-          statusColor = "green"
+          displayStatus = "successful";
+          statusLabel = "Successful";
+          statusColor = "green";
         } else {
-          statusLabel = "Forming"
-          statusColor = "yellow"
+          statusLabel = "Forming";
+          statusColor = "yellow";
         }
       } else if (groupBuy.status === "successful") {
-        statusLabel = "Successful"
-        statusColor = "green"
+        statusLabel = "Successful";
+        statusColor = "green";
       } else if (groupBuy.status === "secured") {
-        statusLabel = "Secured"
-        statusColor = "green"
+        statusLabel = "Secured";
+        statusColor = "green";
       } else if (groupBuy.status === "processing") {
-        statusLabel = "Processing"
-        statusColor = "blue"
+        statusLabel = "Processing";
+        statusColor = "blue";
       } else if (groupBuy.status === "packaging") {
-        statusLabel = "Packaging"
-        statusColor = "purple"
+        statusLabel = "Packaging";
+        statusColor = "purple";
       } else if (groupBuy.status === "ready_for_pickup") {
-        statusLabel = "Ready for Pickup"
-        statusColor = "orange"
+        statusLabel = "Ready for Pickup";
+        statusColor = "orange";
       } else if (groupBuy.status === "delivered") {
-        statusLabel = "Delivered"
-        statusColor = "green"
+        statusLabel = "Delivered";
+        statusColor = "green";
       } else if (groupBuy.status === "manual_review") {
         // Check if this was a successful group buy that expired
         if (groupBuy.unitsSold >= groupBuy.minimumViableUnits) {
-          displayStatus = "successful"
-          statusLabel = "Successful"
-          statusColor = "green"
+          displayStatus = "successful";
+          statusLabel = "Successful";
+          statusColor = "green";
         } else {
-          displayStatus = "failed"
-          statusLabel = "Under Review"
-          statusColor = "orange"
+          displayStatus = "failed";
+          statusLabel = "Under Review";
+          statusColor = "orange";
         }
       } else if (groupBuy.status === "failed") {
-        statusLabel = "Failed"
-        statusColor = "red"
+        statusLabel = "Failed";
+        statusColor = "red";
       } else if (groupBuy.status === "refunded") {
-        statusLabel = "Refunded"
-        statusColor = "gray"
+        statusLabel = "Refunded";
+        statusColor = "gray";
       }
 
       return {
@@ -299,7 +331,11 @@ export const getUserGroupBuys = async (req, res) => {
         userTotalSpent: userParticipation?.amount || 0, // Alternative field name as requested
         userContributionPercentage:
           groupBuy.minimumViableUnits > 0
-            ? Math.round(((userParticipation?.quantity || 0) / groupBuy.minimumViableUnits) * 100)
+            ? Math.round(
+                ((userParticipation?.quantity || 0) /
+                  groupBuy.minimumViableUnits) *
+                  100,
+              )
             : 0,
         userJoinedAt: userParticipation?.joinedAt,
         userPurchaseCount: userParticipation?.paymentHistories.length || 0,
@@ -314,24 +350,26 @@ export const getUserGroupBuys = async (req, res) => {
         expiresAt: groupBuy.expiresAt,
         createdAt: groupBuy.createdAt,
         updatedAt: groupBuy.updatedAt,
-      }
-    })
+      };
+    });
 
     // Get statistics for the user - calculate totals from ALL group buys, not just paginated results
-    const allUserGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj })
+    const allUserGroupBuys = await GroupBuy.find({
+      "participants.userId": userIdObj,
+    })
       .populate("productId", "title price images category slug unitTag")
-      .populate("participants.userId", "firstName lastName email")
+      .populate("participants.userId", "firstName lastName email");
 
-    let totalSpent = 0
-    let totalUnits = 0
+    let totalSpent = 0;
+    let totalUnits = 0;
 
     allUserGroupBuys.forEach((groupBuy) => {
-      const userParticipation = groupBuy.getParticipant(userIdObj)
+      const userParticipation = groupBuy.getParticipant(userIdObj);
       if (userParticipation) {
-        totalSpent += userParticipation.amount
-        totalUnits += userParticipation.quantity
+        totalSpent += userParticipation.amount;
+        totalUnits += userParticipation.quantity;
       }
-    })
+    });
 
     const stats = {
       total: total,
@@ -349,26 +387,26 @@ export const getUserGroupBuys = async (req, res) => {
           { status: "packaging" },
           { status: "ready_for_pickup" },
           { status: "delivered" },
-          { 
-            status: "manual_review", 
-            $expr: { $gte: ["$unitsSold", "$minimumViableUnits"] }
-          }
-        ]
+          {
+            status: "manual_review",
+            $expr: { $gte: ["$unitsSold", "$minimumViableUnits"] },
+          },
+        ],
       }),
       failed: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
         $or: [
           { status: "failed" },
           { status: "refunded" },
-          { 
-            status: "manual_review", 
-            $expr: { $lt: ["$unitsSold", "$minimumViableUnits"] }
-          }
-        ]
+          {
+            status: "manual_review",
+            $expr: { $lt: ["$unitsSold", "$minimumViableUnits"] },
+          },
+        ],
       }),
       totalSpent: totalSpent,
       totalUnits: totalUnits,
-    }
+    };
 
     res.json({
       success: true,
@@ -380,25 +418,28 @@ export const getUserGroupBuys = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get user group buys error:", error)
-    res.status(500).json({ message: "Error fetching user group buys", error: error.message })
+    logger.error("Get user group buys error:", error);
+    res.status(500).json({
+      message: "Error fetching user group buys",
+      error: error.message,
+    });
   }
-}
+};
 
 // Get single group buy with detailed information
 export const getGroupBuyById = async (req, res) => {
   try {
-    const { id } = req.params
-    const userId = req.user?.id
+    const { id } = req.params;
+    const userId = req.user?.id;
 
     const groupBuy = await GroupBuy.findById(id)
       .populate("productId", "title price images category description slug")
-      .populate("participants.userId", "firstName lastName email phone")
+      .populate("participants.userId", "firstName lastName email phone");
 
     if (!groupBuy) {
-      return res.status(404).json({ message: "Group buy not found" })
+      return res.status(404).json({ message: "Group buy not found" });
     }
 
     const groupBuyData = {
@@ -406,11 +447,11 @@ export const getGroupBuyById = async (req, res) => {
       progressPercentage: groupBuy.getProgressPercentage(),
       participantCount: groupBuy.getParticipantCount(),
       isExpired: groupBuy.isExpired(),
-    }
+    };
 
     // Add user-specific data if user is authenticated
     if (userId) {
-      const userParticipation = groupBuy.getParticipant(userId)
+      const userParticipation = groupBuy.getParticipant(userId);
       if (userParticipation) {
         groupBuyData.userParticipation = {
           userQuantity: userParticipation.quantity,
@@ -418,23 +459,28 @@ export const getGroupBuyById = async (req, res) => {
           userTotalSpent: userParticipation.amount,
           userContributionPercentage:
             groupBuy.minimumViableUnits > 0
-              ? Math.round((userParticipation.quantity / groupBuy.minimumViableUnits) * 100)
+              ? Math.round(
+                  (userParticipation.quantity / groupBuy.minimumViableUnits) *
+                    100,
+                )
               : 0,
           userJoinedAt: userParticipation.joinedAt,
           userPurchaseCount: userParticipation.paymentHistories.length,
-        }
+        };
       }
     }
 
     res.json({
       success: true,
       data: groupBuyData,
-    })
+    });
   } catch (error) {
-    logger.error("Get group buy by ID error:", error)
-    res.status(500).json({ message: "Error fetching group buy", error: error.message })
+    logger.error("Get group buy by ID error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching group buy", error: error.message });
   }
-}
+};
 
 // Admin: Get group buy statistics
 export const getGroupBuyStats = async (req, res) => {
@@ -448,12 +494,16 @@ export const getGroupBuyStats = async (req, res) => {
           totalAmount: { $sum: "$totalAmountCollected" },
         },
       },
-    ])
+    ]);
 
-    const totalGroupBuys = await GroupBuy.countDocuments()
-    const activeGroupBuys = await GroupBuy.countDocuments({ status: "active" })
-    const successfulGroupBuys = await GroupBuy.countDocuments({ status: "successful" })
-    const manualReviewGroupBuys = await GroupBuy.countDocuments({ status: "manual_review" })
+    const totalGroupBuys = await GroupBuy.countDocuments();
+    const activeGroupBuys = await GroupBuy.countDocuments({ status: "active" });
+    const successfulGroupBuys = await GroupBuy.countDocuments({
+      status: "successful",
+    });
+    const manualReviewGroupBuys = await GroupBuy.countDocuments({
+      status: "manual_review",
+    });
 
     res.json({
       success: true,
@@ -464,23 +514,28 @@ export const getGroupBuyStats = async (req, res) => {
         manualReview: manualReviewGroupBuys,
         byStatus: stats,
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get group buy stats error:", error)
-    res.status(500).json({ message: "Error fetching group buy statistics", error: error.message })
+    logger.error("Get group buy stats error:", error);
+    res.status(500).json({
+      message: "Error fetching group buy statistics",
+      error: error.message,
+    });
   }
-}
+};
 
 // Get user's group buy statistics
 export const getUserGroupBuyStats = async (req, res) => {
   try {
-    const userId = req.user.id
+    const userId = req.user.id;
 
     // Ensure userId is properly converted to ObjectId for consistent comparison
-    const userIdObj = new mongoose.Types.ObjectId(userId)
+    const userIdObj = new mongoose.Types.ObjectId(userId);
 
     const stats = {
-      total: await GroupBuy.countDocuments({ "participants.userId": userIdObj }),
+      total: await GroupBuy.countDocuments({
+        "participants.userId": userIdObj,
+      }),
       forming: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
         status: "active",
@@ -495,90 +550,104 @@ export const getUserGroupBuyStats = async (req, res) => {
           { status: "packaging" },
           { status: "ready_for_pickup" },
           { status: "delivered" },
-          { 
-            status: "manual_review", 
-            $expr: { $gte: ["$unitsSold", "$minimumViableUnits"] }
-          }
-        ]
+          {
+            status: "manual_review",
+            $expr: { $gte: ["$unitsSold", "$minimumViableUnits"] },
+          },
+        ],
       }),
       failed: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
         $or: [
           { status: "failed" },
           { status: "refunded" },
-          { 
-            status: "manual_review", 
-            $expr: { $lt: ["$unitsSold", "$minimumViableUnits"] }
-          }
-        ]
+          {
+            status: "manual_review",
+            $expr: { $lt: ["$unitsSold", "$minimumViableUnits"] },
+          },
+        ],
       }),
       expired: await GroupBuy.countDocuments({
         "participants.userId": userIdObj,
         status: "active",
         expiresAt: { $lt: new Date() },
       }),
-    }
+    };
 
     // Get total amount spent and units purchased
-    const userGroupBuys = await GroupBuy.find({ "participants.userId": userIdObj }).populate(
-      "participants.userId",
-      "firstName lastName",
-    )
+    const userGroupBuys = await GroupBuy.find({
+      "participants.userId": userIdObj,
+    }).populate("participants.userId", "firstName lastName");
 
-    let totalSpent = 0
-    let totalUnits = 0
-    let totalContribution = 0
+    let totalSpent = 0;
+    let totalUnits = 0;
+    let totalContribution = 0;
 
     userGroupBuys.forEach((groupBuy) => {
-      const userParticipation = groupBuy.getParticipant(userIdObj)
+      const userParticipation = groupBuy.getParticipant(userIdObj);
       if (userParticipation) {
-        totalSpent += userParticipation.amount
-        totalUnits += userParticipation.quantity
+        totalSpent += userParticipation.amount;
+        totalUnits += userParticipation.quantity;
         totalContribution +=
-          groupBuy.minimumViableUnits > 0 ? (userParticipation.quantity / groupBuy.minimumViableUnits) * 100 : 0
+          groupBuy.minimumViableUnits > 0
+            ? (userParticipation.quantity / groupBuy.minimumViableUnits) * 100
+            : 0;
       }
-    })
+    });
 
-    stats.totalSpent = totalSpent
-    stats.totalUnits = totalUnits
-    stats.averageContribution = userGroupBuys.length > 0 ? Math.round(totalContribution / userGroupBuys.length) : 0
+    stats.totalSpent = totalSpent;
+    stats.totalUnits = totalUnits;
+    stats.averageContribution =
+      userGroupBuys.length > 0
+        ? Math.round(totalContribution / userGroupBuys.length)
+        : 0;
 
     res.json({
       success: true,
       stats,
-    })
+    });
   } catch (error) {
-    logger.error("Get user group buy stats error:", error)
-    res.status(500).json({ message: "Error fetching user group buy stats", error: error.message })
+    logger.error("Get user group buy stats error:", error);
+    res.status(500).json({
+      message: "Error fetching user group buy stats",
+      error: error.message,
+    });
   }
-}
+};
 
 // Admin: Get group buys pending manual review
 export const getManualReviewGroupBuys = async (req, res) => {
   try {
-    const { page = 1, limit = 20, sortBy = "expiresAt", sortOrder = "asc" } = req.query
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = "expiresAt",
+      sortOrder = "asc",
+    } = req.query;
 
-    const sort = {}
-    sort[sortBy] = sortOrder === "desc" ? -1 : 1
+    const sort = {};
+    sort[sortBy] = sortOrder === "desc" ? -1 : 1;
 
     const groupBuys = await GroupBuy.find({ status: "manual_review" })
       .populate("productId", "title price images category slug")
       .populate("participants.userId", "firstName lastName email phone")
       .sort(sort)
       .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .skip((page - 1) * limit);
 
-    const total = await GroupBuy.countDocuments({ status: "manual_review" })
+    const total = await GroupBuy.countDocuments({ status: "manual_review" });
 
     // Enhanced data for admin review
     const reviewData = groupBuys.map((groupBuy) => ({
       ...groupBuy.toObject(),
       progressPercentage: groupBuy.getProgressPercentage(),
       participantCount: groupBuy.getParticipantCount(),
-      daysExpired: Math.ceil((new Date() - groupBuy.expiresAt) / (1000 * 60 * 60 * 24)),
+      daysExpired: Math.ceil(
+        (new Date() - groupBuy.expiresAt) / (1000 * 60 * 60 * 24),
+      ),
       recommendedAction: groupBuy.manualReviewData.recommendedAction,
       reviewNotes: groupBuy.manualReviewData.reviewNotes,
-    }))
+    }));
 
     res.json({
       success: true,
@@ -589,61 +658,73 @@ export const getManualReviewGroupBuys = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get manual review group buys error:", error)
-    res.status(500).json({ message: "Error fetching manual review group buys", error: error.message })
+    logger.error("Get manual review group buys error:", error);
+    res.status(500).json({
+      message: "Error fetching manual review group buys",
+      error: error.message,
+    });
   }
-}
+};
 
 // Admin: Approve or reject group buy after manual review
 export const reviewGroupBuy = async (req, res) => {
   try {
-    const { id } = req.params
-    const { action, adminNotes, reviewedBy } = req.body
+    const { id } = req.params;
+    const { action, adminNotes, reviewedBy } = req.body;
 
     if (!["approve", "reject"].includes(action)) {
-      return res.status(400).json({ message: "Action must be 'approve' or 'reject'" })
+      return res
+        .status(400)
+        .json({ message: "Action must be 'approve' or 'reject'" });
     }
 
     const groupBuy = await GroupBuy.findById(id)
       .populate("productId", "title price slug")
-      .populate("participants.userId", "firstName lastName email")
+      .populate("participants.userId", "firstName lastName email");
 
     if (!groupBuy) {
-      return res.status(404).json({ message: "Group buy not found" })
+      return res.status(404).json({ message: "Group buy not found" });
     }
 
     if (groupBuy.status !== "manual_review") {
-      return res.status(400).json({ message: "Group buy is not pending manual review" })
+      return res
+        .status(400)
+        .json({ message: "Group buy is not pending manual review" });
     }
 
     if (action === "approve") {
       // Approve the group buy
-      groupBuy.status = "fulfilled"
+      groupBuy.status = "fulfilled";
       groupBuy.adminNotes =
         adminNotes ||
-        `Approved after manual review - ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units achieved`
+        `Approved after manual review - ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units achieved`;
 
       // Update manual review data
-      groupBuy.manualReviewData.reviewedBy = reviewedBy || "Admin"
-      groupBuy.manualReviewData.reviewNotes = adminNotes || "Approved for fulfillment"
-      groupBuy.manualReviewData.recommendedAction = "approve"
+      groupBuy.manualReviewData.reviewedBy = reviewedBy || "Admin";
+      groupBuy.manualReviewData.reviewNotes =
+        adminNotes || "Approved for fulfillment";
+      groupBuy.manualReviewData.recommendedAction = "approve";
 
-      await groupBuy.save()
+      await groupBuy.save();
 
       // Update related orders
-      await updateOrdersAfterReview(groupBuy, "approved")
+      await updateOrdersAfterReview(groupBuy, "approved");
 
       for (const participant of groupBuy.participants) {
         const userId = participant.userId._id || participant.userId;
-        await notificationService.notifyGroupBuySecured(userId, groupBuy.productId.title, groupBuy._id)
+        await notificationService.notifyGroupBuySecured(
+          userId,
+          groupBuy.productId.title,
+          groupBuy._id,
+        );
       }
 
-      logger.info(`✅ GroupBuy ${groupBuy._id} approved by admin`)
+      logger.info(`✅ GroupBuy ${groupBuy._id} approved by admin`);
 
       // Emit WebSocket events
-      const io = global.io
+      const io = global.io;
       if (io) {
         // Notify all participants
         groupBuy.participants.forEach((participant) => {
@@ -651,35 +732,37 @@ export const reviewGroupBuy = async (req, res) => {
           io.to(`user_${userId}`).emit("groupBuyApproved", {
             groupBuyId: groupBuy._id,
             productTitle: groupBuy.productId.title,
-            message: "Great news! Your group buy has been approved and will be fulfilled.",
-          })
-        })
+            message:
+              "Great news! Your group buy has been approved and will be fulfilled.",
+          });
+        });
       }
 
       res.json({
         success: true,
         message: "Group buy approved successfully",
         data: groupBuy,
-      })
+      });
     } else if (action === "reject") {
       // Reject the group buy and process refunds
-      groupBuy.status = "failed"
+      groupBuy.status = "failed";
       groupBuy.adminNotes =
         adminNotes ||
-        `Rejected after manual review - insufficient participation (${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units)`
+        `Rejected after manual review - insufficient participation (${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units)`;
 
       // Update manual review data
-      groupBuy.manualReviewData.reviewedBy = reviewedBy || "Admin"
-      groupBuy.manualReviewData.reviewNotes = adminNotes || "Rejected - refunds processed"
-      groupBuy.manualReviewData.recommendedAction = "reject"
+      groupBuy.manualReviewData.reviewedBy = reviewedBy || "Admin";
+      groupBuy.manualReviewData.reviewNotes =
+        adminNotes || "Rejected - refunds processed";
+      groupBuy.manualReviewData.recommendedAction = "reject";
 
-      await groupBuy.save()
+      await groupBuy.save();
 
       // Process refunds
-      const refundResult = await processGroupBuyRefunds(groupBuy)
+      const refundResult = await processGroupBuyRefunds(groupBuy);
 
       // Update related orders
-      await updateOrdersAfterReview(groupBuy, "rejected")
+      await updateOrdersAfterReview(groupBuy, "rejected");
 
       for (const participant of groupBuy.participants) {
         const userId = participant.userId._id || participant.userId;
@@ -689,22 +772,24 @@ export const reviewGroupBuy = async (req, res) => {
           groupBuy._id,
           "failed",
           "Group buy was not successful. Refund has been processed to your wallet.",
-        )
-        
+        );
+
         // Send the new failed notification with refund information
         await notificationService.notifyGroupBuyFailed(
           userId,
           groupBuy.productId.title,
           groupBuy._id,
           Math.round(groupBuy.getProgressPercentage()),
-          participant.amount
+          participant.amount,
         );
       }
 
-      logger.info(`❌ GroupBuy ${groupBuy._id} rejected by admin - ${refundResult.refundsProcessed} refunds processed`)
+      logger.info(
+        `❌ GroupBuy ${groupBuy._id} rejected by admin - ${refundResult.refundsProcessed} refunds processed`,
+      );
 
       // Emit WebSocket events
-      const io = global.io
+      const io = global.io;
       if (io) {
         // Notify all participants
         groupBuy.participants.forEach((participant) => {
@@ -712,9 +797,10 @@ export const reviewGroupBuy = async (req, res) => {
           io.to(`user_${userId}`).emit("groupBuyRejected", {
             groupBuyId: groupBuy._id,
             productTitle: groupBuy.productId.title,
-            message: "Your group buy was not successful. Refunds have been processed to your wallet.",
-          })
-        })
+            message:
+              "Your group buy was not successful. Refunds have been processed to your wallet.",
+          });
+        });
       }
 
       res.json({
@@ -724,49 +810,55 @@ export const reviewGroupBuy = async (req, res) => {
           groupBuy,
           refundsSummary: refundResult,
         },
-      })
+      });
     }
   } catch (error) {
-    logger.error("Review group buy error:", error)
-    res.status(500).json({ message: "Error reviewing group buy", error: error.message })
+    logger.error("Review group buy error:", error);
+    res
+      .status(500)
+      .json({ message: "Error reviewing group buy", error: error.message });
   }
-}
+};
 
 // Admin: Mark group buy as failed
 export const markGroupBuyAsFailed = async (req, res) => {
   try {
-    const { id } = req.params
-    const { adminNotes, reviewedBy } = req.body
+    const { id } = req.params;
+    const { adminNotes, reviewedBy } = req.body;
 
     const groupBuy = await GroupBuy.findById(id)
       .populate("productId", "title price slug")
-      .populate("participants.userId", "firstName lastName email")
+      .populate("participants.userId", "firstName lastName email");
 
     if (!groupBuy) {
-      return res.status(404).json({ message: "Group buy not found" })
+      return res.status(404).json({ message: "Group buy not found" });
     }
 
     if (groupBuy.status === "successful") {
-      return res.status(400).json({ message: "Cannot mark successful group buy as failed" })
+      return res
+        .status(400)
+        .json({ message: "Cannot mark successful group buy as failed" });
     }
 
     // Mark as failed
-    groupBuy.status = "failed"
-    groupBuy.adminNotes = adminNotes || `Marked as failed by admin - ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units achieved`
+    groupBuy.status = "failed";
+    groupBuy.adminNotes =
+      adminNotes ||
+      `Marked as failed by admin - ${groupBuy.unitsSold}/${groupBuy.minimumViableUnits} units achieved`;
     groupBuy.manualReviewData = {
       reviewedBy: reviewedBy || "Admin",
       reviewedAt: new Date(),
       adminNotes: adminNotes || "Marked as failed",
       recommendedAction: "reject",
-    }
+    };
 
-    await groupBuy.save()
+    await groupBuy.save();
 
     // Process refunds
-    const refundResult = await processGroupBuyRefunds(groupBuy)
+    const refundResult = await processGroupBuyRefunds(groupBuy);
 
     // Update related orders
-    await updateOrdersAfterReview(groupBuy, "rejected")
+    await updateOrdersAfterReview(groupBuy, "rejected");
 
     // Send notifications to all participants
     for (const participant of groupBuy.participants) {
@@ -776,14 +868,16 @@ export const markGroupBuyAsFailed = async (req, res) => {
         groupBuy.productId.title,
         groupBuy._id,
         Math.round(groupBuy.getProgressPercentage()),
-        participant.amount
-      )
+        participant.amount,
+      );
     }
 
-    logger.info(`❌ GroupBuy ${groupBuy._id} marked as failed by admin - ${refundResult.refundsProcessed} refunds processed`)
+    logger.info(
+      `❌ GroupBuy ${groupBuy._id} marked as failed by admin - ${refundResult.refundsProcessed} refunds processed`,
+    );
 
     // Emit WebSocket events
-    const io = global.io
+    const io = global.io;
     if (io) {
       // Notify all participants
       groupBuy.participants.forEach((participant) => {
@@ -791,9 +885,10 @@ export const markGroupBuyAsFailed = async (req, res) => {
         io.to(`user_${userId}`).emit("groupBuyFailed", {
           groupBuyId: groupBuy._id,
           productTitle: groupBuy.productId.title,
-          message: "Group buy has been marked as failed. Refund has been processed to your wallet.",
-        })
-      })
+          message:
+            "Group buy has been marked as failed. Refund has been processed to your wallet.",
+        });
+      });
     }
 
     res.json({
@@ -804,64 +899,76 @@ export const markGroupBuyAsFailed = async (req, res) => {
         progressPercentage: groupBuy.getProgressPercentage(),
         refundsProcessed: refundResult.refundsProcessed,
       },
-    })
+    });
   } catch (error) {
-    logger.error("Mark group buy as failed error:", error)
-    res.status(500).json({ message: "Error marking group buy as failed", error: error.message })
+    logger.error("Mark group buy as failed error:", error);
+    res.status(500).json({
+      message: "Error marking group buy as failed",
+      error: error.message,
+    });
   }
-}
+};
 
 // Helper function to check if all items in related orders are secured and trigger bulk WhatsApp
 const checkAndTriggerBulkWhatsApp = async (groupBuy) => {
   try {
-    const Order = (await import('../models/order.js')).default
-    const whatsappService = (await import('../services/whatsappService.js')).default
-    
+    const Order = (await import("../models/order.js")).default;
+    const whatsappService = (await import("../services/whatsappService.js"))
+      .default;
+
     // Get all orders that contain this group buy
     const relatedOrders = await Order.find({
       "items.groupbuyId": groupBuy._id,
-    }).populate('user', 'phone name')
-      .populate('items.groupbuyId', 'status')
+    })
+      .populate("user", "phone name")
+      .populate("items.groupbuyId", "status");
 
     for (const order of relatedOrders) {
       // Check if all items in this order are secured
-      const allItemsSecured = order.items.every(item => {
-        if (!item.groupbuyId) return true // Skip items without group buy
-        return item.groupbuyId.status === 'secured'
-      })
+      const allItemsSecured = order.items.every((item) => {
+        if (!item.groupbuyId) return true; // Skip items without group buy
+        return item.groupbuyId.status === "secured";
+      });
 
       if (allItemsSecured) {
         // All items in this order are secured - trigger bulk WhatsApp
-        const userPhone = order.user?.phone || order.deliveryAddress?.phone
-        
+        const userPhone = order.user?.phone || order.deliveryAddress?.phone;
+
         if (userPhone) {
           const orderDetails = {
             totalAmount: order.totalAmount,
             itemCount: order.items.length,
-            items: order.items.map(item => item.product?.title || 'Product').join(', ')
-          }
+            items: order.items
+              .map((item) => item.product?.title || "Product")
+              .join(", "),
+          };
 
           // Send bulk WhatsApp message for entire order
-          const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
-            userPhone,
-            order.trackingNumber,
-            orderDetails,
-            groupBuy._id
-          )
+          const whatsappResult =
+            await whatsappService.sendFulfillmentChoiceMessage(
+              userPhone,
+              order.trackingNumber,
+              orderDetails,
+              groupBuy._id,
+            );
 
           if (whatsappResult.success) {
-            logger.info(`📱 Bulk WhatsApp message sent for complete order ${order.trackingNumber}`)
+            logger.info(
+              `📱 Bulk WhatsApp message sent for complete order ${order.trackingNumber}`,
+            );
           } else {
-            logger.warn(`⚠️ Failed to send bulk WhatsApp message for order ${order.trackingNumber}: ${whatsappResult.error}`)
+            logger.warn(
+              `⚠️ Failed to send bulk WhatsApp message for order ${order.trackingNumber}: ${whatsappResult.error}`,
+            );
           }
         }
       }
     }
   } catch (error) {
-    logger.error('❌ Error in bulk WhatsApp check:', error)
-    throw error
+    logger.error("❌ Error in bulk WhatsApp check:", error);
+    throw error;
   }
-}
+};
 
 // Helper function to process refunds for failed group buy
 const processGroupBuyRefunds = async (groupBuy) => {
@@ -869,7 +976,7 @@ const processGroupBuyRefunds = async (groupBuy) => {
     refundsProcessed: 0,
     totalRefunded: 0,
     errors: [],
-  }
+  };
 
   try {
     // Process refunds for each participant
@@ -877,17 +984,17 @@ const processGroupBuyRefunds = async (groupBuy) => {
       try {
         // Find or create wallet for user
         const userId = participant.userId._id || participant.userId;
-        let wallet = await Wallet.findOne({ user: userId })
+        let wallet = await Wallet.findOne({ user: userId });
         if (!wallet) {
           wallet = new Wallet({
             user: userId,
             balance: 0,
-          })
+          });
         }
 
         // Add refund to wallet
-        wallet.balance += participant.amount
-        await wallet.save()
+        wallet.balance += participant.amount;
+        await wallet.save();
 
         // Create transaction record
         await Transaction.create({
@@ -901,94 +1008,105 @@ const processGroupBuyRefunds = async (groupBuy) => {
             groupBuyId: groupBuy._id,
             originalQuantity: participant.quantity,
           },
-        })
+        });
 
-        refundResults.refundsProcessed++
-        refundResults.totalRefunded += participant.amount
+        refundResults.refundsProcessed++;
+        refundResults.totalRefunded += participant.amount;
 
-        logger.info(`💰 Refunded ₦${participant.amount} to user ${userId}`)
+        logger.info(`💰 Refunded ₦${participant.amount} to user ${userId}`);
       } catch (error) {
-        logger.error(`❌ Error processing refund for user ${userId}:`, error)
+        logger.error(`❌ Error processing refund for user ${userId}:`, error);
         refundResults.errors.push({
           userId: userId,
           amount: participant.amount,
           error: error.message,
-        })
+        });
       }
     }
 
-    logger.info(`✅ Processed ${refundResults.refundsProcessed} refunds totaling ₦${refundResults.totalRefunded}`)
-    return refundResults
+    logger.info(
+      `✅ Processed ${refundResults.refundsProcessed} refunds totaling ₦${refundResults.totalRefunded}`,
+    );
+    return refundResults;
   } catch (error) {
-    logger.error("❌ Error processing group buy refunds:", error)
-    throw error
+    logger.error("❌ Error processing group buy refunds:", error);
+    throw error;
   }
-}
+};
 
 // Helper function to update orders after admin review
 const updateOrdersAfterReview = async (groupBuy, reviewResult) => {
   try {
     const relatedOrders = await Order.find({
       "items.groupbuyId": groupBuy._id,
-    })
+    });
 
     for (const order of relatedOrders) {
-      let orderUpdated = false
+      let orderUpdated = false;
 
       // Update items that belong to this GroupBuy
       order.items.forEach((item) => {
-        if (item.groupbuyId && item.groupbuyId.toString() === groupBuy._id.toString()) {
+        if (
+          item.groupbuyId &&
+          item.groupbuyId.toString() === groupBuy._id.toString()
+        ) {
           if (reviewResult === "approved") {
-            item.groupStatus = "secured"
+            item.groupStatus = "secured";
           } else {
-            item.groupStatus = "failed"
+            item.groupStatus = "failed";
           }
-          orderUpdated = true
+          orderUpdated = true;
         }
-      })
+      });
 
       if (orderUpdated) {
         // Add progress update
         const message =
           reviewResult === "approved"
             ? "Group buy approved! Your item is secured and will be fulfilled."
-            : "Group buy was not successful. Refund has been processed to your wallet."
+            : "Group buy was not successful. Refund has been processed to your wallet.";
 
         order.progress.push({
-          status: reviewResult === "approved" ? "group_secured" : "group_failed",
+          status:
+            reviewResult === "approved" ? "group_secured" : "group_failed",
           message,
           timestamp: new Date(),
-        })
+        });
 
         // Update overall order status
-        order.checkAllGroupsSecured()
-        await order.save()
+        order.checkAllGroupsSecured();
+        await order.save();
 
-        logger.info(`📦 Updated order ${order.trackingNumber} after GroupBuy review`)
+        logger.info(
+          `📦 Updated order ${order.trackingNumber} after GroupBuy review`,
+        );
       }
     }
   } catch (error) {
-    logger.error(`❌ Error updating orders after GroupBuy review:`, error)
+    logger.error(`❌ Error updating orders after GroupBuy review:`, error);
   }
-}
+};
 
 // Helper function to update order status for group buy
 const updateOrderStatusForGroupBuy = async (groupBuy, newStatus) => {
   try {
     const relatedOrders = await Order.find({
       "items.groupbuyId": groupBuy._id,
-    })
+    });
 
     for (const order of relatedOrders) {
-      let orderUpdated = false
+      let orderUpdated = false;
 
       // Update items that belong to this GroupBuy
       order.items.forEach((item) => {
-        if (item.groupbuyId && item.groupbuyId.toString() === groupBuy._id.toString()) {
-          item.groupStatus = newStatus
-          orderUpdated = true
+        if (
+          item.groupbuyId &&
+          item.groupbuyId.toString() === groupBuy._id.toString()
+        ) {
+          item.groupStatus = newStatus;
+          orderUpdated = true;
         }
-      })
+      });
 
       if (orderUpdated) {
         // Add progress update
@@ -998,34 +1116,45 @@ const updateOrderStatusForGroupBuy = async (groupBuy, newStatus) => {
           packaging: "Your order is being packaged for delivery!",
           ready_for_pickup: "Your order is ready for pickup!",
           delivered: "Your order has been delivered!",
-          refunded: "Your group buy has been refunded. The amount has been credited to your wallet.",
-        }
+          refunded:
+            "Your group buy has been refunded. The amount has been credited to your wallet.",
+        };
 
-        const message = statusMessages[newStatus] || `Group buy status updated to ${newStatus}`
+        const message =
+          statusMessages[newStatus] ||
+          `Group buy status updated to ${newStatus}`;
 
         order.progress.push({
           status: `group_${newStatus}`,
           message,
           timestamp: new Date(),
-        })
+        });
 
         // Update overall order status
-        order.checkAllGroupsSecured()
-        await order.save()
+        order.checkAllGroupsSecured();
+        await order.save();
 
-        logger.info(`📦 Updated order ${order.trackingNumber} for GroupBuy status change to ${newStatus}`)
+        logger.info(
+          `📦 Updated order ${order.trackingNumber} for GroupBuy status change to ${newStatus}`,
+        );
       }
     }
   } catch (error) {
-    logger.error(`❌ Error updating orders for GroupBuy status change:`, error)
+    logger.error(`❌ Error updating orders for GroupBuy status change:`, error);
   }
-}
+};
 
 // Helper function to send group buy status notifications
-const sendGroupBuyStatusNotification = async (groupBuy, newStatus, oldStatus) => {
+const sendGroupBuyStatusNotification = async (
+  groupBuy,
+  newStatus,
+  oldStatus,
+) => {
   try {
-    const notificationService = (await import('../services/notificationService.js')).default
-    const productName = groupBuy.productId?.title || 'Product'
+    const notificationService = (
+      await import("../services/notificationService.js")
+    ).default;
+    const productName = groupBuy.productId?.title || "Product";
 
     const statusMessages = {
       secured: `Great news! Your group buy for "${productName}" has been secured and is ready for processing.`,
@@ -1035,32 +1164,44 @@ const sendGroupBuyStatusNotification = async (groupBuy, newStatus, oldStatus) =>
       delivered: `Your order for "${productName}" has been delivered!`,
       failed: `Unfortunately, your group buy for "${productName}" has failed. A refund will be processed to your wallet.`,
       refunded: `Your group buy for "${productName}" has been refunded. The amount has been credited to your wallet.`,
-    }
+    };
 
-    const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`
+    const message =
+      statusMessages[newStatus] ||
+      `Your group buy status has been updated to ${newStatus}`;
 
     // Send notifications to all participants
     for (const participant of groupBuy.participants) {
       // Handle both populated and unpopulated userId
       const userId = participant.userId._id || participant.userId;
-      
+
       await notificationService.createNotification({
         userId: userId,
-        type: newStatus === "failed" ? "error" : newStatus === "refunded" ? "info" : "success",
+        type:
+          newStatus === "failed"
+            ? "error"
+            : newStatus === "refunded"
+              ? "info"
+              : "success",
         category: "group_buy",
-        title: newStatus === "failed" ? "Group Buy Failed" : newStatus === "refunded" ? "Group Buy Refunded" : "Group Buy Status Updated",
+        title:
+          newStatus === "failed"
+            ? "Group Buy Failed"
+            : newStatus === "refunded"
+              ? "Group Buy Refunded"
+              : "Group Buy Status Updated",
         message,
-        data: { 
-          productName, 
-          groupBuyId: groupBuy._id, 
-          newStatus, 
+        data: {
+          productName,
+          groupBuyId: groupBuy._id,
+          newStatus,
           oldStatus,
-          fulfillmentData: groupBuy.fulfillmentData
+          fulfillmentData: groupBuy.fulfillmentData,
         },
         priority: newStatus === "failed" ? "high" : "medium",
         actionUrl: `/account/orders`,
         actionText: "View Orders",
-      })
+      });
 
       // Send email notification (when email service is configured)
       await notificationService.sendEmailNotification(
@@ -1072,44 +1213,57 @@ const sendGroupBuyStatusNotification = async (groupBuy, newStatus, oldStatus) =>
           oldStatus,
           groupBuyId: groupBuy._id,
           fulfillmentData: groupBuy.fulfillmentData,
-        }
-      )
+        },
+      );
     }
 
-    logger.info(`📧 Sent status update notifications for GroupBuy ${groupBuy._id} (${oldStatus} → ${newStatus})`)
+    logger.info(
+      `📧 Sent status update notifications for GroupBuy ${groupBuy._id} (${oldStatus} → ${newStatus})`,
+    );
   } catch (error) {
-    logger.error(`❌ Error sending group buy status notifications:`, error)
+    logger.error(`❌ Error sending group buy status notifications:`, error);
   }
-}
+};
 
 export const updateGroupBuyMVU = async (req, res) => {
   try {
-    const { id } = req.params
-    const { minimumViableUnits, adminNotes } = req.body
+    const { id } = req.params;
+    const { minimumViableUnits, adminNotes } = req.body;
 
     if (!minimumViableUnits || minimumViableUnits < 1) {
-      return res.status(400).json({ message: "Minimum viable units must be at least 1" })
+      return res
+        .status(400)
+        .json({ message: "Minimum viable units must be at least 1" });
     }
 
-    const groupBuy = await GroupBuy.findById(id)
+    const groupBuy = await GroupBuy.findById(id);
     if (!groupBuy) {
-      return res.status(404).json({ message: "Group buy not found" })
+      return res.status(404).json({ message: "Group buy not found" });
     }
 
-    const oldMVU = groupBuy.minimumViableUnits
-    groupBuy.minimumViableUnits = minimumViableUnits
-    groupBuy.adminNotes = adminNotes || `MVU updated from ${oldMVU} to ${minimumViableUnits}`
+    const oldMVU = groupBuy.minimumViableUnits;
+    groupBuy.minimumViableUnits = minimumViableUnits;
+    groupBuy.adminNotes =
+      adminNotes || `MVU updated from ${oldMVU} to ${minimumViableUnits}`;
 
     // Update status based on new MVU
-    if (groupBuy.unitsSold >= minimumViableUnits && groupBuy.status === "active") {
-      groupBuy.status = "successful"
-    } else if (groupBuy.unitsSold < minimumViableUnits && groupBuy.status === "successful") {
-      groupBuy.status = "active"
+    if (
+      groupBuy.unitsSold >= minimumViableUnits &&
+      groupBuy.status === "active"
+    ) {
+      groupBuy.status = "successful";
+    } else if (
+      groupBuy.unitsSold < minimumViableUnits &&
+      groupBuy.status === "successful"
+    ) {
+      groupBuy.status = "active";
     }
 
-    await groupBuy.save()
+    await groupBuy.save();
 
-    logger.info(`📊 GroupBuy ${groupBuy._id} MVU updated from ${oldMVU} to ${minimumViableUnits}`)
+    logger.info(
+      `📊 GroupBuy ${groupBuy._id} MVU updated from ${oldMVU} to ${minimumViableUnits}`,
+    );
 
     res.json({
       success: true,
@@ -1118,28 +1272,30 @@ export const updateGroupBuyMVU = async (req, res) => {
         ...groupBuy.toObject(),
         progressPercentage: groupBuy.getProgressPercentage(),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Update group buy MVU error:", error)
-    res.status(500).json({ message: "Error updating group buy MVU", error: error.message })
+    logger.error("Update group buy MVU error:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating group buy MVU", error: error.message });
   }
-}
+};
 
 // Get group buy status for a specific product
 export const getGroupBuyStatus = async (req, res) => {
   try {
-    const { productId } = req.params
+    const { productId } = req.params;
 
     const groupBuy = await GroupBuy.findOne({
       productId,
       status: { $in: ["active", "successful"] },
       expiresAt: { $gt: new Date() },
-    }).populate("productId", "title price images description unitTag slug")
+    }).populate("productId", "title price images description unitTag slug");
 
     if (!groupBuy) {
-      const product = await Product.findById(productId)
+      const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ message: "Product not found" })
+        return res.status(404).json({ message: "Product not found" });
       }
 
       // Return default status for products without active group buys
@@ -1156,7 +1312,7 @@ export const getGroupBuyStatus = async (req, res) => {
           participantCount: 0,
           spotsRemaining: product.minimumViableUnits || 20,
         },
-      })
+      });
     }
 
     const enrichedGroupBuy = {
@@ -1164,41 +1320,67 @@ export const getGroupBuyStatus = async (req, res) => {
       progressPercentage: groupBuy.getProgressPercentage(),
       timeRemaining: Math.max(0, groupBuy.expiresAt - new Date()),
       participantCount: groupBuy.getParticipantCount(),
-      spotsRemaining: Math.max(0, groupBuy.minimumViableUnits - groupBuy.unitsSold),
+      spotsRemaining: Math.max(
+        0,
+        groupBuy.minimumViableUnits - groupBuy.unitsSold,
+      ),
       hasActiveGroupBuy: true,
-    }
+    };
 
     res.json({
       success: true,
       hasActiveGroupBuy: true,
       data: enrichedGroupBuy,
-    })
+    });
   } catch (error) {
-    logger.error("Get group buy status error:", error)
-    res.status(500).json({ message: "Error fetching group buy status", error: error.message })
+    logger.error("Get group buy status error:", error);
+    res.status(500).json({
+      message: "Error fetching group buy status",
+      error: error.message,
+    });
   }
-}
+};
 
 // Admin: Update group buy status with notifications
 export const updateGroupBuyStatus = async (req, res) => {
   try {
-    const { id } = req.params
-    const { status, notes, deliveryMethod, pickupLocation, deliveryAddress, trackingNumber } = req.body
-    const adminName = req.user?.name || req.user?.email || "Admin"
+    const { id } = req.params;
+    const {
+      status,
+      notes,
+      deliveryMethod,
+      pickupLocation,
+      deliveryAddress,
+      trackingNumber,
+    } = req.body;
+    const adminName = req.user?.name || req.user?.email || "Admin";
 
     const groupBuy = await GroupBuy.findById(id)
       .populate("productId", "title price slug")
-      .populate("participants.userId", "firstName lastName email")
+      .populate("participants.userId", "firstName lastName email");
 
     if (!groupBuy) {
-      return res.status(404).json({ message: "Group buy not found" })
+      return res.status(404).json({ message: "Group buy not found" });
     }
 
     // Validate status transition
     const validTransitions = {
       active: ["successful", "secured", "failed", "manual_review", "refunded"],
-      successful: ["secured", "processing", "packaging", "ready_for_pickup", "delivered", "refunded"],
-      secured: ["processing", "packaging", "ready_for_pickup", "delivered", "refunded"],
+      successful: [
+        "secured",
+        "processing",
+        "packaging",
+        "ready_for_pickup",
+        "delivered",
+        "refunded",
+      ],
+      secured: [
+        "processing",
+        "packaging",
+        "ready_for_pickup",
+        "delivered",
+        "refunded",
+      ],
       processing: ["packaging", "ready_for_pickup", "delivered", "refunded"],
       packaging: ["ready_for_pickup", "delivered", "refunded"],
       ready_for_pickup: ["delivered", "refunded"],
@@ -1206,119 +1388,134 @@ export const updateGroupBuyStatus = async (req, res) => {
       failed: ["refunded"], // Can be refunded after failure
       manual_review: ["secured", "failed", "refunded"],
       refunded: [], // Final state
-    }
+    };
 
-    if (validTransitions[groupBuy.status] && !validTransitions[groupBuy.status].includes(status)) {
-      return res.status(400).json({ 
+    if (
+      validTransitions[groupBuy.status] &&
+      !validTransitions[groupBuy.status].includes(status)
+    ) {
+      return res.status(400).json({
         message: `Invalid status transition from ${groupBuy.status} to ${status}`,
-        validTransitions: validTransitions[groupBuy.status]
-      })
+        validTransitions: validTransitions[groupBuy.status],
+      });
     }
 
-    const oldStatus = groupBuy.updateStatus(status, adminName, notes)
+    const oldStatus = groupBuy.updateStatus(status, adminName, notes);
 
     // Update fulfillment data if provided
     if (deliveryMethod) {
-      groupBuy.fulfillmentData.deliveryMethod = deliveryMethod
+      groupBuy.fulfillmentData.deliveryMethod = deliveryMethod;
     }
     if (pickupLocation) {
-      groupBuy.fulfillmentData.pickupLocation = pickupLocation
+      groupBuy.fulfillmentData.pickupLocation = pickupLocation;
     }
     if (deliveryAddress) {
-      groupBuy.fulfillmentData.deliveryAddress = deliveryAddress
+      groupBuy.fulfillmentData.deliveryAddress = deliveryAddress;
     }
     if (trackingNumber) {
-      groupBuy.fulfillmentData.trackingNumber = trackingNumber
+      groupBuy.fulfillmentData.trackingNumber = trackingNumber;
     }
 
-    await groupBuy.save()
+    await groupBuy.save();
 
     // Update related orders
-    await updateOrderStatusForGroupBuy(groupBuy, status)
+    await updateOrderStatusForGroupBuy(groupBuy, status);
 
     // Send WhatsApp messages if status is ready_for_pickup
     if (status === "ready_for_pickup") {
       try {
-        const whatsappService = (await import('../services/whatsappService.js')).default
-        
+        const whatsappService = (await import("../services/whatsappService.js"))
+          .default;
+
         // Get all orders related to this group buy
-        const Order = (await import('../models/order.js')).default
+        const Order = (await import("../models/order.js")).default;
         const relatedOrders = await Order.find({
           "items.groupbuyId": groupBuy._id,
-        }).populate('user', 'phone name')
+        }).populate("user", "phone name");
 
         for (const order of relatedOrders) {
           // Get user's phone number
-          const userPhone = order.user?.phone || order.deliveryAddress?.phone
-          
+          const userPhone = order.user?.phone || order.deliveryAddress?.phone;
+
           if (userPhone) {
             // Find the specific item in this order that belongs to this GroupBuy
-            const groupBuyItem = order.items.find(item => 
-              item.groupbuyId && item.groupbuyId.toString() === groupBuy._id.toString()
-            )
-            
+            const groupBuyItem = order.items.find(
+              (item) =>
+                item.groupbuyId &&
+                item.groupbuyId.toString() === groupBuy._id.toString(),
+            );
+
             if (groupBuyItem) {
               const groupBuyDetails = {
                 totalAmount: groupBuyItem.price * groupBuyItem.quantity,
                 itemCount: groupBuyItem.quantity,
-                productName: groupBuyItem.product?.title || 'Product'
-              }
+                productName: groupBuyItem.product?.title || "Product",
+              };
 
               // Send WhatsApp message for this specific GroupBuy
-              const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
-                userPhone,
-                groupBuyDetails,
-                order.trackingNumber,
-                groupBuy._id
-              )
+              const whatsappResult =
+                await whatsappService.sendFulfillmentChoiceMessage(
+                  userPhone,
+                  groupBuyDetails,
+                  order.trackingNumber,
+                  groupBuy._id,
+                );
 
               if (whatsappResult.success) {
-                logger.info(`📱 WhatsApp message sent for GroupBuy ${groupBuy._id} (Order: ${order.trackingNumber})`)
+                logger.info(
+                  `📱 WhatsApp message sent for GroupBuy ${groupBuy._id} (Order: ${order.trackingNumber})`,
+                );
               } else {
-                logger.warn(`⚠️ Failed to send WhatsApp message for GroupBuy ${groupBuy._id}: ${whatsappResult.error}`)
+                logger.warn(
+                  `⚠️ Failed to send WhatsApp message for GroupBuy ${groupBuy._id}: ${whatsappResult.error}`,
+                );
               }
             }
           } else {
-            logger.warn(`⚠️ No phone number found for order ${order.trackingNumber}`)
+            logger.warn(
+              `⚠️ No phone number found for order ${order.trackingNumber}`,
+            );
           }
         }
       } catch (whatsappError) {
-        logger.error('❌ WhatsApp integration error:', whatsappError)
+        logger.error("❌ WhatsApp integration error:", whatsappError);
         // Don't fail the entire operation if WhatsApp fails
       }
     }
 
     // Note: Removed bulk WhatsApp trigger - now only sends individual GroupBuy messages
 
-          // Send notifications to participants if status change requires notification
-      if (groupBuy.requiresNotification(status)) {
-        await sendGroupBuyStatusNotification(groupBuy, status, oldStatus)
-        
-        // Send admin action notifications to all participants
-        for (const participant of groupBuy.participants) {
-          // Handle both populated and unpopulated userId
-          const userId = participant.userId._id || participant.userId;
-          
-          await notificationService.notifyAdminGroupBuyStatusUpdate(
-            userId,
-            groupBuy.productId.title,
-            groupBuy._id,
-            status,
-            oldStatus,
-            adminName,
-            groupBuy.fulfillmentData
-          )
-        }
-        
-        // Mark notification as sent in the latest status change
-        const latestChange = groupBuy.getLatestStatusChange()
-        if (latestChange) {
-          latestChange.notificationSent = true
-          await groupBuy.save()
-        }
+    // Send notifications to participants if status change requires notification
+    if (groupBuy.requiresNotification(status)) {
+      await sendGroupBuyStatusNotification(groupBuy, status, oldStatus);
+
+      // Send admin action notifications to all participants
+      for (const participant of groupBuy.participants) {
+        // Handle both populated and unpopulated userId
+        const userId = participant.userId._id || participant.userId;
+
+        await notificationService.notifyAdminGroupBuyStatusUpdate(
+          userId,
+          groupBuy.productId.title,
+          groupBuy._id,
+          status,
+          oldStatus,
+          adminName,
+          groupBuy.fulfillmentData,
+        );
       }
 
-    logger.info(`📦 Admin ${adminName} updated GroupBuy ${groupBuy._id} status from ${oldStatus} to ${status}`)
+      // Mark notification as sent in the latest status change
+      const latestChange = groupBuy.getLatestStatusChange();
+      if (latestChange) {
+        latestChange.notificationSent = true;
+        await groupBuy.save();
+      }
+    }
+
+    logger.info(
+      `📦 Admin ${adminName} updated GroupBuy ${groupBuy._id} status from ${oldStatus} to ${status}`,
+    );
 
     res.json({
       success: true,
@@ -1328,24 +1525,27 @@ export const updateGroupBuyStatus = async (req, res) => {
         progressPercentage: groupBuy.getProgressPercentage(),
         participantCount: groupBuy.getParticipantCount(),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Update group buy status error:", error)
-    res.status(500).json({ message: "Error updating group buy status", error: error.message })
+    logger.error("Update group buy status error:", error);
+    res.status(500).json({
+      message: "Error updating group buy status",
+      error: error.message,
+    });
   }
-}
+};
 
 // Admin: Get group buy status history
 export const getGroupBuyStatusHistory = async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
     const groupBuy = await GroupBuy.findById(id)
       .populate("productId", "title")
-      .populate("participants.userId", "firstName lastName email")
+      .populate("participants.userId", "firstName lastName email");
 
     if (!groupBuy) {
-      return res.status(404).json({ message: "Group buy not found" })
+      return res.status(404).json({ message: "Group buy not found" });
     }
 
     res.json({
@@ -1363,21 +1563,23 @@ export const getGroupBuyStatusHistory = async (req, res) => {
         },
         statusHistory: groupBuy.adminStatusHistory,
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get group buy status history error:", error)
-    res.status(500).json({ message: "Error fetching status history", error: error.message })
+    logger.error("Get group buy status history error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching status history", error: error.message });
   }
-}
+};
 
 // Admin: Get all group buys by status for admin dashboard
 export const getGroupBuysByStatus = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query
+    const { status, page = 1, limit = 20 } = req.query;
 
-    const filter = {}
+    const filter = {};
     if (status) {
-      filter.status = status
+      filter.status = status;
     }
 
     const groupBuys = await GroupBuy.find(filter)
@@ -1385,9 +1587,9 @@ export const getGroupBuysByStatus = async (req, res) => {
       .populate("participants.userId", "firstName lastName email")
       .sort({ updatedAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .skip((page - 1) * limit);
 
-    const total = await GroupBuy.countDocuments(filter)
+    const total = await GroupBuy.countDocuments(filter);
 
     // Get status counts for dashboard
     const statusCounts = await GroupBuy.aggregate([
@@ -1397,14 +1599,14 @@ export const getGroupBuysByStatus = async (req, res) => {
           count: { $sum: 1 },
         },
       },
-    ])
+    ]);
 
     const enrichedGroupBuys = groupBuys.map((groupBuy) => ({
       ...groupBuy.toObject(),
       progressPercentage: groupBuy.getProgressPercentage(),
       participantCount: groupBuy.getParticipantCount(),
       latestStatusChange: groupBuy.getLatestStatusChange(),
-    }))
+    }));
 
     res.json({
       success: true,
@@ -1416,9 +1618,11 @@ export const getGroupBuysByStatus = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    logger.error("Get group buys by status error:", error)
-    res.status(500).json({ message: "Error fetching group buys", error: error.message })
+    logger.error("Get group buys by status error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching group buys", error: error.message });
   }
-}
+};

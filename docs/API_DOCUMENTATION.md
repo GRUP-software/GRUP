@@ -1,15 +1,19 @@
 # Wallet & Cart System API Documentation
 
 ## Overview
+
 This document provides comprehensive API documentation for the wallet and cart system, including referral bonuses, payment processing, and transaction history.
 
 ## Base URL
+
 ```
 http://localhost:5000/api
 ```
 
 ## Authentication
+
 All endpoints require Bearer token authentication:
+
 ```
 Authorization: Bearer <jwt_token>
 ```
@@ -19,11 +23,13 @@ Authorization: Bearer <jwt_token>
 ## 1. Wallet APIs
 
 ### 1.1 Get Wallet Data
+
 **GET** `/wallet`
 
 Returns comprehensive wallet information including balance, transactions, and referral stats.
 
 **Response:**
+
 ```json
 {
   "balance": 1500,
@@ -74,11 +80,13 @@ Returns comprehensive wallet information including balance, transactions, and re
 ```
 
 ### 1.2 Calculate Wallet Offset
+
 **POST** `/wallet/calculate-offset`
 
 Calculate how much wallet balance can be used for a purchase.
 
 **Request:**
+
 ```json
 {
   "totalAmount": 2000,
@@ -87,6 +95,7 @@ Calculate how much wallet balance can be used for a purchase.
 ```
 
 **Response:**
+
 ```json
 {
   "walletBalance": 1500,
@@ -99,17 +108,20 @@ Calculate how much wallet balance can be used for a purchase.
 ```
 
 ### 1.3 Get Transaction History
+
 **GET** `/wallet/transactions`
 
 Get filtered transaction history with pagination.
 
 **Query Parameters:**
+
 - `type`: credit|debit
 - `reason`: REFERRAL_BONUS|ORDER|REFUND
 - `page`: Page number (default: 1)
 - `limit`: Items per page (default: 20)
 
 **Response:**
+
 ```json
 {
   "transactions": [
@@ -145,11 +157,13 @@ Get filtered transaction history with pagination.
 ## 2. Cart APIs
 
 ### 2.1 Get Cart
+
 **GET** `/cart`
 
 Get user's current cart with wallet integration.
 
 **Response:**
+
 ```json
 {
   "items": [
@@ -181,11 +195,13 @@ Get user's current cart with wallet integration.
 ```
 
 ### 2.2 Add to Cart
+
 **POST** `/cart/add`
 
 Add item to cart.
 
 **Request:**
+
 ```json
 {
   "productId": "product_id",
@@ -196,6 +212,7 @@ Add item to cart.
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Item added to cart successfully",
@@ -210,11 +227,13 @@ Add item to cart.
 ```
 
 ### 2.3 Update Cart Quantity
+
 **PATCH** `/cart/update-quantity`
 
 Update item quantity in cart.
 
 **Request:**
+
 ```json
 {
   "productId": "product_id",
@@ -225,11 +244,13 @@ Update item quantity in cart.
 ```
 
 ### 2.4 Remove from Cart
+
 **DELETE** `/cart/remove`
 
 Remove item from cart.
 
 **Request:**
+
 ```json
 {
   "productId": "product_id",
@@ -239,6 +260,7 @@ Remove item from cart.
 ```
 
 ### 2.5 Clear Cart
+
 **DELETE** `/cart/clear`
 
 Clear all items from cart.
@@ -248,14 +270,16 @@ Clear all items from cart.
 ## 3. Payment APIs
 
 ### 3.1 Initialize Payment
+
 **POST** `/payment/initialize`
 
 Initialize payment with wallet integration.
 
 **Request:**
+
 ```json
 {
-  "paymentMethod": "wallet_only|wallet_and_paystack|paystack_only",
+  "paymentMethod": "wallet_only|wallet_and_flutterwave|flutterwave_only",
   "walletUse": 1000,
   "deliveryAddress": {
     "street": "123 Main St",
@@ -269,6 +293,7 @@ Initialize payment with wallet integration.
 ```
 
 **Response for Wallet-Only Payment:**
+
 ```json
 {
   "success": true,
@@ -290,27 +315,29 @@ Initialize payment with wallet integration.
 }
 ```
 
-**Response for Partial Wallet + Paystack:**
+**Response for Partial Wallet + Flutterwave:**
+
 ```json
 {
   "success": true,
-  "message": "Partial wallet payment initialized, redirecting to Paystack",
-  "authorization_url": "https://checkout.paystack.com/...",
+  "message": "Partial wallet payment initialized, redirecting to Flutterwave",
+  "authorization_url": "https://checkout.flutterwave.com/...",
   "reference": "GRP_abc123_1234567890",
   "paymentHistoryId": "payment_history_id",
   "walletUse": 1000,
-  "paystackAmount": 500,
+  "flutterwaveAmount": 500,
   "totalAmount": 1500,
   "currentWalletBalance": 1500,
-  "message": "Wallet balance will be deducted after Paystack payment succeeds"
+  "message": "Wallet balance will be deducted after Flutterwave payment succeeds"
 }
 ```
 
-**Response for Paystack-Only:**
+**Response for Flutterwave-Only:**
+
 ```json
 {
   "success": true,
-  "authorization_url": "https://checkout.paystack.com/...",
+  "authorization_url": "https://checkout.flutterwave.com/...",
   "reference": "GRP_abc123_1234567890",
   "paymentHistoryId": "payment_history_id",
   "amount": 1500,
@@ -325,11 +352,13 @@ Initialize payment with wallet integration.
 ## 4. Referral APIs
 
 ### 4.1 Get Referral Info
+
 **GET** `/referral/info`
 
 Get user's referral information.
 
 **Response:**
+
 ```json
 {
   "referralCode": "abc123",
@@ -353,11 +382,13 @@ Get user's referral information.
 ```
 
 ### 4.2 Get Referral Stats
+
 **GET** `/referral/stats`
 
 Get detailed referral statistics.
 
 **Response:**
+
 ```json
 {
   "totalReferrals": 6,
@@ -380,11 +411,13 @@ Get detailed referral statistics.
 ```
 
 ### 4.3 Validate Referral Code
+
 **GET** `/referral/validate/:referralCode`
 
 Validate a referral code.
 
 **Response:**
+
 ```json
 {
   "valid": true,
@@ -401,23 +434,27 @@ Validate a referral code.
 ## 5. Business Logic Rules
 
 ### 5.1 Referral Bonus System
+
 - **Bonus Amount**: ₦500 for every 3 referrals
 - **Usage**: Can only be used for purchase payments
 - **Withdrawal**: Cannot be withdrawn as cash
 - **Accumulation**: Bonuses accumulate (6 referrals = ₦1000, 9 referrals = ₦1500)
 
 ### 5.2 Wallet Usage Rules
-- **Partial Payments**: Can use wallet for partial payment + Paystack
+
+- **Partial Payments**: Can use wallet for partial payment + Flutterwave
 - **Deduction Timing**: Wallet only deducted after successful payment confirmation
 - **Balance Validation**: System validates sufficient balance before payment
 - **Transaction Records**: All wallet activities are recorded with metadata
 
 ### 5.3 Payment Flow
+
 1. **Wallet-Only**: Immediate completion, wallet deducted immediately
-2. **Partial Wallet**: Wallet validated but not deducted until Paystack succeeds
-3. **Paystack-Only**: Standard Paystack flow
+2. **Partial Wallet**: Wallet validated but not deducted until Flutterwave succeeds
+3. **Flutterwave-Only**: Standard Flutterwave flow
 
 ### 5.4 Data Consistency
+
 - All wallet transactions include metadata (order ID, group buy ID, etc.)
 - Referral bonuses are tracked with referral count
 - Cart updates include wallet balance information
@@ -428,6 +465,7 @@ Validate a referral code.
 ## 6. Error Handling
 
 ### 6.1 Common Error Responses
+
 ```json
 {
   "success": false,
@@ -437,6 +475,7 @@ Validate a referral code.
 ```
 
 ### 6.2 Specific Error Cases
+
 - **Insufficient Wallet Balance**: `"Insufficient wallet balance"`
 - **Invalid Payment Method**: `"Invalid payment method"`
 - **Cart Empty**: `"Cannot checkout with an empty cart"`
@@ -447,54 +486,66 @@ Validate a referral code.
 ## 7. Frontend Integration Guide
 
 ### 7.1 Wallet Integration
+
 ```javascript
 // Get wallet data
-const walletData = await fetch('/api/wallet', {
-  headers: { 'Authorization': `Bearer ${token}` }
+const walletData = await fetch("/api/wallet", {
+  headers: { Authorization: `Bearer ${token}` },
 });
 
 // Calculate wallet offset
-const offset = await fetch('/api/wallet/calculate-offset', {
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ totalAmount: 2000, requestedWalletUse: 1000 })
+const offset = await fetch("/api/wallet/calculate-offset", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ totalAmount: 2000, requestedWalletUse: 1000 }),
 });
 ```
 
 ### 7.2 Payment Integration
+
 ```javascript
 // Initialize payment
-const payment = await fetch('/api/payment/initialize', {
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+const payment = await fetch("/api/payment/initialize", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
   body: JSON.stringify({
-    paymentMethod: 'wallet_and_paystack',
+    paymentMethod: "wallet_and_flutterwave",
     walletUse: 1000,
-    deliveryAddress: { street: '123 Main St', city: 'Lagos', state: 'Lagos' },
-    phone: '+2348012345678',
-    cartId: cartId
-  })
+    deliveryAddress: { street: "123 Main St", city: "Lagos", state: "Lagos" },
+    phone: "+2348012345678",
+    cartId: cartId,
+  }),
 });
 
 const paymentData = await payment.json();
 
 if (paymentData.success) {
   if (paymentData.authorization_url) {
-    // Redirect to Paystack
+    // Redirect to Flutterwave
     window.location.href = paymentData.authorization_url;
   } else {
     // Wallet-only payment completed
-    console.log('Payment completed:', paymentData);
+    console.log("Payment completed:", paymentData);
   }
 }
 ```
 
 ### 7.3 Transaction History
+
 ```javascript
 // Get transaction history with filters
-const transactions = await fetch('/api/wallet/transactions?type=credit&reason=REFERRAL_BONUS&page=1&limit=20', {
-  headers: { 'Authorization': `Bearer ${token}` }
-});
+const transactions = await fetch(
+  "/api/wallet/transactions?type=credit&reason=REFERRAL_BONUS&page=1&limit=20",
+  {
+    headers: { Authorization: `Bearer ${token}` },
+  },
+);
 ```
 
 ---
@@ -502,6 +553,7 @@ const transactions = await fetch('/api/wallet/transactions?type=credit&reason=RE
 ## 8. Testing Scenarios
 
 ### 8.1 Referral Bonus Testing
+
 1. Create user with referral code
 2. Register 3 users with that referral code
 3. Verify ₦500 bonus is added to referrer's wallet
@@ -509,14 +561,16 @@ const transactions = await fetch('/api/wallet/transactions?type=credit&reason=RE
 5. Verify another ₦500 bonus is added
 
 ### 8.2 Payment Testing
+
 1. Add items to cart
 2. Test wallet-only payment
-3. Test partial wallet + Paystack payment
-4. Test Paystack-only payment
+3. Test partial wallet + Flutterwave payment
+4. Test Flutterwave-only payment
 5. Verify wallet balance updates correctly
 6. Verify transaction records are created
 
 ### 8.3 Error Testing
+
 1. Test insufficient wallet balance
 2. Test invalid payment methods
 3. Test empty cart checkout

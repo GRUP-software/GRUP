@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const shoppingRegionSchema = new mongoose.Schema(
   {
@@ -19,11 +19,11 @@ const shoppingRegionSchema = new mongoose.Schema(
     priority: { type: Number, default: 0 }, // Higher number means higher priority for display/selection
   },
   { timestamps: true },
-)
+);
 
 // Create a 2dsphere index for geospatial queries if coordinates were present
 // shoppingRegionSchema.index({ coordinates: "2dsphere" });
 
-const ShoppingRegion = mongoose.model("ShoppingRegion", shoppingRegionSchema)
+const ShoppingRegion = mongoose.model("ShoppingRegion", shoppingRegionSchema);
 
-export default ShoppingRegion
+export default ShoppingRegion;

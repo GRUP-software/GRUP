@@ -1,47 +1,68 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { Users, Package, Clock, ShoppingCart, Share2, Zap, ChevronDown } from "lucide-react"
-import GroupProgressCard from "./GroupProgressCard"
+import React, { useState, useEffect } from "react";
+import {
+  Users,
+  Package,
+  Clock,
+  ShoppingCart,
+  Share2,
+  Zap,
+  ChevronDown,
+} from "lucide-react";
+import GroupProgressCard from "./GroupProgressCard";
 
 interface ProductCardProps {
-  product: any
-  onAddToCart?: (productId: string, quantity: number, variant?: string, sellingUnit?: any) => void
+  product: any;
+  onAddToCart?: (
+    productId: string,
+    quantity: number,
+    variant?: string,
+    sellingUnit?: any,
+  ) => void;
 }
 
-export default function EnhancedProductCard({ product, onAddToCart }: ProductCardProps) {
-  const [groupProgress, setGroupProgress] = useState<any>(null)
-  const [quantity, setQuantity] = useState(1)
-  const [showGroupDetails, setShowGroupDetails] = useState(false)
-  const [selectedSellingUnit, setSelectedSellingUnit] = useState<any>(null)
-  const [selectedVariant, setSelectedVariant] = useState<string>("")
+export default function EnhancedProductCard({
+  product,
+  onAddToCart,
+}: ProductCardProps) {
+  const [groupProgress, setGroupProgress] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [selectedSellingUnit, setSelectedSellingUnit] = useState<any>(null);
+  const [selectedVariant, setSelectedVariant] = useState<string>("");
 
   useEffect(() => {
-    fetchGroupProgress()
+    fetchGroupProgress();
 
-    if (product.sellingUnitsData?.enabled && product.sellingUnitsData.options?.length > 0) {
-      const activeOptions = product.sellingUnitsData.options.filter((opt: any) => opt.isActive)
+    if (
+      product.sellingUnitsData?.enabled &&
+      product.sellingUnitsData.options?.length > 0
+    ) {
+      const activeOptions = product.sellingUnitsData.options.filter(
+        (opt: any) => opt.isActive,
+      );
       if (activeOptions.length > 0) {
-        setSelectedSellingUnit(activeOptions[0])
+        setSelectedSellingUnit(activeOptions[0]);
       }
     }
 
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchGroupProgress, 30000)
-    return () => clearInterval(interval)
-  }, [product._id])
+    const interval = setInterval(fetchGroupProgress, 30000);
+    return () => clearInterval(interval);
+  }, [product._id]);
 
   const fetchGroupProgress = async () => {
     try {
-      const response = await fetch(`/api/group/group-status/${product._id}`)
+      const response = await fetch(`/api/group/group-status/${product._id}`);
       if (response.ok) {
-        const data = await response.json()
-        setGroupProgress(data)
+        const data = await response.json();
+        setGroupProgress(data);
       }
     } catch (err) {
-      console.error("Error fetching group progress:", err)
+      console.error("Error fetching group progress:", err);
     }
-  }
+  };
 
   const handleJoinGroup = () => {
     if (onAddToCart) {
@@ -54,32 +75,32 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
             pricePerUnit: selectedSellingUnit.calculatedPrice,
             totalBaseUnits: selectedSellingUnit.baseUnitQuantity * quantity,
           }
-        : null
+        : null;
 
-      onAddToCart(product._id, quantity, selectedVariant, sellingUnitData)
+      onAddToCart(product._id, quantity, selectedVariant, sellingUnitData);
     }
-  }
+  };
 
   const getCurrentPrice = () => {
-    return product.price // Always show base product price
-  }
+    return product.price; // Always show base product price
+  };
 
   const getDisplayUnit = () => {
     if (selectedSellingUnit) {
-      return selectedSellingUnit.displayName
+      return selectedSellingUnit.displayName;
     }
-    return product.unitTag
-  }
+    return product.unitTag;
+  };
 
   const getBaseUnitDisplay = () => {
     if (selectedSellingUnit && product.sellingUnitsData?.enabled) {
-      const totalBaseUnits = selectedSellingUnit.baseUnitQuantity * quantity
-      const unitName = product.sellingUnitsData.baseUnitName || "unit"
-      const pluralUnit = totalBaseUnits === 1 ? unitName : `${unitName}s`
-      return `${totalBaseUnits} ${pluralUnit}`
+      const totalBaseUnits = selectedSellingUnit.baseUnitQuantity * quantity;
+      const unitName = product.sellingUnitsData.baseUnitName || "unit";
+      const pluralUnit = totalBaseUnits === 1 ? unitName : `${unitName}s`;
+      return `${totalBaseUnits} ${pluralUnit}`;
     }
-    return null
-  }
+    return null;
+  };
 
   const handleShare = async () => {
     // Extract custom message from product's shareLink if available
@@ -87,13 +108,13 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
     try {
       if (product.shareLink) {
         const urlObj = new URL(product.shareLink);
-        const customMessage = urlObj.searchParams.get('msg');
+        const customMessage = urlObj.searchParams.get("msg");
         if (customMessage) {
           shareText = decodeURIComponent(customMessage);
         }
       }
     } catch (error) {
-      console.warn('Error parsing shareLink for custom message:', error);
+      console.warn("Error parsing shareLink for custom message:", error);
     }
 
     if (navigator.share) {
@@ -102,33 +123,40 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
           title: product.title,
           text: shareText,
           url: product.shareLink,
-        })
+        });
       } catch (err) {
-        console.log("Error sharing:", err)
+        console.log("Error sharing:", err);
       }
     } else {
       // Fallback: copy to clipboard
       try {
         const shareData = `${product.title}\n\n${shareText}\n\n${product.shareLink}`;
         await navigator.clipboard.writeText(shareData);
-        console.log('Share data copied to clipboard');
+        console.log("Share data copied to clipboard");
       } catch (error) {
-        console.error('Error copying to clipboard:', error);
+        console.error("Error copying to clipboard:", error);
       }
     }
-  }
+  };
 
-  const hasActiveGroup = groupProgress && groupProgress.status === "forming"
-  const isGroupSecured = groupProgress && groupProgress.status === "secured"
-  const hasSellingUnits = product.sellingUnitsData?.enabled && product.sellingUnitsData.options?.length > 0
-  const hasVariants = product.variants?.length > 0
-  const activeSellingUnits = hasSellingUnits ? product.sellingUnitsData.options.filter((opt: any) => opt.isActive) : []
+  const hasActiveGroup = groupProgress && groupProgress.status === "forming";
+  const isGroupSecured = groupProgress && groupProgress.status === "secured";
+  const hasSellingUnits =
+    product.sellingUnitsData?.enabled &&
+    product.sellingUnitsData.options?.length > 0;
+  const hasVariants = product.variants?.length > 0;
+  const activeSellingUnits = hasSellingUnits
+    ? product.sellingUnitsData.options.filter((opt: any) => opt.isActive)
+    : [];
 
   return (
     <div className="group border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
       <div className="relative aspect-square overflow-hidden">
         <img
-          src={product.images?.[0] || `/placeholder.svg?height=300&width=300&query=${product.title}`}
+          src={
+            product.images?.[0] ||
+            `/placeholder.svg?height=300&width=300&query=${product.title}`
+          }
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -162,12 +190,20 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
 
       <div className="p-4">
         <div className="space-y-2 mb-4">
-          <h3 className="font-semibold text-lg line-clamp-2">{product.title}</h3>
+          <h3 className="font-semibold text-lg line-clamp-2">
+            {product.title}
+          </h3>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-2xl font-bold text-green-600">₦{getCurrentPrice().toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">
+                ₦{getCurrentPrice().toLocaleString()}
+              </p>
               <p className="text-xs text-gray-500">per {getDisplayUnit()}</p>
-              {getBaseUnitDisplay() && <p className="text-xs text-blue-600 font-medium">= {getBaseUnitDisplay()}</p>}
+              {getBaseUnitDisplay() && (
+                <p className="text-xs text-blue-600 font-medium">
+                  = {getBaseUnitDisplay()}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Stock</p>
@@ -180,18 +216,22 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
 
         {hasSellingUnits && (
           <div className="space-y-2 mb-4">
-            <label className="text-sm font-medium">Select Quantity Option</label>
+            <label className="text-sm font-medium">
+              Select Quantity Option
+            </label>
             <div className="relative">
               <select
                 value={selectedSellingUnit?.name || ""}
                 onChange={(e) => {
-                  const selected = activeSellingUnits.find((opt: any) => opt.name === e.target.value)
-                  setSelectedSellingUnit(selected)
+                  const selected = activeSellingUnits.find(
+                    (opt: any) => opt.name === e.target.value,
+                  );
+                  setSelectedSellingUnit(selected);
                 }}
                 className="w-full p-3 border rounded-md appearance-none bg-white pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {activeSellingUnits.map((option: any, index: number) => {
-                  const optionPrice = option.calculatedPrice || 0
+                  const optionPrice = option.calculatedPrice || 0;
 
                   return (
                     <option key={index} value={option.name}>
@@ -199,13 +239,15 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
                       {option.baseUnitQuantity > 1 &&
                         ` (${option.baseUnitQuantity} ${product.sellingUnitsData.baseUnitName}s)`}
                     </option>
-                  )
+                  );
                 })}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
             {selectedSellingUnit?.description && (
-              <p className="text-xs text-gray-600">{selectedSellingUnit.description}</p>
+              <p className="text-xs text-gray-600">
+                {selectedSellingUnit.description}
+              </p>
             )}
           </div>
         )}
@@ -223,7 +265,10 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
                 {product.variants.map((variant: any, index: number) => (
                   <optgroup key={index} label={variant.name}>
                     {variant.options.map((option: string, optIndex: number) => (
-                      <option key={optIndex} value={`${variant.name}: ${option}`}>
+                      <option
+                        key={optIndex}
+                        value={`${variant.name}: ${option}`}
+                      >
                         {option}
                       </option>
                     ))}
@@ -239,7 +284,9 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
           <div className="space-y-3 mb-4">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">Group Progress</span>
-              <span className="text-green-600">{Math.round(groupProgress.progressPercentage)}% complete</span>
+              <span className="text-green-600">
+                {Math.round(groupProgress.progressPercentage)}% complete
+              </span>
             </div>
 
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -264,7 +311,8 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
 
         <div className="space-y-2 mb-4">
           <label className="text-sm font-medium">
-            Quantity {hasSellingUnits ? `(${getDisplayUnit()})` : `(${product.unitTag})`}
+            Quantity{" "}
+            {hasSellingUnits ? `(${getDisplayUnit()})` : `(${product.unitTag})`}
           </label>
           <div className="flex items-center gap-3">
             <button
@@ -274,14 +322,23 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
             >
               -
             </button>
-            <span className="font-semibold min-w-[3rem] text-center">{quantity}</span>
-            <button onClick={() => setQuantity(quantity + 1)} className="px-3 py-1 border rounded hover:bg-gray-50">
+            <span className="font-semibold min-w-[3rem] text-center">
+              {quantity}
+            </span>
+            <button
+              onClick={() => setQuantity(quantity + 1)}
+              className="px-3 py-1 border rounded hover:bg-gray-50"
+            >
               +
             </button>
           </div>
           <div className="text-xs text-gray-500 space-y-1">
             <p>Total: ₦{(getCurrentPrice() * quantity).toLocaleString()}</p>
-            {getBaseUnitDisplay() && <p className="text-blue-600 font-medium">Total: {getBaseUnitDisplay()}</p>}
+            {getBaseUnitDisplay() && (
+              <p className="text-blue-600 font-medium">
+                Total: {getBaseUnitDisplay()}
+              </p>
+            )}
           </div>
         </div>
 
@@ -289,7 +346,9 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
           <button
             onClick={handleJoinGroup}
             className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors ${
-              hasActiveGroup ? "bg-blue-500 text-white hover:bg-blue-600" : "border border-gray-300 hover:bg-gray-50"
+              hasActiveGroup
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "border border-gray-300 hover:bg-gray-50"
             }`}
           >
             <ShoppingCart className="h-4 w-4" />
@@ -308,15 +367,21 @@ export default function EnhancedProductCard({ product, onAddToCart }: ProductCar
 
         {showGroupDetails && hasActiveGroup && (
           <div className="mt-4 pt-4 border-t">
-            <GroupProgressCard productId={product._id} productTitle={product.title} onJoinGroup={handleJoinGroup} />
+            <GroupProgressCard
+              productId={product._id}
+              productTitle={product.title}
+              onJoinGroup={handleJoinGroup}
+            />
           </div>
         )}
 
         <div className="text-xs text-gray-500 space-y-1 mt-4">
           <p>Category: {product.category}</p>
-          {product.description && <p className="line-clamp-2">{product.description}</p>}
+          {product.description && (
+            <p className="line-clamp-2">{product.description}</p>
+          )}
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import React from 'react'
+import React from "react";
 
 const ShareLinkComponent = (props) => {
-  const { record, property } = props
-  const shareLink = record.params[property.path]
+  const { record, property } = props;
+  const shareLink = record.params[property.path];
 
   return (
     <div>
@@ -14,7 +14,7 @@ const ShareLinkComponent = (props) => {
         <span>No share link available.</span>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ShareLinkComponent
+export default ShareLinkComponent;

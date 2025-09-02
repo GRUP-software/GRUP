@@ -3,12 +3,14 @@
 ## 🎯 **What's Been Fixed & Implemented**
 
 ### ✅ **Critical Issues Resolved:**
+
 1. **Premature Wallet Deduction** - Wallet balance is now only deducted after successful payment confirmation
 2. **Referral Bonus Logic** - Proper ₦500 bonus for every 3 referrals with accumulation
 3. **Transaction Tracking** - Complete audit trail with metadata for all wallet activities
 4. **Data Consistency** - All wallet and cart operations maintain data integrity
 
 ### ✅ **Business Logic Implemented:**
+
 1. **Referral Bonus System**: ₦500 for every 3 referrals (3 = ₦500, 6 = ₦1000, 9 = ₦1500)
 2. **Wallet Usage**: Can be used for partial or full payment offsets
 3. **Payment Flow**: Safe wallet deduction only after successful payment
@@ -19,11 +21,13 @@
 ## 📋 **APIs Available for Frontend Integration**
 
 ### **1. Wallet APIs**
+
 - `GET /api/wallet` - Get wallet data with transactions and stats
 - `POST /api/wallet/calculate-offset` - Calculate wallet usage for purchases
 - `GET /api/wallet/transactions` - Get filtered transaction history
 
 ### **2. Cart APIs**
+
 - `GET /api/cart` - Get cart with wallet integration
 - `POST /api/cart/add` - Add items to cart
 - `PATCH /api/cart/update-quantity` - Update cart quantities
@@ -31,9 +35,11 @@
 - `DELETE /api/cart/clear` - Clear entire cart
 
 ### **3. Payment APIs**
+
 - `POST /api/payment/initialize` - Initialize payment with wallet integration
 
 ### **4. Referral APIs**
+
 - `GET /api/referral/info` - Get referral information
 - `GET /api/referral/stats` - Get referral statistics
 - `GET /api/referral/validate/:code` - Validate referral codes
@@ -43,16 +49,18 @@
 ## 🔧 **Key Implementation Changes**
 
 ### **1. Payment Method Detection**
+
 ```javascript
 // Frontend should send paymentMethod parameter:
 {
-  "paymentMethod": "wallet_only" | "wallet_and_paystack" | "paystack_only",
+  "paymentMethod": "wallet_only" | "wallet_and_flutterwave" | "flutterwave_only",
   "walletUse": 1000, // Amount to use from wallet
   // ... other payment data
 }
 ```
 
 ### **2. Updated Response Formats**
+
 ```javascript
 // Wallet-only payment response:
 {
@@ -66,19 +74,20 @@
   "groupBuys": [...]
 }
 
-// Partial wallet + Paystack response:
+// Partial wallet + Flutterwave response:
 {
   "success": true,
-  "message": "Partial wallet payment initialized, redirecting to Paystack",
-  "authorization_url": "https://checkout.paystack.com/...",
+  "message": "Partial wallet payment initialized, redirecting to Flutterwave",
+  "authorization_url": "https://checkout.flutterwave.com/...",
   "walletUse": 1000,
-  "paystackAmount": 500,
+  "flutterwaveAmount": 500,
   "currentWalletBalance": 1500, // Not deducted yet
-  "message": "Wallet balance will be deducted after Paystack payment succeeds"
+  "message": "Wallet balance will be deducted after Flutterwave payment succeeds"
 }
 ```
 
 ### **3. Enhanced Wallet Data**
+
 ```javascript
 // GET /api/wallet response:
 {
@@ -108,57 +117,59 @@
 ## 🚀 **Frontend Implementation Steps**
 
 ### **Step 1: Wallet Integration**
+
 ```javascript
 // Get wallet data
 const getWalletData = async () => {
-  const response = await fetch('/api/wallet', {
-    headers: { 'Authorization': `Bearer ${token}` }
+  const response = await fetch("/api/wallet", {
+    headers: { Authorization: `Bearer ${token}` },
   });
   const data = await response.json();
-  
+
   // Use data.balance, data.stats, data.referralInfo
   return data;
 };
 
 // Calculate wallet offset for checkout
 const calculateWalletOffset = async (totalAmount, requestedWalletUse) => {
-  const response = await fetch('/api/wallet/calculate-offset', {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+  const response = await fetch("/api/wallet/calculate-offset", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ totalAmount, requestedWalletUse })
+    body: JSON.stringify({ totalAmount, requestedWalletUse }),
   });
   return await response.json();
 };
 ```
 
 ### **Step 2: Payment Integration**
+
 ```javascript
 // Initialize payment with wallet integration
 const initializePayment = async (paymentData) => {
-  const response = await fetch('/api/payment/initialize', {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+  const response = await fetch("/api/payment/initialize", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      paymentMethod: paymentData.paymentMethod, // 'wallet_only' | 'wallet_and_paystack' | 'paystack_only'
+      paymentMethod: paymentData.paymentMethod, // 'wallet_only' | 'wallet_and_flutterwave' | 'flutterwave_only'
       walletUse: paymentData.walletUse,
       deliveryAddress: paymentData.deliveryAddress,
       phone: paymentData.phone,
       cartId: paymentData.cartId,
-      callback_url: paymentData.callback_url
-    })
+      callback_url: paymentData.callback_url,
+    }),
   });
-  
+
   const data = await response.json();
-  
+
   if (data.success) {
     if (data.authorization_url) {
-      // Redirect to Paystack
+      // Redirect to Flutterwave
       window.location.href = data.authorization_url;
     } else {
       // Wallet-only payment completed
@@ -171,17 +182,18 @@ const initializePayment = async (paymentData) => {
 ```
 
 ### **Step 3: Transaction History**
+
 ```javascript
 // Get transaction history with filters
 const getTransactionHistory = async (filters = {}) => {
   const params = new URLSearchParams();
-  if (filters.type) params.append('type', filters.type);
-  if (filters.reason) params.append('reason', filters.reason);
-  if (filters.page) params.append('page', filters.page);
-  if (filters.limit) params.append('limit', filters.limit);
-  
+  if (filters.type) params.append("type", filters.type);
+  if (filters.reason) params.append("reason", filters.reason);
+  if (filters.page) params.append("page", filters.page);
+  if (filters.limit) params.append("limit", filters.limit);
+
   const response = await fetch(`/api/wallet/transactions?${params}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   });
   return await response.json();
 };
@@ -192,6 +204,7 @@ const getTransactionHistory = async (filters = {}) => {
 ## 🎨 **UI/UX Recommendations**
 
 ### **1. Wallet Display**
+
 ```javascript
 // Show wallet balance prominently
 <div className="wallet-balance">
@@ -205,39 +218,47 @@ const getTransactionHistory = async (filters = {}) => {
 ```
 
 ### **2. Payment Method Selection**
+
 ```javascript
 // Payment method selector
 <select onChange={(e) => setPaymentMethod(e.target.value)}>
-  <option value="paystack_only">Paystack Only</option>
-  <option value="wallet_and_paystack">Wallet + Paystack</option>
+  <option value="flutterwave_only">Flutterwave Only</option>
+<option value="wallet_and_flutterwave">Wallet + Flutterwave</option>
   <option value="wallet_only">Wallet Only</option>
 </select>
 
 // Wallet usage slider
-<input 
-  type="range" 
-  min="0" 
-  max={maxWalletUse} 
-  value={walletUse} 
+<input
+  type="range"
+  min="0"
+  max={maxWalletUse}
+  value={walletUse}
   onChange={(e) => setWalletUse(parseInt(e.target.value))}
 />
 <span>₦{walletUse} from wallet</span>
 ```
 
 ### **3. Transaction History**
+
 ```javascript
 // Transaction list with metadata
-{transactions.map(transaction => (
-  <div key={transaction.id} className="transaction-item">
-    <div className="transaction-type">{transaction.type}</div>
-    <div className="transaction-amount">₦{transaction.amount}</div>
-    <div className="transaction-description">{transaction.description}</div>
-    <div className="transaction-date">{formatDate(transaction.createdAt)}</div>
-    {transaction.metadata.orderTrackingNumber && (
-      <div className="transaction-order">Order: {transaction.metadata.orderTrackingNumber}</div>
-    )}
-  </div>
-))}
+{
+  transactions.map((transaction) => (
+    <div key={transaction.id} className="transaction-item">
+      <div className="transaction-type">{transaction.type}</div>
+      <div className="transaction-amount">₦{transaction.amount}</div>
+      <div className="transaction-description">{transaction.description}</div>
+      <div className="transaction-date">
+        {formatDate(transaction.createdAt)}
+      </div>
+      {transaction.metadata.orderTrackingNumber && (
+        <div className="transaction-order">
+          Order: {transaction.metadata.orderTrackingNumber}
+        </div>
+      )}
+    </div>
+  ));
+}
 ```
 
 ---
@@ -245,11 +266,13 @@ const getTransactionHistory = async (filters = {}) => {
 ## ⚠️ **Important Notes for Frontend Developer**
 
 ### **1. Wallet Deduction Timing**
+
 - **Wallet-only payments**: Deducted immediately
-- **Partial wallet + Paystack**: Deducted only after Paystack success
-- **Paystack-only**: No wallet deduction
+- **Partial wallet + Flutterwave**: Deducted only after Flutterwave success
+- **Flutterwave-only**: No wallet deduction
 
 ### **2. Error Handling**
+
 ```javascript
 // Handle payment errors
 const handlePaymentError = (error) => {
@@ -262,13 +285,14 @@ const handlePaymentError = (error) => {
 ```
 
 ### **3. Referral Bonus Display**
+
 ```javascript
 // Show referral progress
 <div className="referral-progress">
   <div className="progress-bar">
-    <div 
-      className="progress-fill" 
-      style={{width: `${(referralInfo.totalReferrals % 3) / 3 * 100}%`}}
+    <div
+      className="progress-fill"
+      style={{ width: `${((referralInfo.totalReferrals % 3) / 3) * 100}%` }}
     ></div>
   </div>
   <span>{referralInfo.totalReferrals}/3 referrals</span>
@@ -277,20 +301,24 @@ const handlePaymentError = (error) => {
 ```
 
 ### **4. Cart Integration**
+
 ```javascript
 // Cart with wallet integration
 const CartComponent = () => {
   const [cartData, setCartData] = useState(null);
   const [walletUse, setWalletUse] = useState(0);
-  
+
   useEffect(() => {
     // Get cart data with wallet balance
     fetchCartData();
   }, []);
-  
+
   const handleCheckout = () => {
     const paymentData = {
-      paymentMethod: walletUse >= cartData.totalPrice ? 'wallet_only' : 'wallet_and_paystack',
+      paymentMethod:
+        walletUse >= cartData.totalPrice
+          ? "wallet_only"
+          : "wallet_and_flutterwave",
       walletUse: walletUse,
       // ... other payment data
     };
@@ -304,6 +332,7 @@ const CartComponent = () => {
 ## 🧪 **Testing Checklist**
 
 ### **Frontend Testing:**
+
 - [ ] Wallet balance displays correctly
 - [ ] Payment method selection works
 - [ ] Wallet usage slider functions properly
@@ -314,9 +343,10 @@ const CartComponent = () => {
 - [ ] Cart integration with wallet works
 
 ### **Integration Testing:**
+
 - [ ] Wallet-only payments complete successfully
-- [ ] Partial wallet + Paystack redirects correctly
-- [ ] Paystack-only payments work normally
+- [ ] Partial wallet + Flutterwave redirects correctly
+- [ ] Flutterwave-only payments work normally
 - [ ] Transaction records are created properly
 - [ ] Referral bonuses are tracked correctly
 - [ ] Cart clears after successful payment

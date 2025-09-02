@@ -7,23 +7,27 @@ The Social Proof Popup feature displays real-time notifications when users make 
 ## Features
 
 ### ✅ Real-time Notifications
+
 - Shows popups when users complete purchases
 - Displays user's first name and product name
 - Animated entrance and exit effects
 - Auto-dismisses after 7 seconds
 
 ### ✅ Privacy-Conscious
+
 - Only shows user's first name (anonymized)
 - No sensitive information displayed
 - Respects user privacy
 
 ### ✅ Non-Disruptive Design
+
 - Appears in top-right corner
 - Beautiful gradient design with animations
 - Can be manually dismissed
 - Stacks multiple notifications
 
 ### ✅ Cross-Platform
+
 - Works on all devices
 - Responsive design
 - Consistent experience
@@ -48,7 +52,7 @@ The Social Proof Popup feature displays real-time notifications when users make 
 
 ### Backend Files Modified
 
-- `backend/controllers/webhookController.js` - Added social proof emission for Paystack payments
+- `backend/controllers/webhookController.js` - Added social proof emission for Flutterwave payments
 - `backend/controllers/paymentController.js` - Added social proof emission for wallet payments
 
 ### Frontend Files Created/Modified
@@ -62,15 +66,15 @@ The Social Proof Popup feature displays real-time notifications when users make 
 
 ```javascript
 // Event emitted by backend
-socket.emit('purchase:social_proof', {
-  userName: 'John',
-  productName: 'Organic Beans',
+socket.emit("purchase:social_proof", {
+  userName: "John",
+  productName: "Organic Beans",
   timestamp: new Date(),
-  purchaseId: 'payment_history_id'
+  purchaseId: "payment_history_id",
 });
 
 // Event listened by frontend
-socket.on('purchase:social_proof', (data) => {
+socket.on("purchase:social_proof", (data) => {
   // Handle social proof data
 });
 ```
@@ -110,6 +114,7 @@ const ANIMATION_DURATION = 500;
 ### Styling
 
 The popup uses styled-components with:
+
 - Gradient background
 - Smooth animations
 - Responsive design
@@ -144,8 +149,8 @@ The popup uses styled-components with:
 // User settings in profile
 const userSettings = {
   allowSocialProof: true,
-  socialProofFrequency: 'all', // 'all', 'recent', 'none'
-  customMessage: null
+  socialProofFrequency: "all", // 'all', 'recent', 'none'
+  customMessage: null,
 };
 
 // Admin configuration
@@ -153,7 +158,7 @@ const adminConfig = {
   enableSocialProof: true,
   popupDuration: 7000,
   maxPopups: 3,
-  messageTemplate: '{userName} just joined groupbuy for {productName}'
+  messageTemplate: "{userName} just joined groupbuy for {productName}",
 };
 ```
 
@@ -180,19 +185,21 @@ const adminConfig = {
 
 ```javascript
 // Check if social proof events are being received
-socket.on('purchase:social_proof', (data) => {
-  console.log('Social proof received:', data);
+socket.on("purchase:social_proof", (data) => {
+  console.log("Social proof received:", data);
 });
 
 // Test manual trigger
-window.dispatchEvent(new CustomEvent('social-proof-purchase', {
-  detail: {
-    userName: 'Test User',
-    productName: 'Test Product',
-    timestamp: new Date(),
-    purchaseId: 'test'
-  }
-}));
+window.dispatchEvent(
+  new CustomEvent("social-proof-purchase", {
+    detail: {
+      userName: "Test User",
+      productName: "Test Product",
+      timestamp: new Date(),
+      purchaseId: "test",
+    },
+  }),
+);
 ```
 
 ## Support
@@ -207,4 +214,3 @@ For issues or questions about the Social Proof feature:
 ---
 
 **Note**: This feature is designed to be motivational and non-intrusive. If users find it distracting, consider implementing an opt-out mechanism or reducing the frequency of popups.
-
