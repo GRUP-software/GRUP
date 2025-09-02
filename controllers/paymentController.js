@@ -20,15 +20,23 @@ const encryptFlutterwavePayload = (payload, encryptionKey) => {
       throw new Error('Invalid encryption key provided');
     }
 
-    // Generate a proper 32-byte key from the encryption key using SHA-256
-    // This ensures we have a consistent, properly formatted key for AES-256
-    const hash = crypto.createHash('sha256').update(encryptionKey).digest();
-    const key = hash; // Use full 32 bytes for AES-256
+    // Use the encryption key directly as provided by Flutterwave
+    // Flutterwave expects the encryption key to be used as-is
+    let key = encryptionKey;
+    
+    // If the key is shorter than 32 bytes, pad it with zeros
+    if (key.length < 32) {
+      key = key.padEnd(32, '0');
+    } else if (key.length > 32) {
+      key = key.substring(0, 32);
+    }
+    
+    // Convert to Buffer for crypto operations
+    key = Buffer.from(key, 'utf8');
     
     // Debug: Log key generation details
     console.log('🔍 Encryption key generation:', {
       originalKeyLength: encryptionKey.length,
-      hashLength: hash.length,
       finalKeyLength: key.length,
       keyType: 'Buffer'
     });
@@ -656,8 +664,8 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
       })
     }
 
-    // Encrypt the payload for Flutterwave using the secret key
-    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.SECRET_KEY);
+    // Encrypt the payload for Flutterwave using the encryption key
+    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
@@ -781,8 +789,8 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
       })
     }
 
-    // Encrypt the payload for Flutterwave using the secret key
-    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.SECRET_KEY);
+    // Encrypt the payload for Flutterwave using the encryption key
+    const encryptedPayload = encryptFlutterwavePayload(flutterwaveData, config.FLUTTERWAVE.ENCRYPTION_KEY);
 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
