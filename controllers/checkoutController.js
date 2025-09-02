@@ -18,22 +18,33 @@ const encryptFlutterwavePayload = async (payload, encryptionKey) => {
     // Generate a 12-character nonce as required by Flutterwave
     const nonce = crypto.randomBytes(12).toString('base64').slice(0, 12);
     
-    // Decode the base64 encryption key as per Flutterwave docs
-    const decodedKeyBytes = Buffer.from(encryptionKey, 'base64');
+    // Use the encryption key directly (it's not base64 encoded)
+    // Pad or truncate to 32 bytes for AES-256-GCM
+    let key = Buffer.from(encryptionKey, 'utf8');
+    if (key.length < 32) {
+      // Pad with zeros if key is too short
+      const paddedKey = Buffer.alloc(32, 0);
+      key.copy(paddedKey);
+      key = paddedKey;
+    } else if (key.length > 32) {
+      // Truncate if key is too long
+      key = key.slice(0, 32);
+    }
     
     // Debug: Log key generation details
     console.log('🔍 Encryption key generation:', {
       originalKeyLength: encryptionKey.length,
-      decodedKeyLength: decodedKeyBytes.length,
+      finalKeyLength: key.length,
       nonce: nonce,
-      nonceLength: nonce.length
+      nonceLength: nonce.length,
+      keyHex: key.toString('hex')
     });
     
     // Use Node.js crypto for AES-GCM encryption
     const iv = Buffer.from(nonce, 'utf8');
     
     // Create cipher using AES-256-GCM (Flutterwave standard)
-    const cipher = crypto.createCipheriv('aes-256-gcm', decodedKeyBytes, iv);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     
     // Encrypt the payload
     let encrypted = cipher.update(JSON.stringify(payload), 'utf8', 'base64');
