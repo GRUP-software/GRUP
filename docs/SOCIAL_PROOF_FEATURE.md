@@ -48,7 +48,7 @@ The Social Proof Popup feature displays real-time notifications when users make 
 
 ### Backend Files Modified
 
-- `backend/controllers/webhookController.js` - Added social proof emission for Paystack payments
+- `backend/controllers/webhookController.js` - Added social proof emission for Flutterwave payments
 - `backend/controllers/paymentController.js` - Added social proof emission for wallet payments
 
 ### Frontend Files Created/Modified

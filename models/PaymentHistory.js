@@ -14,7 +14,7 @@ const paymentHistorySchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-    paystackReference: {
+    flutterwaveReference: {
       type: String,
       index: true,
     },
@@ -61,7 +61,7 @@ const paymentHistorySchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    paystackAmount: {
+    flutterwaveAmount: {
       type: Number,
       default: 0,
       min: 0,

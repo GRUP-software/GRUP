@@ -275,7 +275,7 @@ router.get("/orders/search", verifyAdminToken, async (req, res) => {
       currentStatus: order.currentStatus,
       totalAmount: order.totalAmount,
       walletUsed: order.walletUsed,
-      paystackAmount: order.paystackAmount,
+      flutterwaveAmount: order.flutterwaveAmount,
       allGroupsSecured: order.allGroupsSecured,
       priorityScore: order.priorityScore,
       fulfillmentChoice: order.fulfillmentChoice,
@@ -368,7 +368,7 @@ router.get("/orders/export", verifyAdminToken, async (req, res) => {
       'Status',
       'Total Amount',
       'Wallet Used',
-      'Paystack Amount',
+              'Flutterwave Amount',
       'Created Date',
       'Items Count',
       'Delivery Address'
@@ -382,7 +382,7 @@ router.get("/orders/export", verifyAdminToken, async (req, res) => {
       order.currentStatus,
       order.totalAmount,
       order.walletUsed,
-      order.paystackAmount,
+              order.flutterwaveAmount,
       new Date(order.createdAt).toLocaleDateString(),
       order.items.length,
       `${order.deliveryAddress?.street || ''}, ${order.deliveryAddress?.city || ''}, ${order.deliveryAddress?.state || ''}`
@@ -415,7 +415,7 @@ router.get("/orders/tracking/:trackingNumber", verifyAdminToken, async (req, res
       .populate('user', 'name email phone')
       .populate('items.product', 'title images price')
       .populate('items.groupbuyId', 'status unitsSold minimumViableUnits')
-      .populate('paymentHistoryId', 'referenceId paystackReference status');
+              .populate('paymentHistoryId', 'referenceId flutterwaveReference status');
     
     if (!order) {
       return res.status(404).json({
@@ -432,7 +432,7 @@ router.get("/orders/tracking/:trackingNumber", verifyAdminToken, async (req, res
         currentStatus: order.currentStatus,
         totalAmount: order.totalAmount,
         walletUsed: order.walletUsed,
-        paystackAmount: order.paystackAmount,
+        flutterwaveAmount: order.flutterwaveAmount,
         allGroupsSecured: order.allGroupsSecured,
         priorityScore: order.priorityScore,
         fulfillmentChoice: order.fulfillmentChoice,
@@ -491,7 +491,7 @@ router.get("/orders", verifyAdminToken, async (req, res) => {
       .populate('user', 'name email phone')
       .populate('items.product', 'title images price')
       .populate('items.groupbuyId', 'status unitsSold minimumViableUnits')
-      .populate('paymentHistoryId', 'referenceId paystackReference status')
+              .populate('paymentHistoryId', 'referenceId flutterwaveReference status')
       .sort(sortOptions)
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -500,13 +500,13 @@ router.get("/orders", verifyAdminToken, async (req, res) => {
     
     res.json({
       success: true,
-      orders: orders.map(order => ({
+              orders: orders.map(order => ({
         _id: order._id,
         trackingNumber: order.trackingNumber,
         currentStatus: order.currentStatus,
         totalAmount: order.totalAmount,
         walletUsed: order.walletUsed,
-        paystackAmount: order.paystackAmount,
+        flutterwaveAmount: order.flutterwaveAmount,
         allGroupsSecured: order.allGroupsSecured,
         priorityScore: order.priorityScore,
         fulfillmentChoice: order.fulfillmentChoice,

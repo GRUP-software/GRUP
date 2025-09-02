@@ -38,9 +38,10 @@ CLOUDINARY_API_KEY=946915641663984
 CLOUDINARY_API_SECRET=MU6_2U6tpzbJ-VbnqfQ-_OEQeWc
 CLOUDINARY_FOLDER=grup
 
-# Paystack (Use production keys)
-PAYSTACK_SECRET_KEY=sk_live_your_production_key
-PAYSTACK_PUBLIC_KEY=pk_live_your_production_key
+# Flutterwave (Use production keys)
+FLUTTERWAVE_SECRET_KEY=FLWSECK_your_production_key
+FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_your_production_key
+FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_your_encryption_key
 
 # Frontend URL (Your production domain)
 SOCKET_CORS_ORIGIN=https://your-domain.com

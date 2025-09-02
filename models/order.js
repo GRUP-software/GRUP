@@ -86,11 +86,11 @@ const orderSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    paystackAmount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+      flutterwaveAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
     fulfillmentChoice: {
       type: String,
       enum: ["pickup", "delivery"],
@@ -340,7 +340,7 @@ orderSchema.methods.toJSON = function() {
       progress: this.progress || [],
       totalAmount: this.totalAmount || 0,
       walletUsed: this.walletUsed || 0,
-      paystackAmount: this.paystackAmount || 0,
+      flutterwaveAmount: this.flutterwaveAmount || 0,
       priorityScore: this.priorityScore || 0,
       allGroupsSecured: this.allGroupsSecured || false,
       deliveryAddress: this.deliveryAddress || {},

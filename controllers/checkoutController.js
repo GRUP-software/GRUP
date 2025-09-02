@@ -9,7 +9,7 @@ export const checkout = async (req, res) => {
   try {
     const { 
       walletUse = 0, 
-      paymentMethod = 'paystack_only',
+      paymentMethod = 'flutterwave_only',
       deliveryAddress,
       phone,
       callback_url
@@ -100,7 +100,7 @@ export const checkout = async (req, res) => {
       cartItems,
       amount: totalPrice,
       walletUsed: 0,
-      paystackAmount: totalPrice,
+              flutterwaveAmount: totalPrice,
       status: "pending",
       metadata: {
         deliveryAddress: deliveryAddress || {},
@@ -210,7 +210,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
   }
 }
 
-// Process partial wallet + Paystack payment
+    // Process partial wallet + Flutterwave payment
 const processPartialWalletPayment = async (paymentHistory, walletUse, callback_url, res) => {
   try {
 
@@ -231,21 +231,21 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
       return res.status(400).json({ message: "Insufficient wallet balance" })
     }
 
-    // Calculate remaining amount for Paystack
-    const paystackAmount = paymentHistory.amount - walletUse
+    // Calculate remaining amount for Flutterwave
+    const flutterwaveAmount = paymentHistory.amount - walletUse
 
     // Update payment history with wallet usage info (but don't deduct yet!)
     paymentHistory.walletUsed = walletUse
-    paymentHistory.paystackAmount = paystackAmount
-    paymentHistory.status = "pending" // Keep as pending until Paystack succeeds
+    paymentHistory.flutterwaveAmount = flutterwaveAmount
+    paymentHistory.status = "pending" // Keep as pending until Flutterwave succeeds
     await paymentHistory.save()
 
 
 
-    // Initialize Paystack payment for remaining amount
-    const paystackData = {
+    // Initialize Flutterwave payment for remaining amount
+    const flutterwaveData = {
       email: req.user.email || "customer@grup.com",
-      amount: Math.round(paystackAmount * 100), // Convert to kobo
+      amount: Math.round(flutterwaveAmount * 100), // Convert to kobo
       reference: paymentHistory.referenceId,
       callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
@@ -286,7 +286,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
         Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(paystackData),
+      body: JSON.stringify(flutterwaveData),
     })
 
     if (!response.ok) {
@@ -323,7 +323,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
         reference: paymentHistory.referenceId,
         paymentHistoryId: paymentHistory._id,
         walletUse: walletUse,
-        flutterwaveAmount: paystackAmount,
+        flutterwaveAmount: flutterwaveAmount,
         totalAmount: paymentHistory.amount,
         currentWalletBalance: wallet.balance, // Show current balance (not deducted yet)
         message: "Wallet balance will be deducted after Flutterwave payment succeeds"
@@ -370,20 +370,20 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
       },
     }
 
-    const response = await fetch("https://api.paystack.co/transaction/initialize", {
+    const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(paystackData),
+      body: JSON.stringify(flutterwaveData),
     })
 
     const data = await response.json()
 
     if (data.status) {
-      // Update payment history with Paystack reference
-      paymentHistory.paystackReference = data.data.reference
+      // Update payment history with Flutterwave reference
+      paymentHistory.flutterwaveReference = data.data.reference
       await paymentHistory.save()
 
       res.json({
@@ -404,7 +404,7 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
       })
     }
   } catch (error) {
-    console.error("❌ Paystack-only payment processing error:", error)
+    console.error("❌ Flutterwave-only payment processing error:", error)
     res.status(500).json({ message: "Payment processing failed", error: error.message })
   }
 }

@@ -137,7 +137,7 @@ export const lookupOrderForStaff = async (req, res) => {
       .populate("items.product", "title images price stock")
       .populate("items.groupbuyId", "status progressPercentage participantCount")
       .populate("user", "name email phone")
-      .populate("paymentHistoryId", "referenceId paystackReference")
+              .populate("paymentHistoryId", "referenceId flutterwaveReference")
 
     if (!order) {
       return res.status(404).json({ message: "Order not found with this tracking number" })
@@ -152,7 +152,7 @@ export const lookupOrderForStaff = async (req, res) => {
       order,
       paymentInfo: {
         referenceId: order.paymentHistoryId?.referenceId,
-        paystackReference: order.paymentHistoryId?.paystackReference,
+        flutterwaveReference: order.paymentHistoryId?.flutterwaveReference,
       },
       customerContact: {
         name: order.user.name,
