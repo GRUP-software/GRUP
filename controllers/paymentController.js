@@ -593,7 +593,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
     }
 
     // Check if Flutterwave secret key is configured
-    if (!config.flutterwave.secretKey) {
+    if (!config.FLUTTERWAVE.SECRET_KEY) {
       console.error("❌ FLUTTERWAVE_SECRET_KEY is not configured")
       return res.status(500).json({
         success: false,
@@ -606,7 +606,7 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.flutterwave.secretKey}`,
+        Authorization: `Bearer ${config.FLUTTERWAVE.SECRET_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(flutterwaveData),
@@ -683,6 +683,14 @@ const processPartialWalletPayment = async (paymentHistory, walletUse, callback_u
 // Process Flutterwave-only payment (existing logic)
 const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) => {
   try {
+    // Debug: Log configuration
+    console.log("🔍 Debug - Config object:", {
+      hasConfig: !!config,
+      hasFlutterwave: !!config?.FLUTTERWAVE,
+      secretKey: config?.FLUTTERWAVE?.SECRET_KEY ? "SET" : "NOT SET",
+      configKeys: Object.keys(config || {})
+    });
+
     // Initialize Flutterwave payment
     const flutterwaveData = {
       email: paymentHistory.userId.email || "customer@grup.com",
@@ -704,7 +712,7 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
     }
 
     // Check if Flutterwave secret key is configured
-    if (!config.flutterwave.secretKey) {
+    if (!config.FLUTTERWAVE.SECRET_KEY) {
       console.error("❌ FLUTTERWAVE_SECRET_KEY is not configured")
       return res.status(500).json({
         success: false,
@@ -717,7 +725,7 @@ const processFlutterwaveOnlyPayment = async (paymentHistory, callback_url, res) 
     const response = await fetch("https://api.flutterwave.com/v3/charges?type=card", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.flutterwave.secretKey}`,
+        Authorization: `Bearer ${config.FLUTTERWAVE.SECRET_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(flutterwaveData),
@@ -1015,7 +1023,7 @@ export const handleFlutterwaveWebhook = async (req, res) => {
     const event = req.body
 
     const hash = crypto
-      .createHmac("sha512", config.flutterwave.secretKey)
+      .createHmac("sha512", config.FLUTTERWAVE.SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest("hex")
 
@@ -1137,7 +1145,7 @@ export const verifyPayment = async (req, res) => {
     // Verify with Flutterwave
     const flutterwaveResponse = await fetch(`https://api.flutterwave.com/v3/transactions/${reference}/verify`, {
       headers: {
-        Authorization: `Bearer ${config.flutterwave.secretKey}`,
+        Authorization: `Bearer ${config.FLUTTERWAVE.SECRET_KEY}`,
       },
     })
 

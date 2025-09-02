@@ -99,12 +99,22 @@ const environmentConfigs = {
 
 // Get current environment configuration
 const getCurrentConfig = () => {
-  const env = config.NODE_ENV;
+  const env = process.env.NODE_ENV || 'development';
   return environmentConfigs[env] || environmentConfigs.development;
 };
 
 // Export current configuration
-export default getCurrentConfig();
+const finalConfig = getCurrentConfig();
+
+// Debug logging
+console.log("🔍 Environment Configuration Debug:");
+console.log("  NODE_ENV:", process.env.NODE_ENV);
+console.log("  FLUTTERWAVE_SECRET_KEY exists:", !!process.env.FLUTTERWAVE_SECRET_KEY);
+console.log("  FLUTTERWAVE_SECRET_KEY length:", process.env.FLUTTERWAVE_SECRET_KEY ? process.env.FLUTTERWAVE_SECRET_KEY.length : 0);
+console.log("  Final config FLUTTERWAVE.SECRET_KEY exists:", !!finalConfig.FLUTTERWAVE?.SECRET_KEY);
+console.log("  Final config keys:", Object.keys(finalConfig));
+
+export default finalConfig;
 
 // Export all configurations for testing
 export { environmentConfigs, getCurrentConfig };
