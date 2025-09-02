@@ -2,7 +2,7 @@ import express from "express"
 import { verifyToken } from "../middleware/authMiddleware.js"
 import {
   initializePayment,
-  handlePaystackWebhook,
+  handleFlutterwaveWebhook,
   verifyPayment,
   getUserPaymentHistory,
 } from "../controllers/paymentController.js"
@@ -12,8 +12,8 @@ const router = express.Router()
 // Route to initialize payment (requires user authentication)
 router.post("/initialize", verifyToken, initializePayment)
 
-// Webhook route for Paystack (does NOT require authentication, Paystack calls this)
-router.post("/webhook/paystack", handlePaystackWebhook)
+// Webhook route for Flutterwave (does NOT require authentication, Flutterwave calls this)
+router.post("/webhook/flutterwave", handleFlutterwaveWebhook)
 
 // Route to verify payment
 router.get("/verify/:reference", verifyToken, verifyPayment)

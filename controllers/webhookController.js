@@ -36,7 +36,7 @@ const createOrderFromPayment = async (paymentHistory) => {
       deliveryAddress: paymentHistory.metadata?.deliveryAddress || {},
       totalAmount: paymentHistory.amount,
       walletUsed: paymentHistory.walletUsed,
-      paystackAmount: paymentHistory.paystackAmount,
+              flutterwaveAmount: paymentHistory.flutterwaveAmount,
       progress: [
         {
           status: "groups_forming",
@@ -93,26 +93,26 @@ const linkOrderToGroupBuys = async (order, groupBuys) => {
   }
 }
 
-// Paystack webhook handler
-export const handlePaystackWebhook = async (req, res) => {
+// Flutterwave webhook handler
+export const handleFlutterwaveWebhook = async (req, res) => {
   try {
     console.log("🔔 Webhook received:", req.body)
     
-    // Verify Paystack signature
+    // Verify Flutterwave signature
     const hash = crypto
-      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
+      .createHmac("sha512", process.env.FLUTTERWAVE_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest("hex")
 
     console.log(`🔐 Webhook signature check:`, {
       expected: hash,
-      received: req.headers["x-paystack-signature"],
-      matches: hash === req.headers["x-paystack-signature"],
+      received: req.headers["x-flutterwave-signature"],
+      matches: hash === req.headers["x-flutterwave-signature"],
     })
 
-    if (hash !== req.headers["x-paystack-signature"]) {
-      logger.warn("Invalid Paystack webhook signature")
-      console.log(`❌ Signature mismatch - Expected: ${hash}, Received: ${req.headers["x-paystack-signature"]}`)
+    if (hash !== req.headers["x-flutterwave-signature"]) {
+      logger.warn("Invalid Flutterwave webhook signature")
+      console.log(`❌ Signature mismatch - Expected: ${hash}, Received: ${req.headers["x-flutterwave-signature"]}`)
       // Temporarily allow invalid signatures for debugging
       // return res.status(400).json({
       //   message: "Invalid webhook signature",
@@ -123,7 +123,7 @@ export const handlePaystackWebhook = async (req, res) => {
 
     const event = req.body
 
-    if (event.event === "charge.success") {
+    if (event.event === "charge.completed") {
       await handleSuccessfulCharge(event.data)
     } else if (event.event === "charge.failed") {
       await handleFailedCharge(event.data)
@@ -131,7 +131,7 @@ export const handlePaystackWebhook = async (req, res) => {
 
     res.status(200).json({ message: "Webhook processed successfully" })
   } catch (error) {
-    logger.error("Paystack webhook error:", error)
+    logger.error("Flutterwave webhook error:", error)
     res.status(500).json({
       message: "Webhook processing failed",
       details: "An error occurred while processing the payment webhook. The payment may still be processed.",
@@ -145,13 +145,13 @@ const handleSuccessfulCharge = async (data) => {
     const { reference, amount, status, metadata } = data
 
     console.log(`🔍 Webhook Debug:`)
-    console.log(`   Paystack Reference: ${reference}`)
+    console.log(`   Flutterwave Reference: ${reference}`)
     console.log(`   Amount: ${amount}`)
     console.log(`   Status: ${status}`)
 
-    // Find payment history by Paystack reference
-    console.log(`🔍 Looking for payment history with paystackReference: ${reference}`)
-    const paymentHistory = await PaymentHistory.findOne({ paystackReference: reference })
+    // Find payment history by Flutterwave reference
+    console.log(`🔍 Looking for payment history with flutterwaveReference: ${reference}`)
+    const paymentHistory = await PaymentHistory.findOne({ flutterwaveReference: reference })
     if (!paymentHistory) {
       logger.error(`Payment history not found for reference: ${reference}`)
       console.error(`❌ Payment history not found for reference: ${reference}`)
@@ -161,21 +161,21 @@ const handleSuccessfulCharge = async (data) => {
       const fallbackPayment = await PaymentHistory.findOne({ referenceId: reference })
       if (fallbackPayment) {
         console.log(`✅ Found payment by referenceId: ${fallbackPayment._id}`)
-        // Update the paystackReference
-        fallbackPayment.paystackReference = reference
+        // Update the flutterwaveReference
+        fallbackPayment.flutterwaveReference = reference
         await fallbackPayment.save()
-        console.log(`✅ Updated paystackReference for payment: ${fallbackPayment._id}`)
+        console.log(`✅ Updated flutterwaveReference for payment: ${fallbackPayment._id}`)
         return await handleSuccessfulCharge({ ...data, reference: fallbackPayment.referenceId })
       }
       
       console.error(`🔍 Available references in database:`, await PaymentHistory.distinct("referenceId"))
-      console.error(`🔍 Available paystack references in database:`, await PaymentHistory.distinct("paystackReference"))
+      console.error(`🔍 Available flutterwave references in database:`, await PaymentHistory.distinct("flutterwaveReference"))
       return
     }
     
     console.log(`✅ Found payment history: ${paymentHistory._id}`)
     console.log(`   Wallet used: ₦${paymentHistory.walletUsed}`)
-    console.log(`   Paystack amount: ₦${paymentHistory.paystackAmount}`)
+    console.log(`   Flutterwave amount: ₦${paymentHistory.flutterwaveAmount}`)
     console.log(`   Total amount: ₦${paymentHistory.amount}`)
     console.log(`   Status: ${paymentHistory.status}`)
 
@@ -186,11 +186,11 @@ const handleSuccessfulCharge = async (data) => {
     }
 
     // Verify amount matches
-    const expectedAmount = Math.round(paymentHistory.paystackAmount * 100) // Convert to kobo
+    const expectedAmount = Math.round(paymentHistory.flutterwaveAmount * 100) // Convert to kobo
     if (amount !== expectedAmount) {
       logger.error(`Amount mismatch for ${reference}. Expected: ${expectedAmount}, Received: ${amount}`)
       console.error(`❌ Amount mismatch for ${reference}:`)
-      console.error(`   Expected: ${expectedAmount} kobo (₦${paymentHistory.paystackAmount})`)
+      console.error(`   Expected: ${expectedAmount} kobo (₦${paymentHistory.flutterwaveAmount})`)
       console.error(`   Received: ${amount} kobo (₦${amount / 100})`)
       console.error(`   Difference: ${Math.abs(amount - expectedAmount)} kobo`)
       return
@@ -209,7 +209,7 @@ const handleSuccessfulCharge = async (data) => {
           {
             paymentHistoryId: paymentHistory._id,
             isWebhookProcessed: true,
-            paystackReference: reference,
+            flutterwaveReference: reference,
           }
         )
 
@@ -227,7 +227,7 @@ const handleSuccessfulCharge = async (data) => {
 
     // Mark payment as paid
     paymentHistory.status = "paid"
-    paymentHistory.paystackData = data
+    paymentHistory.flutterwaveData = data
     await paymentHistory.save()
 
     // Process group buys
@@ -271,7 +271,7 @@ const handleSuccessfulCharge = async (data) => {
       await notificationService.notifyPaymentSuccess(
         paymentHistory.userId,
         paymentHistory.amount,
-        paymentHistory.walletUsed > 0 ? "wallet + paystack" : "paystack",
+        paymentHistory.walletUsed > 0 ? "wallet + flutterwave" : "flutterwave",
         order._id,
       )
 
@@ -354,14 +354,14 @@ const handleFailedCharge = async (data) => {
   try {
     const { reference } = data
 
-    const paymentHistory = await PaymentHistory.findOne({ paystackReference: reference })
+    const paymentHistory = await PaymentHistory.findOne({ flutterwaveReference: reference })
     if (!paymentHistory) {
       logger.error(`Payment history not found for failed charge: ${reference}`)
       return
     }
 
     paymentHistory.status = "failed"
-    paymentHistory.paystackData = data
+    paymentHistory.flutterwaveData = data
     await paymentHistory.save()
 
     logger.info(`Payment ${reference} marked as failed`)
@@ -379,78 +379,4 @@ const handleFailedCharge = async (data) => {
   }
 }
 
-// Generic webhook handler for multiple payment providers
-export const handleWebhook = async (req, res) => {
-  try {
-    const signature = req.headers["x-webhook-signature"]
-    const provider = req.headers["x-webhook-provider"] || "paystack"
 
-    // Verify webhook signature
-    const isValid = verifyWebhookSignature(req.body, signature, provider)
-
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid webhook signature" })
-    }
-
-    const event = req.body
-
-    switch (provider) {
-      case "paystack":
-        await handlePaystackWebhook(event)
-        break
-      case "flutterwave":
-        await handleFlutterwaveWebhook(event)
-        break
-      case "stripe":
-        await handleStripeWebhook(event)
-        break
-      default:
-        logger.warn(`Unknown webhook provider: ${provider}`)
-    }
-
-    res.status(200).json({ message: "Webhook processed successfully" })
-  } catch (error) {
-    logger.error("Webhook processing error:", error)
-    res.status(500).json({ message: "Webhook processing failed" })
-  }
-}
-
-const verifyWebhookSignature = (payload, signature, provider) => {
-  const secret = process.env[`${provider.toUpperCase()}_WEBHOOK_SECRET`]
-  const hash = crypto.createHmac("sha512", secret).update(JSON.stringify(payload)).digest("hex")
-
-  return hash === signature
-}
-
-const handleFlutterwaveWebhook = async (event) => {
-  if (event.event === "charge.completed") {
-    const { tx_ref, meta } = event.data
-    await updateOrderPaymentStatus(meta.orderId, "paid", tx_ref)
-  }
-}
-
-const handleStripeWebhook = async (event) => {
-  // Placeholder for Stripe webhook handling logic
-  // This should be implemented based on Stripe's webhook events
-}
-
-const updateOrderPaymentStatus = async (orderId, status, reference) => {
-  try {
-    const Order = (await import("../models/order.js")).default
-    const order = await Order.findById(orderId)
-    if (order && order.paymentStatus !== "paid") {
-      order.paymentStatus = status
-      order.paymentReference = reference
-      order.progress.push({
-        status: "payment_confirmed",
-        message: "Payment confirmed via webhook",
-        timestamp: new Date(),
-      })
-      await order.save()
-
-      logger.info(`Payment confirmed for order ${orderId} via webhook`)
-    }
-  } catch (error) {
-    logger.error(`Error updating order ${orderId}:`, error)
-  }
-}

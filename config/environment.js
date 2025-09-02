@@ -30,10 +30,11 @@ const config = {
     FOLDER: process.env.CLOUDINARY_FOLDER || 'grup'
   },
   
-  // Paystack Configuration
-  PAYSTACK: {
-    SECRET_KEY: process.env.PAYSTACK_SECRET_KEY || '',
-    PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY || ''
+  // Flutterwave Configuration
+  FLUTTERWAVE: {
+    SECRET_KEY: process.env.FLUTTERWAVE_SECRET_KEY || '',
+    PUBLIC_KEY: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
+    ENCRYPTION_KEY: process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
   },
   
   // Socket.IO
