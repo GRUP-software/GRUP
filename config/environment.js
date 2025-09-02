@@ -55,7 +55,7 @@ const config = {
   FLUTTERWAVE: {
     SECRET_KEY: process.env.FLUTTERWAVE_SECRET_KEY || '',
     PUBLIC_KEY: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
-    ENCRYPTION_KEY: process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
+    ENCRYPTION_KEY: process.env.FLUTTERWAVE_ENCRYPTION_KEY || process.env.FLUTTERWAVE_SECRET_KEY || ''
   },
   
   // Socket.IO
@@ -132,7 +132,10 @@ console.log("🔍 Environment Configuration Debug:");
 console.log("  NODE_ENV:", process.env.NODE_ENV);
 console.log("  FLUTTERWAVE_SECRET_KEY exists:", !!process.env.FLUTTERWAVE_SECRET_KEY);
 console.log("  FLUTTERWAVE_SECRET_KEY length:", process.env.FLUTTERWAVE_SECRET_KEY ? process.env.FLUTTERWAVE_SECRET_KEY.length : 0);
+console.log("  FLUTTERWAVE_ENCRYPTION_KEY exists:", !!process.env.FLUTTERWAVE_ENCRYPTION_KEY);
+console.log("  FLUTTERWAVE_ENCRYPTION_KEY length:", process.env.FLUTTERWAVE_ENCRYPTION_KEY ? process.env.FLUTTERWAVE_ENCRYPTION_KEY.length : 0);
 console.log("  Final config FLUTTERWAVE.SECRET_KEY exists:", !!finalConfig.FLUTTERWAVE?.SECRET_KEY);
+console.log("  Final config FLUTTERWAVE.ENCRYPTION_KEY exists:", !!finalConfig.FLUTTERWAVE?.ENCRYPTION_KEY);
 console.log("  Final config keys:", Object.keys(finalConfig));
 
 export default finalConfig;

@@ -7,28 +7,44 @@ import { nanoid } from "nanoid"
 import config from "../config/environment.js" // Import environment configuration
 import crypto from "crypto"
 
-// Flutterwave 3DES encryption function
+// Flutterwave AES encryption function
 const encryptFlutterwavePayload = (payload, encryptionKey) => {
   try {
-    // Convert the encryption key to a proper 24-byte buffer for 3DES
-    let key = Buffer.from(encryptionKey, 'utf8');
-    
-    // Ensure key is exactly 24 bytes (pad with zeros if shorter, truncate if longer)
-    if (key.length < 24) {
-      key = Buffer.concat([key, Buffer.alloc(24 - key.length)]);
-    } else if (key.length > 24) {
-      key = key.slice(0, 24);
+    // Validate encryption key
+    if (!encryptionKey || typeof encryptionKey !== 'string') {
+      throw new Error('Invalid encryption key provided');
     }
+
+    // Generate a proper 32-byte key from the encryption key using SHA-256
+    // This ensures we have a consistent, properly formatted key for AES-256
+    const hash = crypto.createHash('sha256').update(encryptionKey).digest();
+    const key = hash; // Use full 32 bytes for AES-256
     
-    // Create a random IV (Initialization Vector) - exactly 8 bytes for 3DES
-    const iv = crypto.randomBytes(8);
+    // Debug: Log key generation details
+    console.log('🔍 Encryption key generation:', {
+      originalKeyLength: encryptionKey.length,
+      hashLength: hash.length,
+      finalKeyLength: key.length,
+      keyType: 'Buffer'
+    });
     
-    // Create cipher using 3DES-EDE3
-    const cipher = crypto.createCipheriv('des-ede3', key, iv);
+    // Create a random IV (Initialization Vector) - exactly 16 bytes for AES
+    const iv = crypto.randomBytes(16);
+    
+    // Create cipher using AES-256-CBC (more secure and widely supported)
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     
     // Encrypt the payload
     let encrypted = cipher.update(JSON.stringify(payload), 'utf8', 'base64');
     encrypted += cipher.final('base64');
+    
+    // Debug: Log encryption success
+    console.log('✅ Payload encrypted successfully:', {
+      payloadLength: JSON.stringify(payload).length,
+      encryptedLength: encrypted.length,
+      ivLength: iv.length,
+      totalLength: iv.toString('base64').length + encrypted.length
+    });
     
     // Return the encrypted data with IV prepended (Flutterwave format)
     return iv.toString('base64') + encrypted;
@@ -37,7 +53,8 @@ const encryptFlutterwavePayload = (payload, encryptionKey) => {
     console.error('❌ Encryption details:', {
       keyLength: encryptionKey ? encryptionKey.length : 'undefined',
       payloadType: typeof payload,
-      errorCode: error.code
+      errorCode: error.code,
+      encryptionKey: encryptionKey ? encryptionKey.substring(0, 10) + '...' : 'undefined'
     });
     throw new Error('Failed to encrypt payload');
   }
