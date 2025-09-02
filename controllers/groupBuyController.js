@@ -421,12 +421,10 @@ export const getUserGroupBuys = async (req, res) => {
     });
   } catch (error) {
     logger.error("Get user group buys error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching user group buys",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching user group buys",
+      error: error.message,
+    });
   }
 };
 
@@ -519,12 +517,10 @@ export const getGroupBuyStats = async (req, res) => {
     });
   } catch (error) {
     logger.error("Get group buy stats error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching group buy statistics",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching group buy statistics",
+      error: error.message,
+    });
   }
 };
 
@@ -612,12 +608,10 @@ export const getUserGroupBuyStats = async (req, res) => {
     });
   } catch (error) {
     logger.error("Get user group buy stats error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching user group buy stats",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching user group buy stats",
+      error: error.message,
+    });
   }
 };
 
@@ -667,12 +661,10 @@ export const getManualReviewGroupBuys = async (req, res) => {
     });
   } catch (error) {
     logger.error("Get manual review group buys error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching manual review group buys",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching manual review group buys",
+      error: error.message,
+    });
   }
 };
 
@@ -910,12 +902,10 @@ export const markGroupBuyAsFailed = async (req, res) => {
     });
   } catch (error) {
     logger.error("Mark group buy as failed error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error marking group buy as failed",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error marking group buy as failed",
+      error: error.message,
+    });
   }
 };
 
@@ -1344,12 +1334,10 @@ export const getGroupBuyStatus = async (req, res) => {
     });
   } catch (error) {
     logger.error("Get group buy status error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching group buy status",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching group buy status",
+      error: error.message,
+    });
   }
 };
 
@@ -1540,12 +1528,10 @@ export const updateGroupBuyStatus = async (req, res) => {
     });
   } catch (error) {
     logger.error("Update group buy status error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error updating group buy status",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating group buy status",
+      error: error.message,
+    });
   }
 };
 

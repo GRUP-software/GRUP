@@ -787,7 +787,11 @@ const processFlutterwaveOnlyPayment = async (
     const flutterwaveData = {
       amount: paymentHistory.amount,
       tx_ref: paymentHistory.referenceId,
-      customer: { email: paymentHistory.userId.email},
+      customer: {
+        email: paymentHistory.userId.email,
+        name: paymentHistory.userId.firstName,
+        phone_number: paymentHistory.userId.phone,
+      },
       callback_url:
         callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {

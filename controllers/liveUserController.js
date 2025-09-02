@@ -55,12 +55,10 @@ export const getLiveUserCount = async (req, res) => {
 
     // If called as API endpoint
     if (res) {
-      res
-        .status(500)
-        .json({
-          message: "Error fetching live user count",
-          error: err.message,
-        });
+      res.status(500).json({
+        message: "Error fetching live user count",
+        error: err.message,
+      });
     }
 
     // Return default for internal use

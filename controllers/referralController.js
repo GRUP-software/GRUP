@@ -79,12 +79,10 @@ export const getReferralInfo = async (req, res) => {
     });
   } catch (error) {
     console.error("Get referral info error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching referral information",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching referral information",
+      error: error.message,
+    });
   }
 };
 
@@ -158,12 +156,10 @@ export const getReferralStats = async (req, res) => {
     });
   } catch (error) {
     console.error("Get referral stats error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching referral statistics",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching referral statistics",
+      error: error.message,
+    });
   }
 };
 
@@ -193,11 +189,9 @@ export const validateReferralCode = async (req, res) => {
     });
   } catch (error) {
     console.error("Validate referral code error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error validating referral code",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error validating referral code",
+      error: error.message,
+    });
   }
 };

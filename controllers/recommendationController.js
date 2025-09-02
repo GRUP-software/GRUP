@@ -176,12 +176,10 @@ export const getRecommendations = async (req, res) => {
     res.json(recommendations);
   } catch (error) {
     console.error("Recommendations error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error generating recommendations",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error generating recommendations",
+      error: error.message,
+    });
   }
 };
 
@@ -306,11 +304,9 @@ export const getInventoryAlerts = async (req, res) => {
     });
   } catch (error) {
     console.error("Inventory alerts error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching inventory alerts",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching inventory alerts",
+      error: error.message,
+    });
   }
 };

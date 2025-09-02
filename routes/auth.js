@@ -40,29 +40,23 @@ router.post("/signup", async (req, res) => {
     }
 
     if (!phone.startsWith("+234")) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Please enter a valid Nigerian WhatsApp number starting with +234",
-        });
+      return res.status(400).json({
+        message:
+          "Please enter a valid Nigerian WhatsApp number starting with +234",
+      });
     }
 
     if (phone.length !== 14) {
-      return res
-        .status(400)
-        .json({
-          message: "Please enter a valid 11-digit Nigerian phone number",
-        });
+      return res.status(400).json({
+        message: "Please enter a valid 11-digit Nigerian phone number",
+      });
     }
 
     // Validate secret recovery key
     if (!secretRecoveryKey || secretRecoveryKey.length < 8) {
-      return res
-        .status(400)
-        .json({
-          message: "Secret recovery key must be at least 8 characters long",
-        });
+      return res.status(400).json({
+        message: "Secret recovery key must be at least 8 characters long",
+      });
     }
 
     // Check if email already exists

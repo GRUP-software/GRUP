@@ -371,11 +371,9 @@ export const handleFulfillmentChoice = async (req, res) => {
     });
   } catch (err) {
     console.error("Handle Fulfillment Choice Error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Error handling fulfillment choice",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Error handling fulfillment choice",
+      error: err.message,
+    });
   }
 };

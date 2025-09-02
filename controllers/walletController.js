@@ -78,12 +78,10 @@ export const calculateWalletOffset = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error("Calculate wallet offset error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error calculating wallet offset",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error calculating wallet offset",
+      error: error.message,
+    });
   }
 };
 
@@ -146,12 +144,10 @@ export const getTransactionHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Get transaction history error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching transaction history",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching transaction history",
+      error: error.message,
+    });
   }
 };
 

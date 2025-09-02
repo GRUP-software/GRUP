@@ -16,11 +16,9 @@ export const signup = async (req, res) => {
 
     // Validate secret recovery key
     if (!secretRecoveryKey || secretRecoveryKey.length < 8) {
-      return res
-        .status(400)
-        .json({
-          message: "Secret recovery key must be at least 8 characters long",
-        });
+      return res.status(400).json({
+        message: "Secret recovery key must be at least 8 characters long",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -233,19 +231,15 @@ export const updateSecretRecoveryKey = async (req, res) => {
   try {
     // Validate input
     if (!currentPassword || !newSecretRecoveryKey) {
-      return res
-        .status(400)
-        .json({
-          message: "Current password and new secret recovery key are required",
-        });
+      return res.status(400).json({
+        message: "Current password and new secret recovery key are required",
+      });
     }
 
     if (newSecretRecoveryKey.length < 8) {
-      return res
-        .status(400)
-        .json({
-          message: "Secret recovery key must be at least 8 characters long",
-        });
+      return res.status(400).json({
+        message: "Secret recovery key must be at least 8 characters long",
+      });
     }
 
     // Find user
@@ -269,12 +263,10 @@ export const updateSecretRecoveryKey = async (req, res) => {
     });
   } catch (err) {
     console.error("Update secret recovery key error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to update secret recovery key",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to update secret recovery key",
+      error: err.message,
+    });
   }
 };
 
@@ -293,11 +285,9 @@ export const requestRecoveryKeyReset = async (req, res) => {
     // Find user by email and phone
     const user = await User.findOne({ email, phone });
     if (!user) {
-      return res
-        .status(400)
-        .json({
-          message: "User not found with provided email and phone number",
-        });
+      return res.status(400).json({
+        message: "User not found with provided email and phone number",
+      });
     }
 
     // Check if there's already a pending request
@@ -322,12 +312,10 @@ export const requestRecoveryKeyReset = async (req, res) => {
     });
   } catch (err) {
     console.error("Request recovery key reset error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to submit recovery key reset request",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to submit recovery key reset request",
+      error: err.message,
+    });
   }
 };
 
@@ -349,12 +337,10 @@ export const getRecoveryKeyResetRequests = async (req, res) => {
     });
   } catch (err) {
     console.error("Get recovery key reset requests error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to get recovery key reset requests",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to get recovery key reset requests",
+      error: err.message,
+    });
   }
 };
 
@@ -397,12 +383,10 @@ export const approveRecoveryKeyReset = async (req, res) => {
     });
   } catch (err) {
     console.error("Approve recovery key reset error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to approve recovery key reset request",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to approve recovery key reset request",
+      error: err.message,
+    });
   }
 };
 
@@ -435,12 +419,10 @@ export const rejectRecoveryKeyReset = async (req, res) => {
     });
   } catch (err) {
     console.error("Reject recovery key reset error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to reject recovery key reset request",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to reject recovery key reset request",
+      error: err.message,
+    });
   }
 };
 
@@ -451,19 +433,15 @@ export const useTemporaryRecoveryKey = async (req, res) => {
   try {
     // Validate input
     if (!email || !temporaryKey || !newRecoveryKey) {
-      return res
-        .status(400)
-        .json({
-          message: "Email, temporary key, and new recovery key are required",
-        });
+      return res.status(400).json({
+        message: "Email, temporary key, and new recovery key are required",
+      });
     }
 
     if (newRecoveryKey.length < 8) {
-      return res
-        .status(400)
-        .json({
-          message: "New recovery key must be at least 8 characters long",
-        });
+      return res.status(400).json({
+        message: "New recovery key must be at least 8 characters long",
+      });
     }
 
     // Find user
