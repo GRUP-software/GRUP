@@ -616,6 +616,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
 // Process partial wallet + Flutterwave payment
 const processPartialWalletPayment = async (
     paymentHistory,
+    user,
     walletUse,
     callback_url,
     res
@@ -631,28 +632,8 @@ const processPartialWalletPayment = async (
 
         // Validate wallet use amount
         if (walletUse <= 0 || walletUse > paymentHistory.amount) {
-            return res
-                .status(400)
-                .json({
-                    message: 'Invalid wallet use amount for partial payment',
-                });
-        }
-
-        // Check if wallet balance is sufficient (validation only)
-        if (wallet.balance < walletUse) {
             return res.status(400).json({
-                message: 'Insufficient wallet balance',
-                details: `Your wallet balance (₦${wallet.balance}) is insufficient for this transaction (₦${walletUse})`,
-                wallet: {
-                    currentBalance: wallet.balance,
-                    requiredAmount: walletUse,
-                    shortfall: walletUse - wallet.balance,
-                },
-                suggestions: [
-                    'Add more funds to your wallet',
-                    'Use a smaller wallet amount',
-                    'Pay the full amount via Flutterwave',
-                ],
+                message: 'Invalid wallet use amount for partial payment',
             });
         }
 
@@ -686,11 +667,14 @@ const processPartialWalletPayment = async (
 
         // Initialize Flutterwave payment for remaining amount
         const flutterwaveData = {
-            email: paymentHistory.userId.email || 'customer@grup.com',
-            amount: Math.round(flutterwaveAmount * 100), // Convert to kobo
-            reference: paymentHistory.referenceId,
-            callback_url:
-                callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
+            amount: paymentHistory.amount,
+            tx_ref: paymentHistory.referenceId,
+            customer: {
+                email: user.email,
+                name: user.name,
+                phone_number: user.phone,
+            },
+            redirect_url: `${process.env.FRONTEND_URL}/account`,
             metadata: {
                 userId: paymentHistory.userId,
                 paymentHistoryId: paymentHistory._id.toString(),
@@ -816,6 +800,7 @@ const processPartialWalletPayment = async (
 // Process Flutterwave-only payment (existing logic)
 const processFlutterwaveOnlyPayment = async (
     paymentHistory,
+    user,
     callback_url,
     res
 ) => {
@@ -833,24 +818,26 @@ const processFlutterwaveOnlyPayment = async (
             amount: paymentHistory.amount,
             tx_ref: paymentHistory.referenceId,
             customer: {
-                email: paymentHistory.userId.email,
-                name: paymentHistory.userId.firstName,
-                phone_number: paymentHistory.userId.phone,
+                email: user.email,
+                name: user.name,
+                phone_number: user.phone,
             },
-            callback_url:
-                callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
-            metadata: {
-                userId: paymentHistory.userId,
-                paymentHistoryId: paymentHistory._id.toString(),
-                walletUsed: 0,
-                custom_fields: [
-                    {
-                        display_name: 'Payment ID',
-                        variable_name: 'payment_id',
-                        value: paymentHistory._id.toString(),
-                    },
-                ],
-            },
+            redirect_url: `${process.env.FRONTEND_URL}/account`,
+
+            // callback_url:
+            //     callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
+            // metadata: {
+            //     userId: paymentHistory.userId,
+            //     paymentHistoryId: paymentHistory._id.toString(),
+            //     walletUsed: 0,
+            //     custom_fields: [
+            //         {
+            //             display_name: 'Payment ID',
+            //             variable_name: 'payment_id',
+            //             value: paymentHistory._id.toString(),
+            //         },
+            //     ],
+            // },
         };
 
         // Check if Flutterwave secret key is configured
@@ -880,7 +867,7 @@ const processFlutterwaveOnlyPayment = async (
 
             res.json({
                 success: true,
-                authorization_url: data.data.authorization_url,
+                authorization_url: data.data.link,
                 reference: paymentHistory.referenceId,
                 paymentHistoryId: paymentHistory._id,
                 amount: paymentHistory.amount,
@@ -1133,30 +1120,35 @@ export const initializePayment = async (req, res) => {
 
         await paymentHistory.save();
 
-        const user = await User.findById(userId).select('email');
-        const userEmail = user ? user.email : 'customer@grup.com';
+        const user = await User.findById(userId);
 
         // Route based on payment method
         if (paymentMethod === 'wallet_only') {
+            console.log('using wallet only');
             return await processWalletOnlyPayment(
                 paymentHistory,
                 walletUse,
                 res
             );
         } else if (paymentMethod === 'wallet_and_flutterwave') {
+            console.log('wallet_and_flutterwave');
+
             return await processPartialWalletPayment(
                 paymentHistory,
+                user,
                 walletUse,
                 callback_url,
                 res
             );
         } else {
             // Default: flutterwave_only
+            console.log('using flutterwave only');
+
             return await processFlutterwaveOnlyPayment(
                 paymentHistory,
+                user,
                 callback_url,
-                res,
-                userEmail
+                res
             );
         }
     } catch (error) {
@@ -1178,13 +1170,10 @@ export const initializePayment = async (req, res) => {
 export const handleFlutterwaveWebhook = async (req, res) => {
     try {
         const event = req.body;
+        const secretHash = process.env.FLUTTERWAVE_SECRET_KEY;
+        const signature = req.headers['verif-hash'];
 
-        const hash = crypto
-            .createHmac('sha512', config.FLUTTERWAVE.SECRET_KEY)
-            .update(JSON.stringify(req.body))
-            .digest('hex');
-
-        if (hash !== req.headers['x-flutterwave-signature']) {
+        if (!signature || signature !== secretHash) {
             console.error('❌ Invalid webhook signature');
             return res.status(400).json({ message: 'Invalid signature' });
         }
@@ -1297,63 +1286,6 @@ export const handleFlutterwaveWebhook = async (req, res) => {
     } catch (error) {
         console.error('❌ Webhook error:', error);
         res.status(500).json({ message: 'Webhook processing failed' });
-    }
-};
-
-// Verify payment
-export const verifyPayment = async (req, res) => {
-    try {
-        const { reference } = req.params;
-
-        const paymentHistory = await PaymentHistory.findOne({
-            referenceId: reference,
-        });
-        if (!paymentHistory) {
-            return res.status(404).json({
-                message: 'Payment not found',
-                details:
-                    'The payment reference you provided could not be found in our system',
-                reference: reference,
-                suggestions: [
-                    'Check the payment reference for typos',
-                    'Ensure the payment was made recently',
-                    'Contact support if you believe this is an error',
-                ],
-            });
-        }
-
-        // Verify with Flutterwave
-        const flutterwaveResponse = await fetch(
-            `https://api.flutterwave.com/v3/transactions/${reference}/verify`,
-            {
-                headers: {
-                    Authorization: `Bearer ${config.FLUTTERWAVE.SECRET_KEY}`,
-                },
-            }
-        );
-
-        const flutterwaveResult = await flutterwaveResponse.json();
-
-        res.json({
-            success: true,
-            data: {
-                paymentHistory,
-                flutterwaveVerification: flutterwaveResult,
-            },
-        });
-    } catch (error) {
-        console.error('Payment verification error:', error);
-        res.status(500).json({
-            message: 'Payment verification failed',
-            details:
-                'An error occurred while verifying your payment. Please try again.',
-            error: error.message,
-            suggestions: [
-                'Try again in a few minutes',
-                'Check your internet connection',
-                'Contact support if the issue persists',
-            ],
-        });
     }
 };
 

@@ -79,11 +79,9 @@ router.post('/signup', async (req, res) => {
         // Check if phone number already exists
         const existingUserByPhone = await User.findOne({ phone });
         if (existingUserByPhone) {
-            return res
-                .status(400)
-                .json({
-                    message: 'Phone number already associated with an account',
-                });
+            return res.status(400).json({
+                message: 'Phone number already associated with an account',
+            });
         }
 
         const newUser = new User({

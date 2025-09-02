@@ -21,17 +21,7 @@ export const corsOptions = {
         }
 
         // Define allowed origins for production
-        const allowedOrigins = [
-            process.env.FRONTEND_URL,
-            'https://grup.com.ng',
-            'https://www.grup.com.ng',
-            'http://localhost:5000',
-            'http://localhost:3000',
-            'http://127.0.0.1:5000',
-            'http://127.0.0.1:3000',
-            'http://localhost:8080',
-            'http://127.0.0.1:8080',
-        ].filter(Boolean);
+        const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean);
 
         // Production: Check if origin is in allowed list
         if (process.env.NODE_ENV === 'production') {

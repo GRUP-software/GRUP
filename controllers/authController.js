@@ -118,11 +118,9 @@ export const verifyRecoveryKey = async (req, res) => {
     try {
         // Validate input
         if (!email || !secretRecoveryKey) {
-            return res
-                .status(400)
-                .json({
-                    message: 'Email and secret recovery key are required',
-                });
+            return res.status(400).json({
+                message: 'Email and secret recovery key are required',
+            });
         }
 
         // Find user by email
@@ -178,11 +176,9 @@ export const resetPassword = async (req, res) => {
         }
 
         if (newPassword.length < 6) {
-            return res
-                .status(400)
-                .json({
-                    message: 'Password must be at least 6 characters long',
-                });
+            return res.status(400).json({
+                message: 'Password must be at least 6 characters long',
+            });
         }
 
         // Verify reset token
@@ -371,11 +367,9 @@ export const approveRecoveryKeyReset = async (req, res) => {
         }
 
         if (user.recoveryKeyResetRequest?.status !== 'pending') {
-            return res
-                .status(400)
-                .json({
-                    message: 'No pending recovery key reset request found',
-                });
+            return res.status(400).json({
+                message: 'No pending recovery key reset request found',
+            });
         }
 
         // Generate temporary recovery key (valid for 24 hours)
@@ -419,11 +413,9 @@ export const rejectRecoveryKeyReset = async (req, res) => {
         }
 
         if (user.recoveryKeyResetRequest?.status !== 'pending') {
-            return res
-                .status(400)
-                .json({
-                    message: 'No pending recovery key reset request found',
-                });
+            return res.status(400).json({
+                message: 'No pending recovery key reset request found',
+            });
         }
 
         // Update user with rejected request

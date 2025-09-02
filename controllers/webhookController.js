@@ -107,29 +107,12 @@ export const handleFlutterwaveWebhook = async (req, res) => {
     try {
         console.log('🔔 Webhook received:', req.body);
 
-        // Verify Flutterwave signature
-        const hash = crypto
-            .createHmac('sha512', config.FLUTTERWAVE.SECRET_KEY)
-            .update(JSON.stringify(req.body))
-            .digest('hex');
+        const secretHash = process.env.FLUTTERWAVE_SECRET_KEY;
+        const signature = req.headers['verif-hash'];
 
-        console.log(`🔐 Webhook signature check:`, {
-            expected: hash,
-            received: req.headers['x-flutterwave-signature'],
-            matches: hash === req.headers['x-flutterwave-signature'],
-        });
-
-        if (hash !== req.headers['x-flutterwave-signature']) {
-            logger.warn('Invalid Flutterwave webhook signature');
-            console.log(
-                `❌ Signature mismatch - Expected: ${hash}, Received: ${req.headers['x-flutterwave-signature']}`
-            );
-            // Temporarily allow invalid signatures for debugging
-            // return res.status(400).json({
-            //   message: "Invalid webhook signature",
-            //   details: "The webhook signature verification failed. This could indicate a security issue.",
-            //   error: "SIGNATURE_MISMATCH"
-            // })
+        if (!signature || signature !== secretHash) {
+            console.error('❌ Invalid webhook signature');
+            return res.status(400).json({ message: 'Invalid signature' });
         }
 
         const event = req.body;
@@ -154,39 +137,35 @@ export const handleFlutterwaveWebhook = async (req, res) => {
 
 const handleSuccessfulCharge = async (data) => {
     try {
-        const { reference, amount, status, metadata } = data;
+        const { tx_ref, amount, status, metadata } = data;
 
         console.log(`🔍 Webhook Debug:`);
-        console.log(`   Flutterwave Reference: ${reference}`);
+        console.log(`   Reference: ${tx_ref}`);
         console.log(`   Amount: ${amount}`);
         console.log(`   Status: ${status}`);
 
         // Find payment history by Flutterwave reference
-        console.log(
-            `🔍 Looking for payment history with flutterwaveReference: ${reference}`
-        );
+        console.log(`🔍 Looking for payment history with referenxe: ${tx_ref}`);
         const paymentHistory = await PaymentHistory.findOne({
-            flutterwaveReference: reference,
+            flutterwaveReference: tx_ref,
         });
         if (!paymentHistory) {
-            logger.error(
-                `Payment history not found for reference: ${reference}`
-            );
+            logger.error(`Payment history not found for reference: ${tx_ref}`);
             console.error(
-                `❌ Payment history not found for reference: ${reference}`
+                `❌ Payment history not found for reference: ${tx_ref}`
             );
 
             // Try to find by referenceId as fallback
-            console.log(`🔍 Trying to find by referenceId: ${reference}`);
+            console.log(`🔍 Trying to find by referenceId: ${tx_ref}`);
             const fallbackPayment = await PaymentHistory.findOne({
-                referenceId: reference,
+                referenceId: tx_ref,
             });
             if (fallbackPayment) {
                 console.log(
                     `✅ Found payment by referenceId: ${fallbackPayment._id}`
                 );
                 // Update the flutterwaveReference
-                fallbackPayment.flutterwaveReference = reference;
+                fallbackPayment.flutterwaveReference = tx_ref;
                 await fallbackPayment.save();
                 console.log(
                     `✅ Updated flutterwaveReference for payment: ${fallbackPayment._id}`
@@ -217,22 +196,20 @@ const handleSuccessfulCharge = async (data) => {
         console.log(`   Status: ${paymentHistory.status}`);
 
         if (paymentHistory.status === 'paid') {
-            logger.info(`Payment ${reference} already processed`);
+            logger.info(`Payment ${tx_ref} already processed`);
             console.log(
-                `⚠️ Payment ${reference} already processed - skipping duplicate webhook`
+                `⚠️ Payment ${tx_ref} already processed - skipping duplicate webhook`
             );
             return;
         }
 
         // Verify amount matches
-        const expectedAmount = Math.round(
-            paymentHistory.flutterwaveAmount * 100
-        ); // Convert to kobo
+        const expectedAmount = paymentHistory.flutterwaveAmount;
         if (amount !== expectedAmount) {
             logger.error(
-                `Amount mismatch for ${reference}. Expected: ${expectedAmount}, Received: ${amount}`
+                `Amount mismatch for ${tx_ref}. Expected: ${expectedAmount}, Received: ${amount}`
             );
-            console.error(`❌ Amount mismatch for ${reference}:`);
+            console.error(`❌ Amount mismatch for ${tx_ref}:`);
             console.error(
                 `   Expected: ${expectedAmount} kobo (₦${paymentHistory.flutterwaveAmount})`
             );
@@ -254,11 +231,11 @@ const handleSuccessfulCharge = async (data) => {
                     paymentHistory.userId,
                     paymentHistory.walletUsed,
                     'ORDER',
-                    `Wallet payment for order ${reference}`,
+                    `Wallet payment for order ${tx_ref}`,
                     {
                         paymentHistoryId: paymentHistory._id,
                         isWebhookProcessed: true,
-                        flutterwaveReference: reference,
+                        flutterwaveReference: tx_ref,
                     }
                 );
 
@@ -384,10 +361,10 @@ const handleSuccessfulCharge = async (data) => {
                 }
             }
 
-            console.log(`✅ Notifications sent for payment ${reference}`);
+            console.log(`✅ Notifications sent for payment ${tx_ref}`);
         } catch (notificationError) {
             console.error(
-                `❌ Error sending notifications for payment ${reference}:`,
+                `❌ Error sending notifications for payment ${tx_ref}:`,
                 notificationError
             );
             logger.error(
@@ -398,7 +375,7 @@ const handleSuccessfulCharge = async (data) => {
         }
 
         logger.info(
-            `Payment ${reference} processed successfully. Group buys created: ${groupBuys.length}`
+            `Payment ${tx_ref} processed successfully. Group buys created: ${groupBuys.length}`
         );
 
         console.log(`✅ Webhook processed successfully`);
@@ -407,7 +384,7 @@ const handleSuccessfulCharge = async (data) => {
         const io = global.io;
         if (io) {
             io.to(`user_${paymentHistory.userId}`).emit('paymentSuccess', {
-                reference,
+                tx_ref,
                 amount: paymentHistory.amount,
                 groupBuysJoined: groupBuys.length,
             });

@@ -857,11 +857,9 @@ export const markGroupBuyAsFailed = async (req, res) => {
         }
 
         if (groupBuy.status === 'successful') {
-            return res
-                .status(400)
-                .json({
-                    message: 'Cannot mark successful group buy as failed',
-                });
+            return res.status(400).json({
+                message: 'Cannot mark successful group buy as failed',
+            });
         }
 
         // Mark as failed

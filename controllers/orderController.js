@@ -346,11 +346,9 @@ export const handleFulfillmentChoice = async (req, res) => {
         const { trackingNumber, choice, customerPhone } = req.body;
 
         if (!['pickup', 'delivery'].includes(choice)) {
-            return res
-                .status(400)
-                .json({
-                    message: "Invalid choice. Must be 'pickup' or 'delivery'",
-                });
+            return res.status(400).json({
+                message: "Invalid choice. Must be 'pickup' or 'delivery'",
+            });
         }
 
         const order = await Order.findOne({ trackingNumber });
