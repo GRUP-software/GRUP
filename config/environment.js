@@ -1,7 +1,28 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Debug: Log where we're looking for .env file
+console.log("🔍 .env file search debug:");
+console.log("  Current directory:", __dirname);
+console.log("  Looking for .env in:", path.resolve(__dirname, '..'));
+console.log("  Looking for .env in:", path.resolve(__dirname, '../..'));
 
 // Load environment variables
-dotenv.config();
+const result = dotenv.config();
+console.log("  dotenv.config() result:", result);
+
+// Log all environment variables that start with FLUTTERWAVE
+console.log("🔍 Flutterwave environment variables:");
+Object.keys(process.env).forEach(key => {
+  if (key.includes('FLUTTERWAVE')) {
+    console.log(`  ${key}: ${process.env[key] ? 'SET' : 'NOT SET'}`);
+  }
+});
 
 const config = {
   // Environment
