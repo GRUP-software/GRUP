@@ -1102,7 +1102,6 @@ export const initializePayment = async (req, res) => {
         paymentHistory,
         callback_url,
         res,
-        userEmail,
       );
     }
   } catch (error) {
