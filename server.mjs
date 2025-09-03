@@ -193,7 +193,7 @@ app.use((req, res, next) => {
 // API routes - NO RATE LIMITING
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/admin/', adminRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
