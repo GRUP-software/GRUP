@@ -1,268 +1,289 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Recovery Key Reset Requests</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f9fafb;
-            color: #111827;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        
-        .header h1 {
-            color: #1f2937;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            color: #6b7280;
-        }
-        
-        .requests-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .request-item {
-            padding: 20px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .request-item:last-child {
-            border-bottom: none;
-        }
-        
-        .request-info {
-            flex: 1;
-        }
-        
-        .request-info h3 {
-            color: #1f2937;
-            margin-bottom: 5px;
-        }
-        
-        .request-info p {
-            color: #6b7280;
-            margin-bottom: 3px;
-            font-size: 14px;
-        }
-        
-        .request-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .btn-approve {
-            background-color: #10b981;
-            color: white;
-        }
-        
-        .btn-approve:hover {
-            background-color: #059669;
-        }
-        
-        .btn-reject {
-            background-color: #ef4444;
-            color: white;
-        }
-        
-        .btn-reject:hover {
-            background-color: #dc2626;
-        }
-        
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .no-requests {
-            padding: 40px;
-            text-align: center;
-            color: #6b7280;
-        }
-        
-        .loading {
-            padding: 40px;
-            text-align: center;
-            color: #6b7280;
-        }
-        
-        .error {
-            padding: 20px;
-            background-color: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 6px;
-            color: #dc2626;
-            margin-bottom: 20px;
-        }
-        
-        .success {
-            padding: 20px;
-            background-color: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 6px;
-            color: #16a34a;
-            margin-bottom: 20px;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
-        
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-        }
-        
-        .modal h3 {
-            margin-bottom: 15px;
-            color: #1f2937;
-        }
-        
-        .modal textarea {
-            width: 100%;
-            height: 100px;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            resize: vertical;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-        
-        .btn-secondary {
-            background-color: #6b7280;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Recovery Key Reset Requests</h1>
-            <p>Review and manage user requests for recovery key resets</p>
-        </div>
-        
-        <div id="message"></div>
-        
-        <div class="requests-container" id="requestsContainer">
-            <div class="loading">Loading requests...</div>
-        </div>
-    </div>
-    
-    <!-- Reject Modal -->
-    <div id="rejectModal" class="modal">
-        <div class="modal-content">
-            <h3>Reject Request</h3>
-            <p>Please provide a reason for rejecting this request:</p>
-            <textarea id="rejectReason" placeholder="Enter rejection reason..."></textarea>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
-                <button class="btn btn-reject" onclick="confirmReject()">Reject Request</button>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Admin - Recovery Key Reset Requests</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                    sans-serif;
+                background-color: #f9fafb;
+                color: #111827;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            .header {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+            }
+
+            .header h1 {
+                color: #1f2937;
+                margin-bottom: 10px;
+            }
+
+            .header p {
+                color: #6b7280;
+            }
+
+            .requests-container {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+
+            .request-item {
+                padding: 20px;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .request-item:last-child {
+                border-bottom: none;
+            }
+
+            .request-info {
+                flex: 1;
+            }
+
+            .request-info h3 {
+                color: #1f2937;
+                margin-bottom: 5px;
+            }
+
+            .request-info p {
+                color: #6b7280;
+                margin-bottom: 3px;
+                font-size: 14px;
+            }
+
+            .request-actions {
+                display: flex;
+                gap: 10px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s;
+            }
+
+            .btn-approve {
+                background-color: #10b981;
+                color: white;
+            }
+
+            .btn-approve:hover {
+                background-color: #059669;
+            }
+
+            .btn-reject {
+                background-color: #ef4444;
+                color: white;
+            }
+
+            .btn-reject:hover {
+                background-color: #dc2626;
+            }
+
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .no-requests {
+                padding: 40px;
+                text-align: center;
+                color: #6b7280;
+            }
+
+            .loading {
+                padding: 40px;
+                text-align: center;
+                color: #6b7280;
+            }
+
+            .error {
+                padding: 20px;
+                background-color: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: 6px;
+                color: #dc2626;
+                margin-bottom: 20px;
+            }
+
+            .success {
+                padding: 20px;
+                background-color: #f0fdf4;
+                border: 1px solid #bbf7d0;
+                border-radius: 6px;
+                color: #16a34a;
+                margin-bottom: 20px;
+            }
+
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+            }
+
+            .modal-content {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                max-width: 500px;
+                width: 90%;
+            }
+
+            .modal h3 {
+                margin-bottom: 15px;
+                color: #1f2937;
+            }
+
+            .modal textarea {
+                width: 100%;
+                height: 100px;
+                padding: 10px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                margin-bottom: 20px;
+                resize: vertical;
+            }
+
+            .modal-actions {
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+            }
+
+            .btn-secondary {
+                background-color: #6b7280;
+                color: white;
+            }
+
+            .btn-secondary:hover {
+                background-color: #4b5563;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Recovery Key Reset Requests</h1>
+                <p>Review and manage user requests for recovery key resets</p>
+            </div>
+
+            <div id="message"></div>
+
+            <div class="requests-container" id="requestsContainer">
+                <div class="loading">Loading requests...</div>
             </div>
         </div>
-    </div>
-    
-    <script>
-        let currentUserId = null;
-        let authToken = localStorage.getItem('adminToken');
-        
-        if (!authToken) {
-            window.location.href = '/admin';
-        }
-        
-        // Load requests on page load
-        document.addEventListener('DOMContentLoaded', loadRequests);
-        
-        async function loadRequests() {
-            try {
-                const response = await fetch('/api/auth/recovery-key-reset-requests', {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
+
+        <!-- Reject Modal -->
+        <div id="rejectModal" class="modal">
+            <div class="modal-content">
+                <h3>Reject Request</h3>
+                <p>Please provide a reason for rejecting this request:</p>
+                <textarea
+                    id="rejectReason"
+                    placeholder="Enter rejection reason..."
+                ></textarea>
+                <div class="modal-actions">
+                    <button
+                        class="btn btn-secondary"
+                        onclick="closeRejectModal()"
+                    >
+                        Cancel
+                    </button>
+                    <button class="btn btn-reject" onclick="confirmReject()">
+                        Reject Request
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let currentUserId = null;
+            let authToken = localStorage.getItem('adminToken');
+
+            if (!authToken) {
+                window.location.href = '/admin';
+            }
+
+            // Load requests on page load
+            document.addEventListener('DOMContentLoaded', loadRequests);
+
+            async function loadRequests() {
+                try {
+                    const response = await fetch(
+                        '/api/auth/recovery-key-reset-requests',
+                        {
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load requests');
                     }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to load requests');
+
+                    const data = await response.json();
+                    displayRequests(data.requests);
+                } catch (error) {
+                    showMessage(
+                        'Error loading requests: ' + error.message,
+                        'error'
+                    );
                 }
-                
-                const data = await response.json();
-                displayRequests(data.requests);
-            } catch (error) {
-                showMessage('Error loading requests: ' + error.message, 'error');
             }
-        }
-        
-        function displayRequests(requests) {
-            const container = document.getElementById('requestsContainer');
-            
-            if (requests.length === 0) {
-                container.innerHTML = '<div class="no-requests">No pending recovery key reset requests</div>';
-                return;
-            }
-            
-            container.innerHTML = requests.map(request => `
+
+            function displayRequests(requests) {
+                const container = document.getElementById('requestsContainer');
+
+                if (requests.length === 0) {
+                    container.innerHTML =
+                        '<div class="no-requests">No pending recovery key reset requests</div>';
+                    return;
+                }
+
+                container.innerHTML = requests
+                    .map(
+                        (request) => `
                 <div class="request-item">
                     <div class="request-info">
                         <h3>${request.name}</h3>
@@ -279,92 +300,116 @@
                         </button>
                     </div>
                 </div>
-            `).join('');
-        }
-        
-        async function approveRequest(userId) {
-            if (!confirm('Are you sure you want to approve this recovery key reset request?')) {
-                return;
+            `
+                    )
+                    .join('');
             }
-            
-            try {
-                const response = await fetch(`/api/auth/approve-recovery-key-reset/${userId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
+
+            async function approveRequest(userId) {
+                if (
+                    !confirm(
+                        'Are you sure you want to approve this recovery key reset request?'
+                    )
+                ) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(
+                        `/api/auth/approve-recovery-key-reset/${userId}`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to approve request');
                     }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to approve request');
+
+                    const data = await response.json();
+                    showMessage(
+                        'Request approved successfully. Temporary key: ' +
+                            data.temporaryKey,
+                        'success'
+                    );
+                    loadRequests(); // Reload the list
+                } catch (error) {
+                    showMessage(
+                        'Error approving request: ' + error.message,
+                        'error'
+                    );
                 }
-                
-                const data = await response.json();
-                showMessage('Request approved successfully. Temporary key: ' + data.temporaryKey, 'success');
-                loadRequests(); // Reload the list
-            } catch (error) {
-                showMessage('Error approving request: ' + error.message, 'error');
             }
-        }
-        
-        function showRejectModal(userId) {
-            currentUserId = userId;
-            document.getElementById('rejectModal').style.display = 'block';
-            document.getElementById('rejectReason').value = '';
-        }
-        
-        function closeRejectModal() {
-            document.getElementById('rejectModal').style.display = 'none';
-            currentUserId = null;
-        }
-        
-        async function confirmReject() {
-            const reason = document.getElementById('rejectReason').value.trim();
-            
-            if (!reason) {
-                alert('Please provide a reason for rejection');
-                return;
+
+            function showRejectModal(userId) {
+                currentUserId = userId;
+                document.getElementById('rejectModal').style.display = 'block';
+                document.getElementById('rejectReason').value = '';
             }
-            
-            try {
-                const response = await fetch(`/api/auth/reject-recovery-key-reset/${currentUserId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ reason })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to reject request');
+
+            function closeRejectModal() {
+                document.getElementById('rejectModal').style.display = 'none';
+                currentUserId = null;
+            }
+
+            async function confirmReject() {
+                const reason = document
+                    .getElementById('rejectReason')
+                    .value.trim();
+
+                if (!reason) {
+                    alert('Please provide a reason for rejection');
+                    return;
                 }
-                
-                showMessage('Request rejected successfully', 'success');
-                closeRejectModal();
-                loadRequests(); // Reload the list
-            } catch (error) {
-                showMessage('Error rejecting request: ' + error.message, 'error');
+
+                try {
+                    const response = await fetch(
+                        `/api/auth/reject-recovery-key-reset/${currentUserId}`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ reason }),
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to reject request');
+                    }
+
+                    showMessage('Request rejected successfully', 'success');
+                    closeRejectModal();
+                    loadRequests(); // Reload the list
+                } catch (error) {
+                    showMessage(
+                        'Error rejecting request: ' + error.message,
+                        'error'
+                    );
+                }
             }
-        }
-        
-        function showMessage(message, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
-            
-            setTimeout(() => {
-                messageDiv.innerHTML = '';
-            }, 5000);
-        }
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('rejectModal');
-            if (event.target === modal) {
-                closeRejectModal();
+
+            function showMessage(message, type) {
+                const messageDiv = document.getElementById('message');
+                messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 5000);
             }
-        }
-    </script>
-</body>
+
+            // Close modal when clicking outside
+            window.onclick = function (event) {
+                const modal = document.getElementById('rejectModal');
+                if (event.target === modal) {
+                    closeRejectModal();
+                }
+            };
+        </script>
+    </body>
 </html>

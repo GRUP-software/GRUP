@@ -1,317 +1,332 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloudinary Upload Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .upload-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .upload-section:hover {
-            border-color: #007bff;
-        }
-        input[type="file"] {
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 100%;
-            max-width: 400px;
-        }
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 10px 5px;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            font-family: monospace;
-            font-size: 14px;
-        }
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-        .error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        .image-preview {
-            margin-top: 20px;
-            text-align: center;
-        }
-        .image-preview img {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .token-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        .token-section input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-top: 5px;
-        }
-        .info-box {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🌤️ Cloudinary Upload Test</h1>
-        
-        <div class="info-box">
-            <strong>ℹ️ How to use:</strong><br>
-            1. Get your JWT token from the login API<br>
-            2. Paste the token below<br>
-            3. Select images and upload them<br>
-            4. Copy the returned URLs for use in your admin panel
-        </div>
-
-        <div class="token-section">
-            <label for="token">JWT Token:</label>
-            <input type="text" id="token" placeholder="Paste your JWT token here..." />
-        </div>
-
-        <div class="upload-section">
-            <h3>📤 Upload Single Image</h3>
-            <input type="file" id="singleImage" accept="image/*" />
-            <br>
-            <button onclick="uploadSingle()">Upload Single Image</button>
-        </div>
-
-        <div class="upload-section">
-            <h3>📤 Upload Multiple Images</h3>
-            <input type="file" id="multipleImages" accept="image/*" multiple />
-            <br>
-            <button onclick="uploadMultiple()">Upload Multiple Images</button>
-        </div>
-
-        <div class="upload-section">
-            <h3>ℹ️ Cloudinary Info</h3>
-            <button onclick="getInfo()">Get Cloudinary Info</button>
-        </div>
-
-        <div id="result" class="result" style="display: none;"></div>
-        <div id="imagePreview" class="image-preview"></div>
-    </div>
-
-    <script>
-        const API_BASE = 'http://localhost:5000/api';
-
-        function showResult(data, isError = false) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
-            resultDiv.textContent = JSON.stringify(data, null, 2);
-        }
-
-        function showImagePreview(url) {
-            const previewDiv = document.getElementById('imagePreview');
-            previewDiv.innerHTML = `<img src="${url}" alt="Uploaded Image" />`;
-        }
-
-        function getToken() {
-            const token = document.getElementById('token').value.trim();
-            if (!token) {
-                alert('Please enter your JWT token first!');
-                return null;
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Cloudinary Upload Test</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f5f5f5;
             }
-            return token;
-        }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+                color: #333;
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .upload-section {
+                margin-bottom: 30px;
+                padding: 20px;
+                border: 2px dashed #ddd;
+                border-radius: 8px;
+                text-align: center;
+            }
+            .upload-section:hover {
+                border-color: #007bff;
+            }
+            input[type='file'] {
+                margin: 10px 0;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                width: 100%;
+                max-width: 400px;
+            }
+            button {
+                background: #007bff;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+                margin: 10px 5px;
+            }
+            button:hover {
+                background: #0056b3;
+            }
+            button:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            .result {
+                margin-top: 20px;
+                padding: 15px;
+                border-radius: 5px;
+                white-space: pre-wrap;
+                font-family: monospace;
+                font-size: 14px;
+            }
+            .success {
+                background: #d4edda;
+                border: 1px solid #c3e6cb;
+                color: #155724;
+            }
+            .error {
+                background: #f8d7da;
+                border: 1px solid #f5c6cb;
+                color: #721c24;
+            }
+            .image-preview {
+                margin-top: 20px;
+                text-align: center;
+            }
+            .image-preview img {
+                max-width: 300px;
+                max-height: 300px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .token-section {
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 5px;
+            }
+            .token-section input {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-top: 5px;
+            }
+            .info-box {
+                background: #e7f3ff;
+                border: 1px solid #b3d9ff;
+                padding: 15px;
+                border-radius: 5px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🌤️ Cloudinary Upload Test</h1>
 
-        async function uploadSingle() {
-            const token = getToken();
-            if (!token) return;
+            <div class="info-box">
+                <strong>ℹ️ How to use:</strong><br />
+                1. Get your JWT token from the login API<br />
+                2. Paste the token below<br />
+                3. Select images and upload them<br />
+                4. Copy the returned URLs for use in your admin panel
+            </div>
 
-            const fileInput = document.getElementById('singleImage');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                alert('Please select an image first!');
-                return;
+            <div class="token-section">
+                <label for="token">JWT Token:</label>
+                <input
+                    type="text"
+                    id="token"
+                    placeholder="Paste your JWT token here..."
+                />
+            </div>
+
+            <div class="upload-section">
+                <h3>📤 Upload Single Image</h3>
+                <input type="file" id="singleImage" accept="image/*" />
+                <br />
+                <button onclick="uploadSingle()">Upload Single Image</button>
+            </div>
+
+            <div class="upload-section">
+                <h3>📤 Upload Multiple Images</h3>
+                <input
+                    type="file"
+                    id="multipleImages"
+                    accept="image/*"
+                    multiple
+                />
+                <br />
+                <button onclick="uploadMultiple()">
+                    Upload Multiple Images
+                </button>
+            </div>
+
+            <div class="upload-section">
+                <h3>ℹ️ Cloudinary Info</h3>
+                <button onclick="getInfo()">Get Cloudinary Info</button>
+            </div>
+
+            <div id="result" class="result" style="display: none"></div>
+            <div id="imagePreview" class="image-preview"></div>
+        </div>
+
+        <script>
+            const API_BASE = 'http://localhost:5000/api';
+
+            function showResult(data, isError = false) {
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+                resultDiv.textContent = JSON.stringify(data, null, 2);
             }
 
-            const formData = new FormData();
-            formData.append('image', file);
+            function showImagePreview(url) {
+                const previewDiv = document.getElementById('imagePreview');
+                previewDiv.innerHTML = `<img src="${url}" alt="Uploaded Image" />`;
+            }
 
-            try {
-                const response = await fetch(`${API_BASE}/upload/single`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showResult(result);
-                    showImagePreview(result.data.image.url);
-                } else {
-                    showResult(result, true);
+            function getToken() {
+                const token = document.getElementById('token').value.trim();
+                if (!token) {
+                    alert('Please enter your JWT token first!');
+                    return null;
                 }
-            } catch (error) {
-                showResult({ error: error.message }, true);
-            }
-        }
-
-        async function uploadMultiple() {
-            const token = getToken();
-            if (!token) return;
-
-            const fileInput = document.getElementById('multipleImages');
-            const files = fileInput.files;
-            
-            if (files.length === 0) {
-                alert('Please select images first!');
-                return;
+                return token;
             }
 
-            const formData = new FormData();
-            for (let i = 0; i < files.length; i++) {
-                formData.append('images', files[i]);
-            }
+            async function uploadSingle() {
+                const token = getToken();
+                if (!token) return;
 
-            try {
-                const response = await fetch(`${API_BASE}/upload/multiple`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
+                const fileInput = document.getElementById('singleImage');
+                const file = fileInput.files[0];
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    showResult(result);
-                    // Show first image preview
-                    if (result.data.images.length > 0) {
-                        showImagePreview(result.data.images[0].cloudinary.url);
+                if (!file) {
+                    alert('Please select an image first!');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const response = await fetch(`${API_BASE}/upload/single`, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: formData,
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showResult(result);
+                        showImagePreview(result.data.image.url);
+                    } else {
+                        showResult(result, true);
                     }
-                } else {
-                    showResult(result, true);
+                } catch (error) {
+                    showResult({ error: error.message }, true);
                 }
-            } catch (error) {
-                showResult({ error: error.message }, true);
             }
-        }
 
-        async function getInfo() {
-            const token = getToken();
-            if (!token) return;
+            async function uploadMultiple() {
+                const token = getToken();
+                if (!token) return;
 
-            try {
-                const response = await fetch(`${API_BASE}/upload/info`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                const fileInput = document.getElementById('multipleImages');
+                const files = fileInput.files;
+
+                if (files.length === 0) {
+                    alert('Please select images first!');
+                    return;
+                }
+
+                const formData = new FormData();
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('images', files[i]);
+                }
+
+                try {
+                    const response = await fetch(
+                        `${API_BASE}/upload/multiple`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                            body: formData,
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showResult(result);
+                        // Show first image preview
+                        if (result.data.images.length > 0) {
+                            showImagePreview(
+                                result.data.images[0].cloudinary.url
+                            );
+                        }
+                    } else {
+                        showResult(result, true);
                     }
-                });
-
-                const result = await response.json();
-                showResult(result);
-            } catch (error) {
-                showResult({ error: error.message }, true);
-            }
-        }
-
-        // Helper function to get token from login
-        async function getTokenFromLogin() {
-            const email = prompt('Enter your email:');
-            const password = prompt('Enter your password:');
-            
-            if (!email || !password) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const result = await response.json();
-                
-                if (result.success && result.token) {
-                    document.getElementById('token').value = result.token;
-                    alert('Token obtained successfully!');
-                } else {
-                    alert('Login failed: ' + (result.message || 'Unknown error'));
+                } catch (error) {
+                    showResult({ error: error.message }, true);
                 }
-            } catch (error) {
-                alert('Error getting token: ' + error.message);
             }
-        }
 
-        // Add login button
-        document.addEventListener('DOMContentLoaded', function() {
-            const tokenSection = document.querySelector('.token-section');
-            const loginButton = document.createElement('button');
-            loginButton.textContent = '🔑 Get Token from Login';
-            loginButton.onclick = getTokenFromLogin;
-            loginButton.style.marginTop = '10px';
-            tokenSection.appendChild(loginButton);
-        });
-    </script>
-</body>
+            async function getInfo() {
+                const token = getToken();
+                if (!token) return;
+
+                try {
+                    const response = await fetch(`${API_BASE}/upload/info`, {
+                        method: 'GET',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    const result = await response.json();
+                    showResult(result);
+                } catch (error) {
+                    showResult({ error: error.message }, true);
+                }
+            }
+
+            // Helper function to get token from login
+            async function getTokenFromLogin() {
+                const email = prompt('Enter your email:');
+                const password = prompt('Enter your password:');
+
+                if (!email || !password) return;
+
+                try {
+                    const response = await fetch(`${API_BASE}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.token) {
+                        document.getElementById('token').value = result.token;
+                        alert('Token obtained successfully!');
+                    } else {
+                        alert(
+                            'Login failed: ' +
+                                (result.message || 'Unknown error')
+                        );
+                    }
+                } catch (error) {
+                    alert('Error getting token: ' + error.message);
+                }
+            }
+
+            // Add login button
+            document.addEventListener('DOMContentLoaded', function () {
+                const tokenSection = document.querySelector('.token-section');
+                const loginButton = document.createElement('button');
+                loginButton.textContent = '🔑 Get Token from Login';
+                loginButton.onclick = getTokenFromLogin;
+                loginButton.style.marginTop = '10px';
+                tokenSection.appendChild(loginButton);
+            });
+        </script>
+    </body>
 </html>
-
-
-
-

@@ -3,22 +3,22 @@ import config from '../config/environment.js';
 import logger from '../utils/logger.js';
 
 class EmailService {
-  constructor() {
-    this.transporter = null;
-    this.isConfigured = false;
-    // Initialize email service without blocking the main application
-    this.init().catch(error => {
-      logger.error('❌ Email service initialization failed:', error);
-      this.isConfigured = false;
-    });
-  }
+    constructor() {
+        this.transporter = null;
+        this.isConfigured = false;
+        // Initialize email service without blocking the main application
+        this.init().catch((error) => {
+            logger.error('❌ Email service initialization failed:', error);
+            this.isConfigured = false;
+        });
+    }
 
-  async init() {
-    try {
-      // Temporarily disable email service to prevent connection errors
-      // Uncomment the code below when you have valid email credentials
-      
-      /*
+    async init() {
+        try {
+            // Temporarily disable email service to prevent connection errors
+            // Uncomment the code below when you have valid email credentials
+
+            /*
       // Check if email configuration is available and not empty
       if (config.EMAIL.HOST && config.EMAIL.USER && config.EMAIL.PASS && 
           config.EMAIL.USER.trim() !== '' && config.EMAIL.PASS.trim() !== '') {
@@ -44,61 +44,72 @@ class EmailService {
         this.isConfigured = false;
       }
       */
-      
-      // For now, just disable email service
-      logger.info('ℹ️ Email service temporarily disabled - in-app notifications only');
-      this.isConfigured = false;
-      
-    } catch (error) {
-      logger.error('❌ Email service configuration failed:', error);
-      this.isConfigured = false;
-    }
-  }
 
-  async sendEmail(to, subject, htmlContent, textContent = null) {
-    if (!this.isConfigured || !this.transporter) {
-      logger.warn(`📧 Email not sent to ${to} - email service not configured`);
-      return { success: false, message: 'Email service not configured' };
+            // For now, just disable email service
+            logger.info(
+                'ℹ️ Email service temporarily disabled - in-app notifications only'
+            );
+            this.isConfigured = false;
+        } catch (error) {
+            logger.error('❌ Email service configuration failed:', error);
+            this.isConfigured = false;
+        }
     }
 
-    try {
-      const mailOptions = {
-        from: `"${config.EMAIL.FROM_NAME || 'Grup Team'}" <${config.EMAIL.USER}>`,
-        to,
-        subject,
-        html: htmlContent,
-        text: textContent || this.stripHtml(htmlContent),
-      };
+    async sendEmail(to, subject, htmlContent, textContent = null) {
+        if (!this.isConfigured || !this.transporter) {
+            logger.warn(
+                `📧 Email not sent to ${to} - email service not configured`
+            );
+            return { success: false, message: 'Email service not configured' };
+        }
 
-      const result = await this.transporter.sendMail(mailOptions);
-      logger.info(`📧 Email sent successfully to ${to}: ${subject}`);
-      return { success: true, messageId: result.messageId };
-    } catch (error) {
-      logger.error(`❌ Failed to send email to ${to}:`, error);
-      return { success: false, error: error.message };
+        try {
+            const mailOptions = {
+                from: `"${config.EMAIL.FROM_NAME || 'Grup Team'}" <${config.EMAIL.USER}>`,
+                to,
+                subject,
+                html: htmlContent,
+                text: textContent || this.stripHtml(htmlContent),
+            };
+
+            const result = await this.transporter.sendMail(mailOptions);
+            logger.info(`📧 Email sent successfully to ${to}: ${subject}`);
+            return { success: true, messageId: result.messageId };
+        } catch (error) {
+            logger.error(`❌ Failed to send email to ${to}:`, error);
+            return { success: false, error: error.message };
+        }
     }
-  }
 
-  stripHtml(html) {
-    return html.replace(/<[^>]*>/g, '');
-  }
+    stripHtml(html) {
+        return html.replace(/<[^>]*>/g, '');
+    }
 
-  // Email templates
-  generateOrderStatusEmail(data) {
-    const { orderId, trackingNumber, status, message, customerName, items, totalAmount } = data;
-    
-    const statusColors = {
-      'processing': '#3b82f6',
-      'packaged': '#10b981',
-      'ready_for_pickup': '#f59e0b',
-      'out_for_delivery': '#8b5cf6',
-      'delivered': '#059669',
-      'cancelled': '#ef4444'
-    };
+    // Email templates
+    generateOrderStatusEmail(data) {
+        const {
+            orderId,
+            trackingNumber,
+            status,
+            message,
+            customerName,
+            items,
+            totalAmount,
+        } = data;
 
-    const color = statusColors[status] || '#6b7280';
+        const statusColors = {
+            processing: '#3b82f6',
+            packaged: '#10b981',
+            ready_for_pickup: '#f59e0b',
+            out_for_delivery: '#8b5cf6',
+            delivered: '#059669',
+            cancelled: '#ef4444',
+        };
 
-    return `
+        const color = statusColors[status] || '#6b7280';
+
+        return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -135,14 +146,22 @@ class EmailService {
               <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
               <p><strong>Total Amount:</strong> ₦${totalAmount?.toLocaleString()}</p>
               
-              ${items ? `
+              ${
+                  items
+                      ? `
                 <h4>Items:</h4>
-                ${items.map(item => `
+                ${items
+                    .map(
+                        (item) => `
                   <div class="item">
                     <strong>${item.productName}</strong> - ₦${item.price?.toLocaleString()}
                   </div>
-                `).join('')}
-              ` : ''}
+                `
+                    )
+                    .join('')}
+              `
+                      : ''
+              }
             </div>
             
             <p><strong>Status Message:</strong> ${message}</p>
@@ -158,23 +177,34 @@ class EmailService {
       </body>
       </html>
     `;
-  }
+    }
 
-  generateGroupBuyStatusEmail(data) {
-    const { productName, groupBuyId, newStatus, oldStatus, customerName, progressPercentage, fulfillmentData } = data;
-    
-    const statusMessages = {
-      'secured': 'Your group buy has been secured and is ready for processing!',
-      'processing': 'Your order is now being processed!',
-      'packaging': 'Your order is being packaged for delivery!',
-      'ready_for_pickup': 'Your order is ready for pickup!',
-      'delivered': 'Your order has been delivered!',
-      'failed': 'Unfortunately, your group buy has failed. A refund will be processed to your wallet.'
-    };
+    generateGroupBuyStatusEmail(data) {
+        const {
+            productName,
+            groupBuyId,
+            newStatus,
+            oldStatus,
+            customerName,
+            progressPercentage,
+            fulfillmentData,
+        } = data;
 
-    const message = statusMessages[newStatus] || `Your group buy status has been updated to ${newStatus}`;
+        const statusMessages = {
+            secured:
+                'Your group buy has been secured and is ready for processing!',
+            processing: 'Your order is now being processed!',
+            packaging: 'Your order is being packaged for delivery!',
+            ready_for_pickup: 'Your order is ready for pickup!',
+            delivered: 'Your order has been delivered!',
+            failed: 'Unfortunately, your group buy has failed. A refund will be processed to your wallet.',
+        };
 
-    return `
+        const message =
+            statusMessages[newStatus] ||
+            `Your group buy status has been updated to ${newStatus}`;
+
+        return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -212,14 +242,18 @@ class EmailService {
             
             <p><strong>Status Message:</strong> ${message}</p>
             
-            ${fulfillmentData ? `
+            ${
+                fulfillmentData
+                    ? `
               <div class="product-details">
                 <h3>Fulfillment Details</h3>
                 ${fulfillmentData.deliveryMethod ? `<p><strong>Delivery Method:</strong> ${fulfillmentData.deliveryMethod}</p>` : ''}
                 ${fulfillmentData.pickupLocation ? `<p><strong>Pickup Location:</strong> ${fulfillmentData.pickupLocation}</p>` : ''}
                 ${fulfillmentData.trackingNumber ? `<p><strong>Tracking Number:</strong> ${fulfillmentData.trackingNumber}</p>` : ''}
               </div>
-            ` : ''}
+            `
+                    : ''
+            }
             
             <a href="${config.FRONTEND_URL}/account/orders" class="button">View Your Orders</a>
           </div>
@@ -232,12 +266,19 @@ class EmailService {
       </body>
       </html>
     `;
-  }
+    }
 
-  generatePaymentConfirmationEmail(data) {
-    const { orderId, trackingNumber, amount, paymentMethod, customerName, items } = data;
+    generatePaymentConfirmationEmail(data) {
+        const {
+            orderId,
+            trackingNumber,
+            amount,
+            paymentMethod,
+            customerName,
+            items,
+        } = data;
 
-    return `
+        return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -284,12 +325,12 @@ class EmailService {
       </body>
       </html>
     `;
-  }
+    }
 
-  generateRefundNotificationEmail(data) {
-    const { amount, reason, orderId, customerName } = data;
+    generateRefundNotificationEmail(data) {
+        const { amount, reason, orderId, customerName } = data;
 
-    return `
+        return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -335,23 +376,29 @@ class EmailService {
       </body>
       </html>
     `;
-  }
+    }
 
-  generateAdminActionNotificationEmail(data) {
-    const { actionType, actionDetails, customerName, adminName, timestamp } = data;
+    generateAdminActionNotificationEmail(data) {
+        const {
+            actionType,
+            actionDetails,
+            customerName,
+            adminName,
+            timestamp,
+        } = data;
 
-    const actionTitles = {
-      'order_status_update': 'Order Status Updated',
-      'group_buy_status_update': 'Group Buy Status Updated',
-      'order_cancelled': 'Order Cancelled',
-      'refund_processed': 'Refund Processed',
-      'delivery_scheduled': 'Delivery Scheduled',
-      'pickup_ready': 'Order Ready for Pickup'
-    };
+        const actionTitles = {
+            order_status_update: 'Order Status Updated',
+            group_buy_status_update: 'Group Buy Status Updated',
+            order_cancelled: 'Order Cancelled',
+            refund_processed: 'Refund Processed',
+            delivery_scheduled: 'Delivery Scheduled',
+            pickup_ready: 'Order Ready for Pickup',
+        };
 
-    const title = actionTitles[actionType] || 'Admin Action Notification';
+        const title = actionTitles[actionType] || 'Admin Action Notification';
 
-    return `
+        return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -402,7 +449,7 @@ class EmailService {
       </body>
       </html>
     `;
-  }
+    }
 }
 
 const emailService = new EmailService();

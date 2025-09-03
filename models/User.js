@@ -1,156 +1,159 @@
-import mongoose from "mongoose"
-import bcrypt from "bcryptjs"
-import { nanoid } from "nanoid"
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import { nanoid } from 'nanoid';
 
-const { Schema } = mongoose
+const { Schema } = mongoose;
 
 const userSchema = new Schema(
-  {
-    name: { type: String },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    phone: { 
-      type: String, 
-      unique: true, 
-      sparse: true, // Allow multiple null/undefined values for existing users
-      required: function() {
-        return this.isNew; // Only required for new documents
-      },
-      validate: {
-        validator: function(v) {
-          // If phone is provided, validate format
-          if (v) {
-            return /^\+234\d{10}$/.test(v);
-          }
-          return true; // Allow empty/null values for existing users
+    {
+        name: { type: String },
+        email: { type: String, required: true, unique: true },
+        password: { type: String, required: true },
+        phone: {
+            type: String,
+            unique: true,
+            sparse: true, // Allow multiple null/undefined values for existing users
+            required: function () {
+                return this.isNew; // Only required for new documents
+            },
+            validate: {
+                validator: function (v) {
+                    // If phone is provided, validate format
+                    if (v) {
+                        return /^\+234\d{10}$/.test(v);
+                    }
+                    return true; // Allow empty/null values for existing users
+                },
+                message:
+                    'Please enter a valid Nigerian phone number starting with +234 followed by 10 digits',
+            },
         },
-        message: 'Please enter a valid Nigerian phone number starting with +234 followed by 10 digits'
-      }
-    },
-    wallet: { type: Schema.Types.ObjectId, ref: "Wallet" },
-    referralCode: { type: String, unique: true },
-    referredBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-    referredUsers: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    
-    // Enhanced referral tracking
-    referralStats: {
-      totalReferrals: { type: Number, default: 0 },
-      totalBonusesEarned: { type: Number, default: 0 },
-      lastBonusAt: { type: Number, default: 0 }, // Last bonus given at X referrals
-      nextBonusAt: { type: Number, default: 3 }, // Next bonus at X referrals
-    },
+        wallet: { type: Schema.Types.ObjectId, ref: 'Wallet' },
+        referralCode: { type: String, unique: true },
+        referredBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+        referredUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 
-    // Secret recovery key for password reset
-    secretRecoveryKey: { 
-      type: String, 
-      required: true,
-      validate: {
-        validator: function(v) {
-          return v && v.length >= 8;
+        // Enhanced referral tracking
+        referralStats: {
+            totalReferrals: { type: Number, default: 0 },
+            totalBonusesEarned: { type: Number, default: 0 },
+            lastBonusAt: { type: Number, default: 0 }, // Last bonus given at X referrals
+            nextBonusAt: { type: Number, default: 3 }, // Next bonus at X referrals
         },
-        message: 'Secret recovery key must be at least 8 characters long'
-      }
-    },
 
-    // Recovery key reset request tracking
-    recoveryKeyResetRequest: {
-      requestedAt: { type: Date },
-      status: { 
-        type: String, 
-        enum: ['pending', 'approved', 'rejected', 'completed'],
-        default: null 
-      },
-      approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
-      approvedAt: { type: Date },
-      temporaryKey: { type: String }, // Temporary key set by admin
-      expiresAt: { type: Date } // Temporary key expiration
-    },
+        // Secret recovery key for password reset
+        secretRecoveryKey: {
+            type: String,
+            required: true,
+            validate: {
+                validator: function (v) {
+                    return v && v.length >= 8;
+                },
+                message:
+                    'Secret recovery key must be at least 8 characters long',
+            },
+        },
 
-    // Location and delivery info
-    defaultAddress: {
-      street: String,
-      city: String,
-      state: String,
-      coordinates: {
-        lat: Number,
-        lng: Number,
-      },
-    },
+        // Recovery key reset request tracking
+        recoveryKeyResetRequest: {
+            requestedAt: { type: Date },
+            status: {
+                type: String,
+                enum: ['pending', 'approved', 'rejected', 'completed'],
+                default: null,
+            },
+            approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            approvedAt: { type: Date },
+            temporaryKey: { type: String }, // Temporary key set by admin
+            expiresAt: { type: Date }, // Temporary key expiration
+        },
 
-    // Live user tracking
-    isOnline: { type: Boolean, default: false },
-    lastSeen: { type: Date, default: Date.now },
-    socketId: String,
-  },
-  {
-    timestamps: true,
-  },
-)
+        // Location and delivery info
+        defaultAddress: {
+            street: String,
+            city: String,
+            state: String,
+            coordinates: {
+                lat: Number,
+                lng: Number,
+            },
+        },
+
+        // Live user tracking
+        isOnline: { type: Boolean, default: false },
+        lastSeen: { type: Date, default: Date.now },
+        socketId: String,
+    },
+    {
+        timestamps: true,
+    }
+);
 
 // Combined pre-save hook
-userSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    this.password = await bcrypt.hash(this.password, 10)
-  }
+userSchema.pre('save', async function (next) {
+    if (this.isModified('password')) {
+        this.password = await bcrypt.hash(this.password, 10);
+    }
 
-  // Hash secret recovery key if modified
-  if (this.isModified("secretRecoveryKey")) {
-    this.secretRecoveryKey = await bcrypt.hash(this.secretRecoveryKey, 10)
-  }
+    // Hash secret recovery key if modified
+    if (this.isModified('secretRecoveryKey')) {
+        this.secretRecoveryKey = await bcrypt.hash(this.secretRecoveryKey, 10);
+    }
 
-  // Generate referral code if not set
-  if (!this.referralCode) {
-    this.referralCode = nanoid(8)
-  }
+    // Generate referral code if not set
+    if (!this.referralCode) {
+        this.referralCode = nanoid(8);
+    }
 
-  // Update referral stats
-  if (this.referredUsers) {
-    this.referralStats.totalReferrals = this.referredUsers.length
-    // Fix: nextBonusAt should be the next multiple of 3 after current total
-    // 0 referrals -> next bonus at 3
-    // 1-2 referrals -> next bonus at 3
-    // 3 referrals -> next bonus at 6
-    // 4-5 referrals -> next bonus at 6
-    // 6 referrals -> next bonus at 9
-    this.referralStats.nextBonusAt = Math.ceil((this.referralStats.totalReferrals + 1) / 3) * 3
-  }
+    // Update referral stats
+    if (this.referredUsers) {
+        this.referralStats.totalReferrals = this.referredUsers.length;
+        // Fix: nextBonusAt should be the next multiple of 3 after current total
+        // 0 referrals -> next bonus at 3
+        // 1-2 referrals -> next bonus at 3
+        // 3 referrals -> next bonus at 6
+        // 4-5 referrals -> next bonus at 6
+        // 6 referrals -> next bonus at 9
+        this.referralStats.nextBonusAt =
+            Math.ceil((this.referralStats.totalReferrals + 1) / 3) * 3;
+    }
 
-  next()
-})
+    next();
+});
 
 // Password comparison method
 userSchema.methods.comparePassword = function (plainPassword) {
-  return bcrypt.compare(plainPassword, this.password)
-}
+    return bcrypt.compare(plainPassword, this.password);
+};
 
 // Secret recovery key comparison method
 userSchema.methods.compareSecretRecoveryKey = function (plainRecoveryKey) {
-  return bcrypt.compare(plainRecoveryKey, this.secretRecoveryKey)
-}
+    return bcrypt.compare(plainRecoveryKey, this.secretRecoveryKey);
+};
 
 // Method to check if user should receive referral bonus
-userSchema.methods.shouldReceiveReferralBonus = function() {
-  const totalReferrals = this.referredUsers?.length || 0
-  const lastBonusAt = this.referralStats?.lastBonusAt || 0
-  
-  // Fix: Check if we have enough new referrals since last bonus
-  const newReferrals = totalReferrals - lastBonusAt
-  return newReferrals >= 3
-}
+userSchema.methods.shouldReceiveReferralBonus = function () {
+    const totalReferrals = this.referredUsers?.length || 0;
+    const lastBonusAt = this.referralStats?.lastBonusAt || 0;
+
+    // Fix: Check if we have enough new referrals since last bonus
+    const newReferrals = totalReferrals - lastBonusAt;
+    return newReferrals >= 3;
+};
 
 // Method to calculate referral bonus amount
-userSchema.methods.calculateReferralBonus = function() {
-  const totalReferrals = this.referredUsers?.length || 0
-  const lastBonusAt = this.referralStats?.lastBonusAt || 0
-  
-  if (totalReferrals <= lastBonusAt) return 0
-  
-  // Calculate how many complete sets of 3 referrals since last bonus
-  const newReferrals = totalReferrals - lastBonusAt
-  const completeSets = Math.floor(newReferrals / 3)
-  
-  return completeSets * 500 // ₦500 per 3 referrals
-}
+userSchema.methods.calculateReferralBonus = function () {
+    const totalReferrals = this.referredUsers?.length || 0;
+    const lastBonusAt = this.referralStats?.lastBonusAt || 0;
 
-const User = mongoose.model("User", userSchema)
-export default User
+    if (totalReferrals <= lastBonusAt) return 0;
+
+    // Calculate how many complete sets of 3 referrals since last bonus
+    const newReferrals = totalReferrals - lastBonusAt;
+    const completeSets = Math.floor(newReferrals / 3);
+
+    return completeSets * 500; // ₦500 per 3 referrals
+};
+
+const User = mongoose.model('User', userSchema);
+export default User;

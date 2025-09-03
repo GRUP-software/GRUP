@@ -15,9 +15,17 @@ import MongoStore from 'connect-mongo';
 dotenv.config();
 
 // Import configurations and middleware
-import { connectDatabase, checkDatabaseHealth, createIndexes } from './config/database.js';
+import {
+    connectDatabase,
+    checkDatabaseHealth,
+    createIndexes,
+} from './config/database.js';
 import { securityMiddleware, corsOptions } from './middleware/security.js';
-import { globalErrorHandler, handleUnhandledRejection, handleUncaughtException } from './utils/errorHandler.js';
+import {
+    globalErrorHandler,
+    handleUnhandledRejection,
+    handleUncaughtException,
+} from './utils/errorHandler.js';
 import logger from './utils/logger.js';
 
 // Import admin panel EARLY (before other routes)
@@ -43,7 +51,10 @@ import webhookRoutes from './routes/webhookRoutes.js';
 // REMOVED DUPLICATE: import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
 // Import controllers
-import { userDisconnected, getLiveUserCountUtil } from './controllers/liveUserController.js';
+import {
+    userDisconnected,
+    getLiveUserCountUtil,
+} from './controllers/liveUserController.js';
 
 // Import jobs
 import { startGroupBuyExpiryJob } from './jobs/groupBuyExpiry.js';
@@ -57,7 +68,7 @@ handleUnhandledRejection();
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-  cors: corsOptions
+    cors: corsOptions,
 });
 
 // Make io globally available for WebSocket events
@@ -78,24 +89,30 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // Session configuration with MongoDB store
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-session-secret-key-change-this',
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/GRUP',
-    collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60, // 14 days
-    autoRemove: 'native', // Use MongoDB's TTL index
-    touchAfter: 24 * 3600, // Only update session once per day
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
-  }
-}));
+app.use(
+    session({
+        secret:
+            process.env.SESSION_SECRET || 'your-session-secret-key-change-this',
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({
+            mongoUrl:
+                process.env.MONGODB_URI ||
+                process.env.MONGO_URI ||
+                'mongodb://localhost:27017/GRUP',
+            collectionName: 'sessions',
+            ttl: 14 * 24 * 60 * 60, // 14 days
+            autoRemove: 'native', // Use MongoDB's TTL index
+            touchAfter: 24 * 3600, // Only update session once per day
+        }),
+        cookie: {
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+            maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        },
+    })
+);
 
 // Security middleware - apply after CORS and sessions
 app.use(securityMiddleware);
@@ -105,48 +122,59 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // CRITICAL FIX: Serve uploaded images with proper CORS headers
-app.use('/uploads', (req, res, next) => {
-  // Set CORS headers for all image requests
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
-  res.header('Access-Control-Max-Age', '3600');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-}, express.static(path.join(__dirname, 'uploads'), {
-  // Additional static file options
-  maxAge: '1d', // Cache for 1 day
-  etag: true,
-  lastModified: true,
-  setHeaders: (res, path, stat) => {
-    // Ensure CORS headers are set on the response
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-  }
-}));
+app.use(
+    '/uploads',
+    (req, res, next) => {
+        // Set CORS headers for all image requests
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.header(
+            'Access-Control-Allow-Headers',
+            'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control'
+        );
+        res.header('Access-Control-Max-Age', '3600');
+
+        // Handle preflight requests
+        if (req.method === 'OPTIONS') {
+            return res.status(200).end();
+        }
+
+        next();
+    },
+    express.static(path.join(__dirname, 'uploads'), {
+        // Additional static file options
+        maxAge: '1d', // Cache for 1 day
+        etag: true,
+        lastModified: true,
+        setHeaders: (res, path, stat) => {
+            // Ensure CORS headers are set on the response
+            res.set('Access-Control-Allow-Origin', '*');
+            res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+            res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+        },
+    })
+);
 
 // Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, path) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  }
-}));
+app.use(
+    express.static(path.join(__dirname, 'public'), {
+        setHeaders: (res, path) => {
+            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        },
+    })
+);
 
 // Serve React frontend build files (production)
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'zahara-frontend-main', 'dist')));
+    app.use(
+        express.static(path.join(__dirname, 'zahara-frontend-main', 'dist'))
+    );
 }
 
 // Explicit route for admin upload tool
 app.get('/admin-upload.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin-upload.html'));
+    res.sendFile(path.join(__dirname, 'public', 'admin-upload.html'));
 });
 
 // AdminJS setup MUST come BEFORE body parser
@@ -158,8 +186,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // HTTP request logging
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.url} - ${req.ip}`);
-  next();
+    logger.info(`${req.method} ${req.url} - ${req.ip}`);
+    next();
 });
 
 // API routes - NO RATE LIMITING
@@ -183,36 +211,36 @@ app.use('/api/webhook', webhookRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  logger.info(`User connected: ${socket.id}`);
+    logger.info(`User connected: ${socket.id}`);
 
-  socket.on('user_online', (userId) => {
-    socket.userId = userId;
-    socket.join(`user_${userId}`);
-    logger.info(`User ${userId} joined room`);
-  });
+    socket.on('user_online', (userId) => {
+        socket.userId = userId;
+        socket.join(`user_${userId}`);
+        logger.info(`User ${userId} joined room`);
+    });
 
-  socket.on('join_product_room', (productId) => {
-    socket.join(`product_${productId}`);
-    logger.info(`Socket ${socket.id} joined product room: ${productId}`);
-  });
+    socket.on('join_product_room', (productId) => {
+        socket.join(`product_${productId}`);
+        logger.info(`Socket ${socket.id} joined product room: ${productId}`);
+    });
 
-  socket.on('join_groupbuy_room', (groupBuyId) => {
-    socket.join(`groupbuy_${groupBuyId}`);
-    logger.info(`Socket ${socket.id} joined group buy room: ${groupBuyId}`);
-  });
+    socket.on('join_groupbuy_room', (groupBuyId) => {
+        socket.join(`groupbuy_${groupBuyId}`);
+        logger.info(`Socket ${socket.id} joined group buy room: ${groupBuyId}`);
+    });
 
-  socket.on('disconnect', async () => {
-    logger.info(`User disconnected: ${socket.id}`);
-    await userDisconnected(socket.id);
-    
-    // Broadcast updated live user count
-    try {
-      const count = await getLiveUserCountUtil();
-      io.emit('live_user_count', { liveUsers: count });
-    } catch (error) {
-      logger.error('Error broadcasting live user count:', error);
-    }
-  });
+    socket.on('disconnect', async () => {
+        logger.info(`User disconnected: ${socket.id}`);
+        await userDisconnected(socket.id);
+
+        // Broadcast updated live user count
+        try {
+            const count = await getLiveUserCountUtil();
+            io.emit('live_user_count', { liveUsers: count });
+        } catch (error) {
+            logger.error('Error broadcasting live user count:', error);
+        }
+    });
 });
 
 // Make io available to routes
@@ -220,78 +248,84 @@ app.set('io', io);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
-  const dbHealth = await checkDatabaseHealth();
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: dbHealth,
-    memory: process.memoryUsage(),
-    version: process.env.npm_package_version || '1.0.0'
-  });
+    const dbHealth = await checkDatabaseHealth();
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        database: dbHealth,
+        memory: process.memoryUsage(),
+        version: process.env.npm_package_version || '1.0.0',
+    });
 });
 
 // Basic API status endpoint
 app.get('/api/status', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Grup Backend API is running',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    endpoints: {
-      admin: '/admin',
-      uploadTool: '/admin-upload.html',
-      api: '/api/*',
-      health: '/health',
-      newEndpoints: {
-        webhook: '/api/webhook',
-        groupBuy: '/api/groupbuy'
-      }
-    }
-  });
+    res.json({
+        status: 'OK',
+        message: 'Grup Backend API is running',
+        timestamp: new Date().toISOString(),
+        version: process.env.npm_package_version || '1.0.0',
+        endpoints: {
+            admin: '/admin',
+            uploadTool: '/admin-upload.html',
+            api: '/api/*',
+            health: '/health',
+            newEndpoints: {
+                webhook: '/api/webhook',
+                groupBuy: '/api/groupbuy',
+            },
+        },
+    });
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({
-    message: 'Grup',
-    // version: process.env.npm_package_version || '1.0.0',
-    // status: 'Running',
-    // environment: process.env.NODE_ENV || 'development',
-    // links: {
-    //   admin: '/admin',
-    //   uploadTool: '/admin-upload.html',
-    //   apiStatus: '/api/status',
-    //   health: '/health'
-    // }
-  });
+    res.json({
+        message: 'Grup',
+        // version: process.env.npm_package_version || '1.0.0',
+        // status: 'Running',
+        // environment: process.env.NODE_ENV || 'development',
+        // links: {
+        //   admin: '/admin',
+        //   uploadTool: '/admin-upload.html',
+        //   apiStatus: '/api/status',
+        //   health: '/health'
+        // }
+    });
 });
 
 // 404 handler for undefined API routes
 app.get('/api/*', (req, res) => {
-  res.status(404).json({
-    error: 'API route not found',
-    message: 'This API endpoint does not exist',
-    availableRoutes: {
-      admin: '/admin',
-      uploadTool: '/admin-upload.html',
-      api: '/api/status',
-      health: '/health',
-      webhook: '/api/webhook',
-      groupBuy: '/api/groupbuy'
-    }
-  });
+    res.status(404).json({
+        error: 'API route not found',
+        message: 'This API endpoint does not exist',
+        availableRoutes: {
+            admin: '/admin',
+            uploadTool: '/admin-upload.html',
+            api: '/api/status',
+            health: '/health',
+            webhook: '/api/webhook',
+            groupBuy: '/api/groupbuy',
+        },
+    });
 });
 
 // Catch-all handler for React Router (must be after API routes)
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    // Don't serve React app for API routes or admin routes
-    if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/uploads')) {
-      return res.status(404).json({ error: 'Route not found' });
-    }
-    res.sendFile(path.join(__dirname, 'zahara-frontend-main', 'dist', 'index.html'));
-  });
+    app.get('*', (req, res) => {
+        // Don't serve React app for API routes or admin routes
+        if (
+            req.path.startsWith('/api') ||
+            req.path.startsWith('/admin') ||
+            req.path.startsWith('/uploads')
+        ) {
+            return res.status(404).json({ error: 'Route not found' });
+        }
+        res.sendFile(
+            path.join(__dirname, 'zahara-frontend-main', 'dist', 'index.html')
+        );
+    });
 }
 
 // Global error handling middleware (must be last)
@@ -299,99 +333,135 @@ app.use(globalErrorHandler);
 
 // Database connection and server startup
 const startServer = async () => {
-  try {
-    // Connect to database
-    await connectDatabase();
-    
-    // Create database indexes
-    await createIndexes();
-    
-    // Start group buy expiry job
-    startGroupBuyExpiryJob();
-    
-    // Scheduled jobs
-    cron.schedule('0 * * * *', async () => {
-      try {
-        const groupBuyExpiry = (await import('./jobs/groupBuyExpiry.js')).default;
-        await groupBuyExpiry();
-        logger.info('Group expiry job completed');
-      } catch (error) {
-        logger.error('Group expiry job failed:', error);
-      }
-    });
+    try {
+        // Connect to database
+        await connectDatabase();
 
-    // Broadcast live user count every 30 seconds
-    cron.schedule('*/30 * * * * *', async () => {
-      try {
-        const count = await getLiveUserCountUtil();
-        io.emit('live_user_count', { liveUsers: count });
-      } catch (error) {
-        logger.error('Live user count broadcast failed:', error);
-      }
-    });
+        // Create database indexes
+        await createIndexes();
 
-    // Update group progress every minute
-    cron.schedule('* * * * *', async () => {
-      try {
-        const GroupBuy = (await import('./models/GroupBuy.js')).default;
-        const activeGroups = await GroupBuy.find({ status: 'active' });
-        
-        for (const group of activeGroups) {
-          // Check if group reached MVU and should be marked successful
-          if (group.unitsSold >= group.minimumViableUnits && group.status === 'active') {
-            group.status = 'successful';
-            await group.save();
-            
-            // Notify participants via WebSocket
-            io.to(`groupbuy_${group._id}`).emit('group_successful', {
-              groupBuyId: group._id,
-              productId: group.productId,
-              message: 'Group buy reached minimum viable units and is now successful!'
-            });
-            
-            logger.info(`Group buy ${group._id} marked as successful for product ${group.productId}`);
-          }
-        }
-      } catch (error) {
-        logger.error('Group progress update job failed:', error);
-      }
-    });
+        // Start group buy expiry job
+        startGroupBuyExpiryJob();
 
-    // Start server with dynamic port selection
-    const PORT = process.env.PORT || 3000;
-    const HOST = "0.0.0.0";
-    
-    server.listen(PORT, HOST, () => {
-      logger.info(`🚀 Grup Backend Server running at http://${HOST}:${PORT}`);
-      logger.info(`📊 Admin Panel: http://${HOST}:${PORT}/admin`);
-      logger.info(`🖼️  Upload Tool: http://${HOST}:${PORT}/admin-upload.html`);
-      logger.info(`📡 API Status: http://${HOST}:${PORT}/api/status`);
-      logger.info(`🏥 Health Check: http://${HOST}:${PORT}/health`);
-      logger.info(`🔗 Webhook: http://${HOST}:${PORT}/api/webhook/flutterwave`);
-      logger.info(`👥 Group Buy: http://${HOST}:${PORT}/api/groupbuy`);
-      logger.info(`🔍 Manual Review: http://${HOST}:${PORT}/api/groupbuy/manual-review`);
-      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    }).on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        const nextPort = parseInt(PORT) + 1;
-        logger.error(`Port ${PORT} is already in use. Trying port ${nextPort}...`);
-        server.listen(nextPort, HOST, () => {
-          logger.info(`🚀 Grup Backend Server running at http://${HOST}:${nextPort}`);
-          logger.info(`📊 Admin Panel: http://${HOST}:${nextPort}/admin`);
-          logger.info(`🖼️  Upload Tool: http://${HOST}:${nextPort}/admin-upload.html`);
-          logger.info(`📡 API Status: http://${HOST}:${nextPort}/api/status`);
-          logger.info(`🏥 Health Check: http://${HOST}:${nextPort}/health`);
+        // Scheduled jobs
+        cron.schedule('0 * * * *', async () => {
+            try {
+                const groupBuyExpiry = (
+                    await import('./jobs/groupBuyExpiry.js')
+                ).default;
+                await groupBuyExpiry();
+                logger.info('Group expiry job completed');
+            } catch (error) {
+                logger.error('Group expiry job failed:', error);
+            }
         });
-      } else {
-        logger.error('Failed to start server:', err);
-        process.exit(1);
-      }
-    });
 
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
+        // Broadcast live user count every 30 seconds
+        cron.schedule('*/30 * * * * *', async () => {
+            try {
+                const count = await getLiveUserCountUtil();
+                io.emit('live_user_count', { liveUsers: count });
+            } catch (error) {
+                logger.error('Live user count broadcast failed:', error);
+            }
+        });
+
+        // Update group progress every minute
+        cron.schedule('* * * * *', async () => {
+            try {
+                const GroupBuy = (await import('./models/GroupBuy.js')).default;
+                const activeGroups = await GroupBuy.find({ status: 'active' });
+
+                for (const group of activeGroups) {
+                    // Check if group reached MVU and should be marked successful
+                    if (
+                        group.unitsSold >= group.minimumViableUnits &&
+                        group.status === 'active'
+                    ) {
+                        group.status = 'successful';
+                        await group.save();
+
+                        // Notify participants via WebSocket
+                        io.to(`groupbuy_${group._id}`).emit(
+                            'group_successful',
+                            {
+                                groupBuyId: group._id,
+                                productId: group.productId,
+                                message:
+                                    'Group buy reached minimum viable units and is now successful!',
+                            }
+                        );
+
+                        logger.info(
+                            `Group buy ${group._id} marked as successful for product ${group.productId}`
+                        );
+                    }
+                }
+            } catch (error) {
+                logger.error('Group progress update job failed:', error);
+            }
+        });
+
+        // Start server with dynamic port selection
+        const PORT = process.env.PORT || 3000;
+        const HOST = '0.0.0.0';
+
+        server
+            .listen(PORT, HOST, () => {
+                logger.info(
+                    `🚀 Grup Backend Server running at http://${HOST}:${PORT}`
+                );
+                logger.info(`📊 Admin Panel: http://${HOST}:${PORT}/admin`);
+                logger.info(
+                    `🖼️  Upload Tool: http://${HOST}:${PORT}/admin-upload.html`
+                );
+                logger.info(`📡 API Status: http://${HOST}:${PORT}/api/status`);
+                logger.info(`🏥 Health Check: http://${HOST}:${PORT}/health`);
+                logger.info(
+                    `🔗 Webhook: http://${HOST}:${PORT}/api/webhook/flutterwave`
+                );
+                logger.info(
+                    `👥 Group Buy: http://${HOST}:${PORT}/api/groupbuy`
+                );
+                logger.info(
+                    `🔍 Manual Review: http://${HOST}:${PORT}/api/groupbuy/manual-review`
+                );
+                logger.info(
+                    `Environment: ${process.env.NODE_ENV || 'development'}`
+                );
+            })
+            .on('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    const nextPort = parseInt(PORT) + 1;
+                    logger.error(
+                        `Port ${PORT} is already in use. Trying port ${nextPort}...`
+                    );
+                    server.listen(nextPort, HOST, () => {
+                        logger.info(
+                            `🚀 Grup Backend Server running at http://${HOST}:${nextPort}`
+                        );
+                        logger.info(
+                            `📊 Admin Panel: http://${HOST}:${nextPort}/admin`
+                        );
+                        logger.info(
+                            `🖼️  Upload Tool: http://${HOST}:${nextPort}/admin-upload.html`
+                        );
+                        logger.info(
+                            `📡 API Status: http://${HOST}:${nextPort}/api/status`
+                        );
+                        logger.info(
+                            `🏥 Health Check: http://${HOST}:${nextPort}/health`
+                        );
+                    });
+                } else {
+                    logger.error('Failed to start server:', err);
+                    process.exit(1);
+                }
+            });
+    } catch (error) {
+        logger.error('Failed to start server:', error);
+        process.exit(1);
+    }
 };
 
 // Start the server

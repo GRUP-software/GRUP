@@ -1,35 +1,35 @@
-import express from "express"
-import upload from "../middleware/upload.js" // for image uploads
-import { verifyToken } from "../middleware/authMiddleware.js"
+import express from 'express';
+import upload from '../middleware/upload.js'; // for image uploads
+import { verifyToken } from '../middleware/authMiddleware.js';
 import {
-  getAllProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  getProductBySlug,
-  getProductById,
-  updateSellingUnits,
-  getSellingUnitPrice,
-} from "../controllers/productController.js"
+    getAllProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    getProductBySlug,
+    getProductById,
+    updateSellingUnits,
+    getSellingUnitPrice,
+} from '../controllers/productController.js';
 
-const router = express.Router()
+const router = express.Router();
 
 // Public routes to get products with descriptions
-router.get("/", getAllProducts)
-router.get("/slug/:slug", getProductBySlug)
-router.get("/id/:id", getProductById)
+router.get('/', getAllProducts);
+router.get('/slug/:slug', getProductBySlug);
+router.get('/id/:id', getProductById);
 
-router.get("/:productId/selling-unit/:optionName/price", getSellingUnitPrice)
+router.get('/:productId/selling-unit/:optionName/price', getSellingUnitPrice);
 
 // Protected: Admin creates product with image upload
-router.post("/", verifyToken, upload.array("images", 5), createProduct)
+router.post('/', verifyToken, upload.array('images', 5), createProduct);
 
 // Protected: Admin updates product
-router.put("/:id", verifyToken, upload.array("images", 5), updateProduct)
+router.put('/:id', verifyToken, upload.array('images', 5), updateProduct);
 
-router.put("/:id/selling-units", verifyToken, updateSellingUnits)
+router.put('/:id/selling-units', verifyToken, updateSellingUnits);
 
 // Protected: Admin deletes product
-router.delete("/:id", verifyToken, deleteProduct)
+router.delete('/:id', verifyToken, deleteProduct);
 
-export default router
+export default router;

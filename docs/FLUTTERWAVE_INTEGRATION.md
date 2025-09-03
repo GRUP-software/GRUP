@@ -27,15 +27,18 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ## API Endpoints
 
 ### Payment Initialization
+
 - **POST** `/api/payment/initialize`
 - **POST** `/api/checkout`
 
 ### Webhook
+
 - **POST** `/api/webhook/flutterwave`
 
 ## Payment Flow
 
 ### 1. Wallet + Flutterwave Payment
+
 ```javascript
 {
   "paymentMethod": "wallet_and_flutterwave",
@@ -47,6 +50,7 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ```
 
 **Response:**
+
 ```javascript
 {
   "success": true,
@@ -63,6 +67,7 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ```
 
 ### 2. Flutterwave-Only Payment
+
 ```javascript
 {
   "paymentMethod": "flutterwave_only",
@@ -73,6 +78,7 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 ```
 
 **Response:**
+
 ```javascript
 {
   "success": true,
@@ -94,8 +100,8 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TESTyour_encryption_key
 2. Navigate to **Settings > Webhooks**
 3. Add webhook URL: `https://yourdomain.com/api/webhook/flutterwave`
 4. Set webhook events:
-   - `charge.completed` - Successful payments
-   - `charge.failed` - Failed payments
+    - `charge.completed` - Successful payments
+    - `charge.failed` - Failed payments
 
 ### Webhook Signature Verification
 
@@ -103,9 +109,9 @@ The webhook verifies signatures using HMAC SHA512:
 
 ```javascript
 const hash = crypto
-  .createHmac("sha512", process.env.FLUTTERWAVE_SECRET_KEY)
-  .update(JSON.stringify(req.body))
-  .digest("hex")
+    .createHmac('sha512', process.env.FLUTTERWAVE_SECRET_KEY)
+    .update(JSON.stringify(req.body))
+    .digest('hex');
 ```
 
 **Header**: `x-flutterwave-signature`
@@ -138,9 +144,9 @@ node scripts/migrate-to-flutterwave.js
 
 ```javascript
 const paymentMethods = [
-  { value: 'wallet_only', label: 'Wallet Only' },
-  { value: 'wallet_and_flutterwave', label: 'Wallet + Flutterwave' },
-  { value: 'flutterwave_only', label: 'Flutterwave Only' }
+    { value: 'wallet_only', label: 'Wallet Only' },
+    { value: 'wallet_and_flutterwave', label: 'Wallet + Flutterwave' },
+    { value: 'flutterwave_only', label: 'Flutterwave Only' },
 ];
 ```
 
@@ -148,20 +154,20 @@ const paymentMethods = [
 
 ```javascript
 const response = await fetch('/api/payment/initialize', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    paymentMethod: 'wallet_and_flutterwave',
-    walletUse: 1000,
-    cartId: cartId,
-    deliveryAddress: address,
-    phone: phone
-  })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        paymentMethod: 'wallet_and_flutterwave',
+        walletUse: 1000,
+        cartId: cartId,
+        deliveryAddress: address,
+        phone: phone,
+    }),
 });
 
 if (response.success) {
-  // Redirect to Flutterwave
-  window.location.href = response.authorization_url;
+    // Redirect to Flutterwave
+    window.location.href = response.authorization_url;
 }
 ```
 
@@ -232,19 +238,19 @@ Use Flutterwave test cards for development:
 ### Common Issues
 
 1. **Webhook Not Received**
-   - Check webhook URL configuration
-   - Verify server accessibility
-   - Check webhook event settings
+    - Check webhook URL configuration
+    - Verify server accessibility
+    - Check webhook event settings
 
 2. **Payment Initialization Fails**
-   - Verify API keys
-   - Check request payload
-   - Validate amount format
+    - Verify API keys
+    - Check request payload
+    - Validate amount format
 
 3. **Signature Verification Fails**
-   - Ensure correct secret key
-   - Check webhook header name
-   - Verify request body format
+    - Ensure correct secret key
+    - Check webhook header name
+    - Verify request body format
 
 ### Debug Mode
 
@@ -253,10 +259,12 @@ Enable debug logging by setting `LOG_LEVEL=debug` in environment variables.
 ## Support
 
 For Flutterwave-specific issues:
+
 - [Flutterwave Documentation](https://developer.flutterwave.com/)
 - [Flutterwave Support](https://support.flutterwave.com/)
 
 For application-specific issues:
+
 - Check application logs
 - Review webhook responses
 - Verify database records

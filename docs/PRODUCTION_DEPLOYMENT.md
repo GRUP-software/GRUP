@@ -54,14 +54,14 @@ LOG_LEVEL=error
 
 1. **Upload your code** to your production server
 2. **Install dependencies:**
-   ```bash
-   npm install --production
-   ```
+    ```bash
+    npm install --production
+    ```
 3. **Set environment variables** (use your hosting platform's method)
 4. **Start the application:**
-   ```bash
-   npm start
-   ```
+    ```bash
+    npm start
+    ```
 
 ### Step 3: Update Frontend URLs
 
@@ -115,14 +115,15 @@ You can also upload directly to Cloudinary using their dashboard:
 Visit: `https://your-domain.com/api/upload/info`
 
 Expected response:
+
 ```json
 {
-  "success": true,
-  "data": {
-    "cloud_name": "dafkhnw7p",
-    "folder": "grup/production",
-    "environment": "production"
-  }
+    "success": true,
+    "data": {
+        "cloud_name": "dafkhnw7p",
+        "folder": "grup/production",
+        "environment": "production"
+    }
 }
 ```
 
@@ -150,10 +151,12 @@ Add these headers to your production server:
 ```javascript
 // Security headers
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
-}));
+app.use(
+    cors({
+        origin: process.env.FRONTEND_URL,
+        credentials: true,
+    })
+);
 ```
 
 ## 📊 Monitoring and Maintenance
@@ -186,35 +189,49 @@ grep "cloudinary" /var/log/your-app.log
 If you need to move images from development to production:
 
 1. **Export from Cloudinary:**
-   ```bash
-   # Use Cloudinary CLI or API to download images
-   cloudinary download grup/development/ --folder grup/production/
-   ```
+
+    ```bash
+    # Use Cloudinary CLI or API to download images
+    cloudinary download grup/development/ --folder grup/production/
+    ```
 
 2. **Update Database Records:**
-   ```javascript
-   // Update UploadedImage records with new URLs
-   db.uploadedimages.updateMany(
-     { url: /development/ },
-     { $set: { url: { $replaceAll: { input: "$url", find: "development", replacement: "production" } } } }
-   );
-   ```
+    ```javascript
+    // Update UploadedImage records with new URLs
+    db.uploadedimages.updateMany(
+        { url: /development/ },
+        {
+            $set: {
+                url: {
+                    $replaceAll: {
+                        input: '$url',
+                        find: 'development',
+                        replacement: 'production',
+                    },
+                },
+            },
+        }
+    );
+    ```
 
 ## 🆘 Troubleshooting
 
 ### Common Production Issues
 
 **Issue:** Images not uploading
+
 - **Check:** Cloudinary credentials in environment variables
 - **Check:** Network connectivity to Cloudinary
 - **Check:** File size limits (10MB max)
 
 **Issue:** 401 Unauthorized errors
+
 - **Check:** JWT token validity
 - **Check:** Admin authentication
 - **Check:** CORS configuration
 
 **Issue:** Images not appearing in admin panel
+
 - **Check:** Database connection
 - **Check:** UploadedImage model creation
 - **Check:** Admin panel permissions
@@ -242,7 +259,3 @@ Before going live:
 ---
 
 **🎯 Your production setup is now ready! Images will automatically be stored in the `grup/production/` folder and will be completely separate from your development images.**
-
-
-
-

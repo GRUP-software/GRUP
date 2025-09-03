@@ -21,9 +21,9 @@ This will install `nodemailer` and other required dependencies.
 
 1. **Enable 2-Factor Authentication** on your Gmail account
 2. **Generate App Password**:
-   - Go to [Google Account Settings](https://myaccount.google.com/)
-   - Security → 2-Step Verification → App passwords
-   - Select "Mail" and generate password
+    - Go to [Google Account Settings](https://myaccount.google.com/)
+    - Security → 2-Step Verification → App passwords
+    - Select "Mail" and generate password
 3. **Add to .env file**:
 
 ```env
@@ -66,6 +66,7 @@ npm run test:notifications
 ```
 
 This will:
+
 - Test email service configuration
 - Create test notifications
 - Test admin action notifications
@@ -77,6 +78,7 @@ This will:
 The following admin endpoints now send notifications:
 
 ### Order Management
+
 - `PUT /api/orders/admin/:trackingNumber/status` - Update order status
 - `POST /api/admin/orders/:trackingNumber/cancel` - Cancel order
 - `POST /api/admin/orders/:trackingNumber/refund` - Process refund
@@ -84,6 +86,7 @@ The following admin endpoints now send notifications:
 - `POST /api/admin/orders/:trackingNumber/ready-pickup` - Mark ready for pickup
 
 ### Group Buy Management
+
 - `PUT /api/groupbuy/admin/:id/status` - Update group buy status
 
 ## Step 5: Test Admin Actions
@@ -133,16 +136,18 @@ curl -X GET http://localhost:5000/api/notifications/unread-count \
 ### Email Not Sending
 
 1. **Check environment variables**:
-   ```bash
-   echo $EMAIL_HOST
-   echo $EMAIL_USER
-   echo $EMAIL_PASS
-   ```
+
+    ```bash
+    echo $EMAIL_HOST
+    echo $EMAIL_USER
+    echo $EMAIL_PASS
+    ```
 
 2. **Test SMTP connection**:
-   ```bash
-   npm run test:notifications
-   ```
+
+    ```bash
+    npm run test:notifications
+    ```
 
 3. **Check logs** for email service errors
 
@@ -156,15 +161,18 @@ curl -X GET http://localhost:5000/api/notifications/unread-count \
 ### Common Issues
 
 #### Gmail "Less secure app access"
+
 - Use App Passwords instead of regular password
 - Enable 2-Factor Authentication first
 
 #### SMTP Connection Timeout
+
 - Check firewall settings
 - Verify port 587 is open
 - Try port 465 with SSL
 
 #### Authentication Failed
+
 - Double-check email and password
 - For Gmail, ensure App Password is used
 - Check if account has security restrictions
@@ -187,6 +195,7 @@ EMAIL_FROM_NAME=Grup Team
 ### Email Service Recommendations
 
 For production, consider:
+
 - **SendGrid**: Reliable email delivery service
 - **Mailgun**: Good for transactional emails
 - **AWS SES**: Cost-effective for high volume
@@ -195,6 +204,7 @@ For production, consider:
 ### Monitoring
 
 Monitor these metrics:
+
 - Email delivery success rate
 - Notification creation rate
 - WebSocket connection stability
@@ -218,6 +228,3 @@ After setup, you can:
 3. **Create admin dashboard** for notification management
 4. **Implement notification preferences** for users
 5. **Add SMS notifications** for critical updates
-
-
-

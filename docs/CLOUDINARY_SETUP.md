@@ -1,11 +1,13 @@
 # 🌤️ Cloudinary Integration Setup Guide
 
 ## Overview
+
 This guide explains how to set up Cloudinary for image uploads in the Grup backend with environment-specific folders.
 
 ## 🚀 Quick Setup
 
 ### 1. Environment Variables
+
 Create a `.env` file in the backend directory with the following variables:
 
 ```env
@@ -25,6 +27,7 @@ PORT=5000
 ```
 
 ### 2. Environment-Specific Folders
+
 The system automatically creates environment-specific folders in Cloudinary:
 
 - **Development**: `grup/development/`
@@ -46,6 +49,7 @@ Cloudinary Account (dafkhnw7p)
 ## 🔧 API Endpoints
 
 ### Upload Single Image
+
 ```http
 POST /api/upload/single
 Content-Type: multipart/form-data
@@ -56,26 +60,28 @@ Form Data:
 ```
 
 **Response:**
+
 ```json
 {
-  "success": true,
-  "message": "Image uploaded successfully",
-  "data": {
-    "image": {
-      "public_id": "grup/development/image_1234567890_abc123",
-      "url": "https://res.cloudinary.com/dafkhnw7p/image/upload/...",
-      "width": 1920,
-      "height": 1080,
-      "format": "jpg",
-      "bytes": 245760
-    },
-    "originalName": "product-image.jpg",
-    "size": 245760
-  }
+    "success": true,
+    "message": "Image uploaded successfully",
+    "data": {
+        "image": {
+            "public_id": "grup/development/image_1234567890_abc123",
+            "url": "https://res.cloudinary.com/dafkhnw7p/image/upload/...",
+            "width": 1920,
+            "height": 1080,
+            "format": "jpg",
+            "bytes": 245760
+        },
+        "originalName": "product-image.jpg",
+        "size": 245760
+    }
 }
 ```
 
 ### Upload Multiple Images
+
 ```http
 POST /api/upload/multiple
 Content-Type: multipart/form-data
@@ -88,18 +94,21 @@ Form Data:
 ```
 
 ### Delete Image
+
 ```http
 DELETE /api/upload/:publicId
 Authorization: Bearer <token>
 ```
 
 ### Get Image URL with Transformations
+
 ```http
 GET /api/upload/url/:publicId?width=300&height=200&quality=80&crop=fill
 Authorization: Bearer <token>
 ```
 
 ### Get Cloudinary Info
+
 ```http
 GET /api/upload/info
 Authorization: Bearer <token>
@@ -108,17 +117,18 @@ Authorization: Bearer <token>
 ## 🛠️ Usage Examples
 
 ### Frontend Upload Example
+
 ```javascript
 // Upload single image
 const formData = new FormData();
 formData.append('image', file);
 
 const response = await fetch('/api/upload/single', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  },
-  body: formData
+    method: 'POST',
+    headers: {
+        Authorization: `Bearer ${token}`,
+    },
+    body: formData,
 });
 
 const result = await response.json();
@@ -126,33 +136,41 @@ console.log('Uploaded image URL:', result.data.image.url);
 ```
 
 ### Backend Service Usage
+
 ```javascript
 import cloudinaryService from './services/cloudinaryService.js';
 
 // Upload image
-const result = await cloudinaryService.uploadImage(fileBuffer, 'custom-public-id');
+const result = await cloudinaryService.uploadImage(
+    fileBuffer,
+    'custom-public-id'
+);
 
 // Delete image
 await cloudinaryService.deleteImage('public-id');
 
 // Get transformed URL
 const url = cloudinaryService.getImageUrl('public-id', {
-  width: 300,
-  height: 200,
-  crop: 'fill',
-  quality: 'auto'
+    width: 300,
+    height: 200,
+    crop: 'fill',
+    quality: 'auto',
 });
 ```
 
 ## 🔄 Migration from Local Storage
 
 ### Current Local Uploads
+
 The existing `upload.js` middleware still works for local storage:
+
 - Files saved to `uploads/` directory
 - Served via `/uploads/` endpoint
 
 ### New Cloudinary Uploads
+
 Use the new `cloudinaryUpload.js` middleware:
+
 - Files uploaded to Cloudinary
 - URLs returned for immediate use
 - Automatic optimization and transformations
@@ -177,6 +195,7 @@ Use the new `cloudinaryUpload.js` middleware:
 ## 🧪 Testing
 
 Run the test script to verify configuration:
+
 ```bash
 node test-cloudinary.js
 ```
@@ -213,7 +232,3 @@ NODE_ENV=production
 - [Cloudinary Dashboard](https://cloudinary.com/console)
 - [Upload Presets](https://cloudinary.com/documentation/upload_presets)
 - [Image Transformations](https://cloudinary.com/documentation/image_transformations)
-
-
-
-
