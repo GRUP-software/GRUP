@@ -18,24 +18,24 @@ This document describes the WhatsApp Business API integration for automated orde
 ### Components
 
 1. **WhatsApp Service** (`services/whatsappService.js`)
-   - Handles message sending and webhook processing
-   - Manages message templates and responses
-   - Tracks message delivery status
+    - Handles message sending and webhook processing
+    - Manages message templates and responses
+    - Tracks message delivery status
 
 2. **WhatsApp Controller** (`controllers/whatsappController.js`)
-   - Webhook verification and processing
-   - Admin endpoints for manual message sending
-   - Message status tracking
+    - Webhook verification and processing
+    - Admin endpoints for manual message sending
+    - Message status tracking
 
 3. **Configuration** (`config/whatsapp.js`)
-   - Centralized settings and templates
-   - Pickup locations and delivery fees
-   - Environment variable validation
+    - Centralized settings and templates
+    - Pickup locations and delivery fees
+    - Environment variable validation
 
 4. **Database Schema** (`models/order.js`)
-   - WhatsApp message tracking
-   - Fulfillment choice storage
-   - Response history
+    - WhatsApp message tracking
+    - Fulfillment choice storage
+    - Response history
 
 ## Setup Instructions
 
@@ -54,23 +54,23 @@ ADMIN_USER_ID=admin_user_id_for_notifications
 ### 2. Meta Business API Setup
 
 1. **Create Meta Business Account**
-   - Go to [Meta Business](https://business.facebook.com/)
-   - Create a business account if you don't have one
+    - Go to [Meta Business](https://business.facebook.com/)
+    - Create a business account if you don't have one
 
 2. **Set up WhatsApp Business API**
-   - Navigate to WhatsApp > Getting Started
-   - Add your business phone number
-   - Complete business verification
+    - Navigate to WhatsApp > Getting Started
+    - Add your business phone number
+    - Complete business verification
 
 3. **Get API Credentials**
-   - Go to System Users > Create System User
-   - Assign WhatsApp permissions
-   - Generate access token
+    - Go to System Users > Create System User
+    - Assign WhatsApp permissions
+    - Generate access token
 
 4. **Configure Webhook**
-   - Set webhook URL: `https://yourdomain.com/api/webhook/whatsapp`
-   - Set verify token (same as `WHATSAPP_VERIFY_TOKEN`)
-   - Subscribe to `messages` events
+    - Set webhook URL: `https://yourdomain.com/api/webhook/whatsapp`
+    - Set verify token (same as `WHATSAPP_VERIFY_TOKEN`)
+    - Subscribe to `messages` events
 
 ### 3. Message Templates
 
@@ -78,12 +78,12 @@ Before sending interactive messages, you need to create message templates in Met
 
 1. Go to WhatsApp > Message Templates
 2. Create template for fulfillment choice:
-   - **Header**: "Order Ready! #{tracking_number}"
-   - **Body**: "Your order is ready! Please choose your preferred fulfillment method:"
-   - **Footer**: "Reply with your choice to proceed"
-   - **Buttons**:
-     - "Pickup" (reply button)
-     - "Delivery (+₦500)" (reply button)
+    - **Header**: "Order Ready! #{tracking_number}"
+    - **Body**: "Your order is ready! Please choose your preferred fulfillment method:"
+    - **Footer**: "Reply with your choice to proceed"
+    - **Buttons**:
+        - "Pickup" (reply button)
+        - "Delivery (+₦500)" (reply button)
 
 ## API Endpoints
 
@@ -121,13 +121,13 @@ When admin sets group buy status to "ready_for_pickup":
 
 ```javascript
 // In groupBuyController.js
-if (status === "ready_for_pickup") {
-  // Send WhatsApp message to all order participants
-  const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
-    userPhone,
-    order.trackingNumber,
-    orderDetails,
-  );
+if (status === 'ready_for_pickup') {
+    // Send WhatsApp message to all order participants
+    const whatsappResult = await whatsappService.sendFulfillmentChoiceMessage(
+        userPhone,
+        order.trackingNumber,
+        orderDetails
+    );
 }
 ```
 
@@ -168,11 +168,11 @@ Admin receives notification about customer choice:
 
 ```javascript
 await notificationService.createNotification({
-  userId: process.env.ADMIN_USER_ID,
-  type: "info",
-  category: "whatsapp",
-  title: "WhatsApp Fulfillment Choice",
-  message: `Customer chose ${choice} for order #${trackingNumber}`,
+    userId: process.env.ADMIN_USER_ID,
+    type: 'info',
+    category: 'whatsapp',
+    title: 'WhatsApp Fulfillment Choice',
+    message: `Customer chose ${choice} for order #${trackingNumber}`,
 });
 ```
 
@@ -182,40 +182,40 @@ await notificationService.createNotification({
 
 ```json
 {
-  "messaging_product": "whatsapp",
-  "to": "+2348012345678",
-  "type": "interactive",
-  "interactive": {
-    "type": "button",
-    "header": {
-      "type": "text",
-      "text": "🎉 Order Ready! #ORDER123456"
-    },
-    "body": {
-      "text": "Your order is ready! Please choose your preferred fulfillment method:\n\n📦 Order Total: ₦15,000\n📋 Items: 2"
-    },
-    "action": {
-      "buttons": [
-        {
-          "type": "reply",
-          "reply": {
-            "id": "pickup_ORDER123456",
-            "title": "🏪 Pickup"
-          }
+    "messaging_product": "whatsapp",
+    "to": "+2348012345678",
+    "type": "interactive",
+    "interactive": {
+        "type": "button",
+        "header": {
+            "type": "text",
+            "text": "🎉 Order Ready! #ORDER123456"
         },
-        {
-          "type": "reply",
-          "reply": {
-            "id": "delivery_ORDER123456",
-            "title": "🚚 Delivery (+₦500)"
-          }
+        "body": {
+            "text": "Your order is ready! Please choose your preferred fulfillment method:\n\n📦 Order Total: ₦15,000\n📋 Items: 2"
+        },
+        "action": {
+            "buttons": [
+                {
+                    "type": "reply",
+                    "reply": {
+                        "id": "pickup_ORDER123456",
+                        "title": "🏪 Pickup"
+                    }
+                },
+                {
+                    "type": "reply",
+                    "reply": {
+                        "id": "delivery_ORDER123456",
+                        "title": "🚚 Delivery (+₦500)"
+                    }
+                }
+            ]
+        },
+        "footer": {
+            "text": "Reply with your choice to proceed"
         }
-      ]
-    },
-    "footer": {
-      "text": "Reply with your choice to proceed"
     }
-  }
 }
 ```
 
@@ -244,31 +244,31 @@ await notificationService.createNotification({
 ```javascript
 // WhatsApp integration tracking
 whatsappMessages: [
-  {
-    messageId: String,
-    type: {
-      type: String,
-      enum: ["fulfillment_choice", "confirmation", "help", "reminder"],
+    {
+        messageId: String,
+        type: {
+            type: String,
+            enum: ['fulfillment_choice', 'confirmation', 'help', 'reminder'],
+        },
+        sentAt: {
+            type: Date,
+            default: Date.now,
+        },
+        status: {
+            type: String,
+            enum: ['sent', 'delivered', 'read', 'failed'],
+            default: 'sent',
+        },
+        responseReceived: {
+            type: Boolean,
+            default: false,
+        },
+        responseChoice: {
+            type: String,
+            enum: ['pickup', 'delivery'],
+        },
+        responseAt: Date,
     },
-    sentAt: {
-      type: Date,
-      default: Date.now,
-    },
-    status: {
-      type: String,
-      enum: ["sent", "delivered", "read", "failed"],
-      default: "sent",
-    },
-    responseReceived: {
-      type: Boolean,
-      default: false,
-    },
-    responseChoice: {
-      type: String,
-      enum: ["pickup", "delivery"],
-    },
-    responseAt: Date,
-  },
 ];
 ```
 
@@ -286,13 +286,13 @@ Update `test-whatsapp-integration.mjs` with your test phone number:
 
 ```javascript
 const testConfig = {
-  phoneNumber: "+2348012345678", // Replace with real test number
-  trackingNumber: "TEST123456",
-  orderDetails: {
-    totalAmount: 15000,
-    itemCount: 2,
-    items: "Test Product 1, Test Product 2",
-  },
+    phoneNumber: '+2348012345678', // Replace with real test number
+    trackingNumber: 'TEST123456',
+    orderDetails: {
+        totalAmount: 15000,
+        itemCount: 2,
+        items: 'Test Product 1, Test Product 2',
+    },
 };
 ```
 
@@ -300,41 +300,41 @@ const testConfig = {
 
 1. **Send Test Message:**
 
-   ```bash
-   curl -X POST http://localhost:3000/api/admin/whatsapp/send \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
-     -d '{
-       "trackingNumber": "TEST123456",
-       "phoneNumber": "+2348012345678"
-     }'
-   ```
+    ```bash
+    curl -X POST http://localhost:3000/api/admin/whatsapp/send \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+      -d '{
+        "trackingNumber": "TEST123456",
+        "phoneNumber": "+2348012345678"
+      }'
+    ```
 
 2. **Check Message Status:**
-   ```bash
-   curl http://localhost:3000/api/admin/whatsapp/message/MESSAGE_ID \
-     -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
-   ```
+    ```bash
+    curl http://localhost:3000/api/admin/whatsapp/message/MESSAGE_ID \
+      -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+    ```
 
 ## Error Handling
 
 ### Common Issues
 
 1. **Invalid Phone Number Format**
-   - Ensure numbers are in international format (+234XXXXXXXXX)
-   - Use `formatPhoneNumber()` helper function
+    - Ensure numbers are in international format (+234XXXXXXXXX)
+    - Use `formatPhoneNumber()` helper function
 
 2. **Webhook Verification Failed**
-   - Check `WHATSAPP_VERIFY_TOKEN` matches Meta Business settings
-   - Verify webhook URL is accessible
+    - Check `WHATSAPP_VERIFY_TOKEN` matches Meta Business settings
+    - Verify webhook URL is accessible
 
 3. **Message Template Not Approved**
-   - Submit templates for approval in Meta Business Manager
-   - Wait for approval before testing
+    - Submit templates for approval in Meta Business Manager
+    - Wait for approval before testing
 
 4. **Rate Limiting**
-   - WhatsApp has rate limits (1000 messages/second)
-   - Implement retry logic for failed messages
+    - WhatsApp has rate limits (1000 messages/second)
+    - Implement retry logic for failed messages
 
 ### Error Logging
 
@@ -342,28 +342,28 @@ All WhatsApp errors are logged with detailed information:
 
 ```javascript
 logger.error(
-  `❌ WhatsApp message error for ${trackingNumber}:`,
-  error.response?.data || error.message,
+    `❌ WhatsApp message error for ${trackingNumber}:`,
+    error.response?.data || error.message
 );
 ```
 
 ## Security Considerations
 
 1. **Webhook Signature Verification**
-   - All incoming webhooks are verified using HMAC-SHA256
-   - Invalid signatures are rejected
+    - All incoming webhooks are verified using HMAC-SHA256
+    - Invalid signatures are rejected
 
 2. **Phone Number Validation**
-   - Verify phone numbers match order records
-   - Prevent unauthorized access to order information
+    - Verify phone numbers match order records
+    - Prevent unauthorized access to order information
 
 3. **Environment Variables**
-   - Never commit API tokens to version control
-   - Use secure environment variable management
+    - Never commit API tokens to version control
+    - Use secure environment variable management
 
 4. **Rate Limiting**
-   - Implement rate limiting on webhook endpoints
-   - Monitor for abuse and spam
+    - Implement rate limiting on webhook endpoints
+    - Monitor for abuse and spam
 
 ## Monitoring and Analytics
 
@@ -380,10 +380,10 @@ All WhatsApp interactions are logged with structured data:
 
 ```javascript
 logger.info(
-  `📱 WhatsApp fulfillment choice message sent to ${phoneNumber} for order ${trackingNumber}`,
+    `📱 WhatsApp fulfillment choice message sent to ${phoneNumber} for order ${trackingNumber}`
 );
 logger.info(
-  `✅ WhatsApp fulfillment choice processed: ${choice} for order ${trackingNumber}`,
+    `✅ WhatsApp fulfillment choice processed: ${choice} for order ${trackingNumber}`
 );
 ```
 

@@ -32,50 +32,50 @@ Returns comprehensive wallet information including balance, transactions, and re
 
 ```json
 {
-  "balance": 1500,
-  "transactions": [
-    {
-      "id": "transaction_id",
-      "type": "credit|debit",
-      "amount": 500,
-      "reason": "REFERRAL_BONUS|ORDER|REFUND",
-      "description": "Referral bonus for inviting 3 users",
-      "createdAt": "2024-01-15T10:30:00Z",
-      "metadata": {
-        "orderId": "order_id",
-        "orderTrackingNumber": "TRK123456",
-        "groupBuyId": "groupbuy_id",
-        "groupBuyStatus": "active",
-        "referralCount": 3
-      }
+    "balance": 1500,
+    "transactions": [
+        {
+            "id": "transaction_id",
+            "type": "credit|debit",
+            "amount": 500,
+            "reason": "REFERRAL_BONUS|ORDER|REFUND",
+            "description": "Referral bonus for inviting 3 users",
+            "createdAt": "2024-01-15T10:30:00Z",
+            "metadata": {
+                "orderId": "order_id",
+                "orderTrackingNumber": "TRK123456",
+                "groupBuyId": "groupbuy_id",
+                "groupBuyStatus": "active",
+                "referralCount": 3
+            }
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 50,
+        "pages": 3,
+        "hasNext": true,
+        "hasPrev": false
+    },
+    "stats": {
+        "referralEarnings": 1500,
+        "totalEarned": 2000,
+        "totalSpent": 500,
+        "netBalance": 1500
+    },
+    "referralInfo": {
+        "referralCode": "abc123",
+        "hasReceivedBonus": true,
+        "totalReferrals": 6,
+        "referralsNeeded": 0,
+        "referralStats": {
+            "totalReferrals": 6,
+            "totalBonusesEarned": 1500,
+            "lastBonusAt": 6,
+            "nextBonusAt": 9
+        }
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 50,
-    "pages": 3,
-    "hasNext": true,
-    "hasPrev": false
-  },
-  "stats": {
-    "referralEarnings": 1500,
-    "totalEarned": 2000,
-    "totalSpent": 500,
-    "netBalance": 1500
-  },
-  "referralInfo": {
-    "referralCode": "abc123",
-    "hasReceivedBonus": true,
-    "totalReferrals": 6,
-    "referralsNeeded": 0,
-    "referralStats": {
-      "totalReferrals": 6,
-      "totalBonusesEarned": 1500,
-      "lastBonusAt": 6,
-      "nextBonusAt": 9
-    }
-  }
 }
 ```
 
@@ -89,8 +89,8 @@ Calculate how much wallet balance can be used for a purchase.
 
 ```json
 {
-  "totalAmount": 2000,
-  "requestedWalletUse": 1000
+    "totalAmount": 2000,
+    "requestedWalletUse": 1000
 }
 ```
 
@@ -98,12 +98,12 @@ Calculate how much wallet balance can be used for a purchase.
 
 ```json
 {
-  "walletBalance": 1500,
-  "maxWalletUse": 1500,
-  "walletUsed": 1000,
-  "remainingToPay": 1000,
-  "canUseWallet": true,
-  "message": "Wallet can be used for payment"
+    "walletBalance": 1500,
+    "maxWalletUse": 1500,
+    "walletUsed": 1000,
+    "remainingToPay": 1000,
+    "canUseWallet": true,
+    "message": "Wallet can be used for payment"
 }
 ```
 
@@ -124,31 +124,31 @@ Get filtered transaction history with pagination.
 
 ```json
 {
-  "transactions": [
-    {
-      "id": "transaction_id",
-      "type": "credit",
-      "amount": 500,
-      "reason": "REFERRAL_BONUS",
-      "description": "Referral bonus for inviting 3 users",
-      "createdAt": "2024-01-15T10:30:00Z",
-      "metadata": {
-        "orderId": "order_id",
-        "orderTrackingNumber": "TRK123456",
-        "groupBuyId": "groupbuy_id",
-        "groupBuyStatus": "active",
-        "referralCount": 3
-      }
+    "transactions": [
+        {
+            "id": "transaction_id",
+            "type": "credit",
+            "amount": 500,
+            "reason": "REFERRAL_BONUS",
+            "description": "Referral bonus for inviting 3 users",
+            "createdAt": "2024-01-15T10:30:00Z",
+            "metadata": {
+                "orderId": "order_id",
+                "orderTrackingNumber": "TRK123456",
+                "groupBuyId": "groupbuy_id",
+                "groupBuyStatus": "active",
+                "referralCount": 3
+            }
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 50,
+        "pages": 3,
+        "hasNext": true,
+        "hasPrev": false
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 50,
-    "pages": 3,
-    "hasNext": true,
-    "hasPrev": false
-  }
 }
 ```
 
@@ -166,31 +166,31 @@ Get user's current cart with wallet integration.
 
 ```json
 {
-  "items": [
-    {
-      "id": "item_id",
-      "product": {
-        "id": "product_id",
-        "title": "Product Name",
-        "price": 1000,
-        "image": "image_url"
-      },
-      "quantity": 2,
-      "unitPrice": 1000,
-      "totalPrice": 2000,
-      "variant": "Large",
-      "sellingUnit": {
-        "optionName": "Half Bag",
-        "pricePerUnit": 1000
-      }
-    }
-  ],
-  "totalPrice": 2000,
-  "itemCount": 2,
-  "walletBalance": 1500,
-  "maxWalletUse": 1500,
-  "remainingAfterWallet": 500,
-  "cartId": "cart_id"
+    "items": [
+        {
+            "id": "item_id",
+            "product": {
+                "id": "product_id",
+                "title": "Product Name",
+                "price": 1000,
+                "image": "image_url"
+            },
+            "quantity": 2,
+            "unitPrice": 1000,
+            "totalPrice": 2000,
+            "variant": "Large",
+            "sellingUnit": {
+                "optionName": "Half Bag",
+                "pricePerUnit": 1000
+            }
+        }
+    ],
+    "totalPrice": 2000,
+    "itemCount": 2,
+    "walletBalance": 1500,
+    "maxWalletUse": 1500,
+    "remainingAfterWallet": 500,
+    "cartId": "cart_id"
 }
 ```
 
@@ -204,10 +204,10 @@ Add item to cart.
 
 ```json
 {
-  "productId": "product_id",
-  "quantity": 2,
-  "variant": "Large",
-  "sellingUnit": "half_bag"
+    "productId": "product_id",
+    "quantity": 2,
+    "variant": "Large",
+    "sellingUnit": "half_bag"
 }
 ```
 
@@ -236,10 +236,10 @@ Update item quantity in cart.
 
 ```json
 {
-  "productId": "product_id",
-  "quantity": 3,
-  "variant": "Large",
-  "sellingUnitName": "half_bag"
+    "productId": "product_id",
+    "quantity": 3,
+    "variant": "Large",
+    "sellingUnitName": "half_bag"
 }
 ```
 
@@ -253,9 +253,9 @@ Remove item from cart.
 
 ```json
 {
-  "productId": "product_id",
-  "variant": "Large",
-  "sellingUnitName": "half_bag"
+    "productId": "product_id",
+    "variant": "Large",
+    "sellingUnitName": "half_bag"
 }
 ```
 
@@ -279,16 +279,16 @@ Initialize payment with wallet integration.
 
 ```json
 {
-  "paymentMethod": "wallet_only|wallet_and_flutterwave|flutterwave_only",
-  "walletUse": 1000,
-  "deliveryAddress": {
-    "street": "123 Main St",
-    "city": "Lagos",
-    "state": "Lagos"
-  },
-  "phone": "+2348012345678",
-  "cartId": "cart_id",
-  "callback_url": "http://localhost:4000/account"
+    "paymentMethod": "wallet_only|wallet_and_flutterwave|flutterwave_only",
+    "walletUse": 1000,
+    "deliveryAddress": {
+        "street": "123 Main St",
+        "city": "Lagos",
+        "state": "Lagos"
+    },
+    "phone": "+2348012345678",
+    "cartId": "cart_id",
+    "callback_url": "http://localhost:4000/account"
 }
 ```
 
@@ -296,22 +296,22 @@ Initialize payment with wallet integration.
 
 ```json
 {
-  "success": true,
-  "message": "Payment completed successfully using wallet",
-  "paymentId": "payment_id",
-  "groupBuysJoined": 1,
-  "walletUsed": 1000,
-  "totalAmount": 1000,
-  "newWalletBalance": 500,
-  "groupBuys": [
-    {
-      "id": "groupbuy_id",
-      "productId": "product_id",
-      "status": "active",
-      "unitsSold": 2,
-      "minimumViableUnits": 20
-    }
-  ]
+    "success": true,
+    "message": "Payment completed successfully using wallet",
+    "paymentId": "payment_id",
+    "groupBuysJoined": 1,
+    "walletUsed": 1000,
+    "totalAmount": 1000,
+    "newWalletBalance": 500,
+    "groupBuys": [
+        {
+            "id": "groupbuy_id",
+            "productId": "product_id",
+            "status": "active",
+            "unitsSold": 2,
+            "minimumViableUnits": 20
+        }
+    ]
 }
 ```
 
@@ -319,16 +319,16 @@ Initialize payment with wallet integration.
 
 ```json
 {
-  "success": true,
-  "message": "Partial wallet payment initialized, redirecting to Flutterwave",
-  "authorization_url": "https://checkout.flutterwave.com/...",
-  "reference": "GRP_abc123_1234567890",
-  "paymentHistoryId": "payment_history_id",
-  "walletUse": 1000,
-  "flutterwaveAmount": 500,
-  "totalAmount": 1500,
-  "currentWalletBalance": 1500,
-  "message": "Wallet balance will be deducted after Flutterwave payment succeeds"
+    "success": true,
+    "message": "Partial wallet payment initialized, redirecting to Flutterwave",
+    "authorization_url": "https://checkout.flutterwave.com/...",
+    "reference": "GRP_abc123_1234567890",
+    "paymentHistoryId": "payment_history_id",
+    "walletUse": 1000,
+    "flutterwaveAmount": 500,
+    "totalAmount": 1500,
+    "currentWalletBalance": 1500,
+    "message": "Wallet balance will be deducted after Flutterwave payment succeeds"
 }
 ```
 
@@ -336,14 +336,14 @@ Initialize payment with wallet integration.
 
 ```json
 {
-  "success": true,
-  "authorization_url": "https://checkout.flutterwave.com/...",
-  "reference": "GRP_abc123_1234567890",
-  "paymentHistoryId": "payment_history_id",
-  "amount": 1500,
-  "walletUsed": 0,
-  "totalAmount": 1500,
-  "message": "Payment initialized successfully"
+    "success": true,
+    "authorization_url": "https://checkout.flutterwave.com/...",
+    "reference": "GRP_abc123_1234567890",
+    "paymentHistoryId": "payment_history_id",
+    "amount": 1500,
+    "walletUsed": 0,
+    "totalAmount": 1500,
+    "message": "Payment initialized successfully"
 }
 ```
 
@@ -361,23 +361,23 @@ Get user's referral information.
 
 ```json
 {
-  "referralCode": "abc123",
-  "referralLink": "http://localhost:4000/register?ref=abc123",
-  "referredUsers": [
-    {
-      "id": "user_id",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "joinedAt": "2024-01-15T10:30:00Z",
-      "status": "active",
-      "hasMadePurchase": true,
-      "purchaseAmount": 2500
-    }
-  ],
-  "hasReceivedBonus": true,
-  "referralCount": 6,
-  "totalEarnings": 1500,
-  "nextBonusThreshold": 9
+    "referralCode": "abc123",
+    "referralLink": "http://localhost:4000/register?ref=abc123",
+    "referredUsers": [
+        {
+            "id": "user_id",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "joinedAt": "2024-01-15T10:30:00Z",
+            "status": "active",
+            "hasMadePurchase": true,
+            "purchaseAmount": 2500
+        }
+    ],
+    "hasReceivedBonus": true,
+    "referralCount": 6,
+    "totalEarnings": 1500,
+    "nextBonusThreshold": 9
 }
 ```
 
@@ -391,22 +391,22 @@ Get detailed referral statistics.
 
 ```json
 {
-  "totalReferrals": 6,
-  "bonusEarned": 1500,
-  "nextBonusAt": 9,
-  "remainingForBonus": 3,
-  "totalEarnings": 1500,
-  "nextBonusThreshold": 9,
-  "referralHistory": [
-    {
-      "id": "ref_1",
-      "referredUser": "John Doe",
-      "joinedAt": "2024-01-15T10:30:00Z",
-      "status": "active",
-      "hasMadePurchase": true,
-      "purchaseAmount": 2500
-    }
-  ]
+    "totalReferrals": 6,
+    "bonusEarned": 1500,
+    "nextBonusAt": 9,
+    "remainingForBonus": 3,
+    "totalEarnings": 1500,
+    "nextBonusThreshold": 9,
+    "referralHistory": [
+        {
+            "id": "ref_1",
+            "referredUser": "John Doe",
+            "joinedAt": "2024-01-15T10:30:00Z",
+            "status": "active",
+            "hasMadePurchase": true,
+            "purchaseAmount": 2500
+        }
+    ]
 }
 ```
 
@@ -420,12 +420,12 @@ Validate a referral code.
 
 ```json
 {
-  "valid": true,
-  "referrer": {
-    "name": "Jane Doe",
-    "referralCode": "abc123"
-  },
-  "message": "You will be referred by Jane Doe"
+    "valid": true,
+    "referrer": {
+        "name": "Jane Doe",
+        "referralCode": "abc123"
+    },
+    "message": "You will be referred by Jane Doe"
 }
 ```
 
@@ -468,9 +468,9 @@ Validate a referral code.
 
 ```json
 {
-  "success": false,
-  "message": "Error description",
-  "error": "Detailed error message"
+    "success": false,
+    "message": "Error description",
+    "error": "Detailed error message"
 }
 ```
 
@@ -489,18 +489,18 @@ Validate a referral code.
 
 ```javascript
 // Get wallet data
-const walletData = await fetch("/api/wallet", {
-  headers: { Authorization: `Bearer ${token}` },
+const walletData = await fetch('/api/wallet', {
+    headers: { Authorization: `Bearer ${token}` },
 });
 
 // Calculate wallet offset
-const offset = await fetch("/api/wallet/calculate-offset", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ totalAmount: 2000, requestedWalletUse: 1000 }),
+const offset = await fetch('/api/wallet/calculate-offset', {
+    method: 'POST',
+    headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ totalAmount: 2000, requestedWalletUse: 1000 }),
 });
 ```
 
@@ -508,31 +508,35 @@ const offset = await fetch("/api/wallet/calculate-offset", {
 
 ```javascript
 // Initialize payment
-const payment = await fetch("/api/payment/initialize", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    paymentMethod: "wallet_and_flutterwave",
-    walletUse: 1000,
-    deliveryAddress: { street: "123 Main St", city: "Lagos", state: "Lagos" },
-    phone: "+2348012345678",
-    cartId: cartId,
-  }),
+const payment = await fetch('/api/payment/initialize', {
+    method: 'POST',
+    headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+        paymentMethod: 'wallet_and_flutterwave',
+        walletUse: 1000,
+        deliveryAddress: {
+            street: '123 Main St',
+            city: 'Lagos',
+            state: 'Lagos',
+        },
+        phone: '+2348012345678',
+        cartId: cartId,
+    }),
 });
 
 const paymentData = await payment.json();
 
 if (paymentData.success) {
-  if (paymentData.authorization_url) {
-    // Redirect to Flutterwave
-    window.location.href = paymentData.authorization_url;
-  } else {
-    // Wallet-only payment completed
-    console.log("Payment completed:", paymentData);
-  }
+    if (paymentData.authorization_url) {
+        // Redirect to Flutterwave
+        window.location.href = paymentData.authorization_url;
+    } else {
+        // Wallet-only payment completed
+        console.log('Payment completed:', paymentData);
+    }
 }
 ```
 
@@ -541,10 +545,10 @@ if (paymentData.success) {
 ```javascript
 // Get transaction history with filters
 const transactions = await fetch(
-  "/api/wallet/transactions?type=credit&reason=REFERRAL_BONUS&page=1&limit=20",
-  {
-    headers: { Authorization: `Bearer ${token}` },
-  },
+    '/api/wallet/transactions?type=credit&reason=REFERRAL_BONUS&page=1&limit=20',
+    {
+        headers: { Authorization: `Bearer ${token}` },
+    }
 );
 ```
 

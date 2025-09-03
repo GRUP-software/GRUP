@@ -66,16 +66,16 @@ The Social Proof Popup feature displays real-time notifications when users make 
 
 ```javascript
 // Event emitted by backend
-socket.emit("purchase:social_proof", {
-  userName: "John",
-  productName: "Organic Beans",
-  timestamp: new Date(),
-  purchaseId: "payment_history_id",
+socket.emit('purchase:social_proof', {
+    userName: 'John',
+    productName: 'Organic Beans',
+    timestamp: new Date(),
+    purchaseId: 'payment_history_id',
 });
 
 // Event listened by frontend
-socket.on("purchase:social_proof", (data) => {
-  // Handle social proof data
+socket.on('purchase:social_proof', (data) => {
+    // Handle social proof data
 });
 ```
 
@@ -148,17 +148,17 @@ The popup uses styled-components with:
 ```javascript
 // User settings in profile
 const userSettings = {
-  allowSocialProof: true,
-  socialProofFrequency: "all", // 'all', 'recent', 'none'
-  customMessage: null,
+    allowSocialProof: true,
+    socialProofFrequency: 'all', // 'all', 'recent', 'none'
+    customMessage: null,
 };
 
 // Admin configuration
 const adminConfig = {
-  enableSocialProof: true,
-  popupDuration: 7000,
-  maxPopups: 3,
-  messageTemplate: "{userName} just joined groupbuy for {productName}",
+    enableSocialProof: true,
+    popupDuration: 7000,
+    maxPopups: 3,
+    messageTemplate: '{userName} just joined groupbuy for {productName}',
 };
 ```
 
@@ -167,38 +167,38 @@ const adminConfig = {
 ### Common Issues
 
 1. **Popups Not Showing**
-   - Check WebSocket connection
-   - Verify backend is emitting events
-   - Check browser console for errors
+    - Check WebSocket connection
+    - Verify backend is emitting events
+    - Check browser console for errors
 
 2. **Performance Issues**
-   - Limit number of concurrent popups
-   - Optimize animations
-   - Monitor memory usage
+    - Limit number of concurrent popups
+    - Optimize animations
+    - Monitor memory usage
 
 3. **Styling Issues**
-   - Check z-index values
-   - Verify CSS compatibility
-   - Test on different screen sizes
+    - Check z-index values
+    - Verify CSS compatibility
+    - Test on different screen sizes
 
 ### Debug Commands
 
 ```javascript
 // Check if social proof events are being received
-socket.on("purchase:social_proof", (data) => {
-  console.log("Social proof received:", data);
+socket.on('purchase:social_proof', (data) => {
+    console.log('Social proof received:', data);
 });
 
 // Test manual trigger
 window.dispatchEvent(
-  new CustomEvent("social-proof-purchase", {
-    detail: {
-      userName: "Test User",
-      productName: "Test Product",
-      timestamp: new Date(),
-      purchaseId: "test",
-    },
-  }),
+    new CustomEvent('social-proof-purchase', {
+        detail: {
+            userName: 'Test User',
+            productName: 'Test Product',
+            timestamp: new Date(),
+            purchaseId: 'test',
+        },
+    })
 );
 ```
 

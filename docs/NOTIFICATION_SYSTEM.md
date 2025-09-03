@@ -48,9 +48,9 @@ EMAIL_FROM_NAME=Grup Team
 
 1. Enable 2-factor authentication on your Gmail account
 2. Generate an App Password:
-   - Go to Google Account settings
-   - Security → 2-Step Verification → App passwords
-   - Generate password for "Mail"
+    - Go to Google Account settings
+    - Security → 2-Step Verification → App passwords
+    - Generate password for "Mail"
 3. Use the generated password as `EMAIL_PASS`
 
 ### Other SMTP Providers
@@ -177,23 +177,23 @@ EMAIL_PORT=587
 ```javascript
 // Create in-app notification
 await notificationService.createNotification({
-  userId: user._id,
-  type: "success",
-  category: "order",
-  title: "Order Updated",
-  message: "Your order status has been updated",
-  data: { orderId, status },
-  priority: "high",
-  actionUrl: "/orders/123",
-  actionText: "View Order",
+    userId: user._id,
+    type: 'success',
+    category: 'order',
+    title: 'Order Updated',
+    message: 'Your order status has been updated',
+    data: { orderId, status },
+    priority: 'high',
+    actionUrl: '/orders/123',
+    actionText: 'View Order',
 });
 
 // Send email notification
-await notificationService.sendEmailNotification(userId, "order_status_update", {
-  orderId: "123",
-  status: "processing",
-  trackingNumber: "TRK123",
-  message: "Order is being processed",
+await notificationService.sendEmailNotification(userId, 'order_status_update', {
+    orderId: '123',
+    status: 'processing',
+    trackingNumber: 'TRK123',
+    message: 'Order is being processed',
 });
 ```
 
@@ -202,55 +202,55 @@ await notificationService.sendEmailNotification(userId, "order_status_update", {
 ```javascript
 // Order status update by admin
 await notificationService.notifyAdminOrderStatusUpdate(
-  userId,
-  orderData,
-  status,
-  message,
-  adminName,
+    userId,
+    orderData,
+    status,
+    message,
+    adminName
 );
 
 // Group buy status update by admin
 await notificationService.notifyAdminGroupBuyStatusUpdate(
-  userId,
-  productName,
-  groupBuyId,
-  newStatus,
-  oldStatus,
-  adminName,
-  fulfillmentData,
+    userId,
+    productName,
+    groupBuyId,
+    newStatus,
+    oldStatus,
+    adminName,
+    fulfillmentData
 );
 
 // Order cancellation by admin
 await notificationService.notifyAdminOrderCancellation(
-  userId,
-  orderData,
-  reason,
-  adminName,
+    userId,
+    orderData,
+    reason,
+    adminName
 );
 
 // Refund processed by admin
 await notificationService.notifyAdminRefundProcessed(
-  userId,
-  amount,
-  reason,
-  orderId,
-  adminName,
+    userId,
+    amount,
+    reason,
+    orderId,
+    adminName
 );
 
 // Delivery scheduled by admin
 await notificationService.notifyAdminDeliveryScheduled(
-  userId,
-  orderData,
-  deliveryInfo,
-  adminName,
+    userId,
+    orderData,
+    deliveryInfo,
+    adminName
 );
 
 // Order ready for pickup
 await notificationService.notifyAdminPickupReady(
-  userId,
-  orderData,
-  pickupLocation,
-  adminName,
+    userId,
+    orderData,
+    pickupLocation,
+    adminName
 );
 ```
 
@@ -261,10 +261,10 @@ await notificationService.notifyAdminPickupReady(
 The frontend uses a notification context to manage notifications:
 
 ```javascript
-import { useNotification } from "../contexts/NotificationContext";
+import { useNotification } from '../contexts/NotificationContext';
 
 const { notifications, unreadCount, markAsRead, markAllAsRead } =
-  useNotification();
+    useNotification();
 ```
 
 ### WebSocket Events
@@ -273,18 +273,18 @@ The system emits these WebSocket events:
 
 ```javascript
 // New notification
-socket.on("notification:new", (data) => {
-  // Handle new notification
+socket.on('notification:new', (data) => {
+    // Handle new notification
 });
 
 // Notification read
-socket.on("notification:read", (data) => {
-  // Update read status
+socket.on('notification:read', (data) => {
+    // Update read status
 });
 
 // All notifications read
-socket.on("notification:all_read", () => {
-  // Clear unread count
+socket.on('notification:all_read', () => {
+    // Clear unread count
 });
 ```
 
@@ -294,11 +294,11 @@ socket.on("notification:all_read", () => {
 
 ```javascript
 // Test email service
-const emailService = require("./services/emailService");
+const emailService = require('./services/emailService');
 const result = await emailService.sendEmail(
-  "test@example.com",
-  "Test Email",
-  "<h1>Test</h1><p>This is a test email</p>",
+    'test@example.com',
+    'Test Email',
+    '<h1>Test</h1><p>This is a test email</p>'
 );
 console.log(result);
 ```
@@ -307,13 +307,13 @@ console.log(result);
 
 ```javascript
 // Test notification service
-const notificationService = require("./services/notificationService");
+const notificationService = require('./services/notificationService');
 await notificationService.notifyAdminOrderStatusUpdate(
-  userId,
-  { orderId: "123", trackingNumber: "TRK123" },
-  "processing",
-  "Order is being processed",
-  "Admin User",
+    userId,
+    { orderId: '123', trackingNumber: 'TRK123' },
+    'processing',
+    'Order is being processed',
+    'Admin User'
 );
 ```
 

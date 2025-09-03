@@ -1,3 +1,3 @@
 AdminJS.UserComponents = {};
-import ShareLinkComponent from "../components/ShareLinkComponent";
+import ShareLinkComponent from '../components/ShareLinkComponent';
 AdminJS.UserComponents.ShareLinkComponent = ShareLinkComponent;

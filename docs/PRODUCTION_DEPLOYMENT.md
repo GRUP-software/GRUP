@@ -54,14 +54,14 @@ LOG_LEVEL=error
 
 1. **Upload your code** to your production server
 2. **Install dependencies:**
-   ```bash
-   npm install --production
-   ```
+    ```bash
+    npm install --production
+    ```
 3. **Set environment variables** (use your hosting platform's method)
 4. **Start the application:**
-   ```bash
-   npm start
-   ```
+    ```bash
+    npm start
+    ```
 
 ### Step 3: Update Frontend URLs
 
@@ -69,7 +69,7 @@ Update your frontend to point to your production backend:
 
 ```javascript
 // In your frontend configuration
-const API_BASE_URL = "https://your-backend-domain.com/api";
+const API_BASE_URL = 'https://your-backend-domain.com/api';
 ```
 
 ## 📤 Uploading Images in Production
@@ -118,12 +118,12 @@ Expected response:
 
 ```json
 {
-  "success": true,
-  "data": {
-    "cloud_name": "dafkhnw7p",
-    "folder": "grup/production",
-    "environment": "production"
-  }
+    "success": true,
+    "data": {
+        "cloud_name": "dafkhnw7p",
+        "folder": "grup/production",
+        "environment": "production"
+    }
 }
 ```
 
@@ -152,10 +152,10 @@ Add these headers to your production server:
 // Security headers
 app.use(helmet());
 app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-  }),
+    cors({
+        origin: process.env.FRONTEND_URL,
+        credentials: true,
+    })
 );
 ```
 
@@ -190,29 +190,29 @@ If you need to move images from development to production:
 
 1. **Export from Cloudinary:**
 
-   ```bash
-   # Use Cloudinary CLI or API to download images
-   cloudinary download grup/development/ --folder grup/production/
-   ```
+    ```bash
+    # Use Cloudinary CLI or API to download images
+    cloudinary download grup/development/ --folder grup/production/
+    ```
 
 2. **Update Database Records:**
-   ```javascript
-   // Update UploadedImage records with new URLs
-   db.uploadedimages.updateMany(
-     { url: /development/ },
-     {
-       $set: {
-         url: {
-           $replaceAll: {
-             input: "$url",
-             find: "development",
-             replacement: "production",
-           },
-         },
-       },
-     },
-   );
-   ```
+    ```javascript
+    // Update UploadedImage records with new URLs
+    db.uploadedimages.updateMany(
+        { url: /development/ },
+        {
+            $set: {
+                url: {
+                    $replaceAll: {
+                        input: '$url',
+                        find: 'development',
+                        replacement: 'production',
+                    },
+                },
+            },
+        }
+    );
+    ```
 
 ## 🆘 Troubleshooting
 

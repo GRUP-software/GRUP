@@ -54,9 +54,9 @@ userSchema.methods.compareSecretRecoveryKey = function (plainRecoveryKey) {
 
 ```javascript
 // Password reset routes
-router.post("/verify-recovery-key", verifyRecoveryKey);
-router.post("/reset-password", resetPassword);
-router.patch("/update-recovery-key", verifyToken, updateSecretRecoveryKey);
+router.post('/verify-recovery-key', verifyRecoveryKey);
+router.post('/reset-password', resetPassword);
+router.patch('/update-recovery-key', verifyToken, updateSecretRecoveryKey);
 ```
 
 ### API Endpoints

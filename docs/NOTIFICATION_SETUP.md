@@ -21,9 +21,9 @@ This will install `nodemailer` and other required dependencies.
 
 1. **Enable 2-Factor Authentication** on your Gmail account
 2. **Generate App Password**:
-   - Go to [Google Account Settings](https://myaccount.google.com/)
-   - Security → 2-Step Verification → App passwords
-   - Select "Mail" and generate password
+    - Go to [Google Account Settings](https://myaccount.google.com/)
+    - Security → 2-Step Verification → App passwords
+    - Select "Mail" and generate password
 3. **Add to .env file**:
 
 ```env
@@ -137,17 +137,17 @@ curl -X GET http://localhost:5000/api/notifications/unread-count \
 
 1. **Check environment variables**:
 
-   ```bash
-   echo $EMAIL_HOST
-   echo $EMAIL_USER
-   echo $EMAIL_PASS
-   ```
+    ```bash
+    echo $EMAIL_HOST
+    echo $EMAIL_USER
+    echo $EMAIL_PASS
+    ```
 
 2. **Test SMTP connection**:
 
-   ```bash
-   npm run test:notifications
-   ```
+    ```bash
+    npm run test:notifications
+    ```
 
 3. **Check logs** for email service errors
 

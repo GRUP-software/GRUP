@@ -63,20 +63,20 @@ Form Data:
 
 ```json
 {
-  "success": true,
-  "message": "Image uploaded successfully",
-  "data": {
-    "image": {
-      "public_id": "grup/development/image_1234567890_abc123",
-      "url": "https://res.cloudinary.com/dafkhnw7p/image/upload/...",
-      "width": 1920,
-      "height": 1080,
-      "format": "jpg",
-      "bytes": 245760
-    },
-    "originalName": "product-image.jpg",
-    "size": 245760
-  }
+    "success": true,
+    "message": "Image uploaded successfully",
+    "data": {
+        "image": {
+            "public_id": "grup/development/image_1234567890_abc123",
+            "url": "https://res.cloudinary.com/dafkhnw7p/image/upload/...",
+            "width": 1920,
+            "height": 1080,
+            "format": "jpg",
+            "bytes": 245760
+        },
+        "originalName": "product-image.jpg",
+        "size": 245760
+    }
 }
 ```
 
@@ -121,40 +121,40 @@ Authorization: Bearer <token>
 ```javascript
 // Upload single image
 const formData = new FormData();
-formData.append("image", file);
+formData.append('image', file);
 
-const response = await fetch("/api/upload/single", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-  body: formData,
+const response = await fetch('/api/upload/single', {
+    method: 'POST',
+    headers: {
+        Authorization: `Bearer ${token}`,
+    },
+    body: formData,
 });
 
 const result = await response.json();
-console.log("Uploaded image URL:", result.data.image.url);
+console.log('Uploaded image URL:', result.data.image.url);
 ```
 
 ### Backend Service Usage
 
 ```javascript
-import cloudinaryService from "./services/cloudinaryService.js";
+import cloudinaryService from './services/cloudinaryService.js';
 
 // Upload image
 const result = await cloudinaryService.uploadImage(
-  fileBuffer,
-  "custom-public-id",
+    fileBuffer,
+    'custom-public-id'
 );
 
 // Delete image
-await cloudinaryService.deleteImage("public-id");
+await cloudinaryService.deleteImage('public-id');
 
 // Get transformed URL
-const url = cloudinaryService.getImageUrl("public-id", {
-  width: 300,
-  height: 200,
-  crop: "fill",
-  quality: "auto",
+const url = cloudinaryService.getImageUrl('public-id', {
+    width: 300,
+    height: 200,
+    crop: 'fill',
+    quality: 'auto',
 });
 ```
 
