@@ -43,7 +43,7 @@ let SellingUnitsManagerComponent = null;
 
 // AdminJS config
 const adminJs = new AdminJS({
-    rootPath: '/grup-admin/v00',
+    rootPath: '/admin',
     componentLoader,
     resources: [
         {

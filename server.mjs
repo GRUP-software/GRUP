@@ -178,7 +178,7 @@ app.get('/admin-upload.html', (req, res) => {
 });
 
 // AdminJS setup MUST come BEFORE body parser
-app.use('/grup-admin/v00', adminRouter);
+app.use('/admin', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
 app.use(express.json({ limit: '10mb' }));
