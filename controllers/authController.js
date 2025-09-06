@@ -480,7 +480,9 @@ export const useTemporaryRecoveryKey = async (req, res) => {
         }
 
         // Update user with new recovery key and mark request as completed
+        // Force the field to be marked as modified to ensure hashing
         user.secretRecoveryKey = newRecoveryKey;
+        user.markModified('secretRecoveryKey'); // This ensures the pre-save hook hashes it
         user.recoveryKeyResetRequest = {
             ...user.recoveryKeyResetRequest,
             status: 'completed',
