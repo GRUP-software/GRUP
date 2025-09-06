@@ -196,6 +196,76 @@
             .btn-secondary:hover {
                 background-color: #4b5563;
             }
+
+            .temp-key-display {
+                background-color: #f0f9ff;
+                border: 1px solid #0ea5e9;
+                border-radius: 6px;
+                padding: 15px;
+                margin: 10px 0;
+                position: relative;
+            }
+
+            .temp-key-display h4 {
+                color: #0c4a6e;
+                margin-bottom: 10px;
+                font-size: 14px;
+            }
+
+            .temp-key-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 4px;
+                padding: 8px 12px;
+            }
+
+            .temp-key-text {
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                color: #1f2937;
+                flex: 1;
+                word-break: break-all;
+                background: none;
+                border: none;
+                outline: none;
+            }
+
+            .copy-btn {
+                background-color: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+
+            .copy-btn:hover {
+                background-color: #2563eb;
+            }
+
+            .copy-btn.copied {
+                background-color: #10b981;
+            }
+
+            .close-temp-key {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: #6b7280;
+            }
+
+            .close-temp-key:hover {
+                color: #374151;
+            }
         </style>
     </head>
     <body>
@@ -203,9 +273,15 @@
             <div class="header">
                 <h1>Recovery Key Reset Requests</h1>
                 <p>Review and manage user requests for recovery key resets</p>
+                <div style="text-align: right; margin-top: 10px;">
+                    <a href="/admin" style="color: #6b7280; text-decoration: none; font-size: 14px;">← Back to Admin Panel</a>
+                    <button id="testButton" style="margin-left: 10px; padding: 5px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">Test JS</button>
+                </div>
             </div>
 
             <div id="message"></div>
+            
+            <div id="tempKeyDisplay" style="display: none;"></div>
 
             <div class="requests-container" id="requestsContainer">
                 <div class="loading">Loading requests...</div>
@@ -224,11 +300,11 @@
                 <div class="modal-actions">
                     <button
                         class="btn btn-secondary"
-                        onclick="closeRejectModal()"
+                        id="cancelRejectBtn"
                     >
                         Cancel
                     </button>
-                    <button class="btn btn-reject" onclick="confirmReject()">
+                    <button class="btn btn-reject" id="confirmRejectBtn">
                         Reject Request
                     </button>
                 </div>
@@ -238,21 +314,64 @@
         <script>
             let currentUserId = null;
             let authToken = localStorage.getItem('adminToken');
-
-            if (!authToken) {
-                window.location.href = '/admin';
+            
+            // Check if user is authenticated
+            function checkAuth() {
+                if (!authToken) {
+                    // Try to get token from session storage or prompt for login
+                    const sessionToken = sessionStorage.getItem('adminToken');
+                    if (sessionToken) {
+                        authToken = sessionToken;
+                        localStorage.setItem('adminToken', sessionToken);
+                    } else {
+                        // Redirect to admin login page
+                        window.location.href = '/admin-login.html';
+                        return false;
+                    }
+                }
+                return true;
             }
 
             // Load requests on page load
-            document.addEventListener('DOMContentLoaded', loadRequests);
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('Page loaded, checking auth...');
+                const isAuthenticated = checkAuth();
+                console.log('Auth check result:', isAuthenticated);
+                console.log('Current authToken:', authToken);
+                if (isAuthenticated) {
+                    loadRequests();
+                }
+                
+                // Add event listener for test button
+                const testButton = document.getElementById('testButton');
+                if (testButton) {
+                    testButton.addEventListener('click', () => {
+                        console.log('Test button clicked');
+                        alert('JavaScript is working!');
+                    });
+                }
+                
+                // Add event listeners for reject modal buttons
+                const cancelRejectBtn = document.getElementById('cancelRejectBtn');
+                const confirmRejectBtn = document.getElementById('confirmRejectBtn');
+                
+                if (cancelRejectBtn) {
+                    cancelRejectBtn.addEventListener('click', closeRejectModal);
+                }
+                
+                if (confirmRejectBtn) {
+                    confirmRejectBtn.addEventListener('click', confirmReject);
+                }
+            });
 
             async function loadRequests() {
                 try {
                     const response = await fetch(
-                        '/api/auth/recovery-key-reset-requests',
+                        `${window.location.origin}/api/auth/recovery-key-reset-requests`,
                         {
+                            method: 'GET',
                             headers: {
-                                Authorization: `Bearer ${authToken}`,
+                                'Authorization': `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                         }
@@ -292,10 +411,10 @@
                         <p><strong>Requested:</strong> ${new Date(request.requestedAt).toLocaleString()}</p>
                     </div>
                     <div class="request-actions">
-                        <button class="btn btn-approve" onclick="approveRequest('${request.userId}')">
+                        <button class="btn btn-approve" data-user-id="${request.userId}">
                             Approve
                         </button>
-                        <button class="btn btn-reject" onclick="showRejectModal('${request.userId}')">
+                        <button class="btn btn-reject" data-user-id="${request.userId}">
                             Reject
                         </button>
                     </div>
@@ -303,9 +422,27 @@
             `
                     )
                     .join('');
+                
+                // Add event listeners to the buttons
+                container.querySelectorAll('.btn-approve').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        approveRequest(userId);
+                    });
+                });
+                
+                container.querySelectorAll('.btn-reject').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const userId = e.target.getAttribute('data-user-id');
+                        showRejectModal(userId);
+                    });
+                });
             }
 
             async function approveRequest(userId) {
+                console.log('approveRequest called with userId:', userId);
+                console.log('authToken:', authToken);
+                
                 if (
                     !confirm(
                         'Are you sure you want to approve this recovery key reset request?'
@@ -315,29 +452,32 @@
                 }
 
                 try {
+                    console.log('Making API call to approve request...');
                     const response = await fetch(
-                        `/api/auth/approve-recovery-key-reset/${userId}`,
+                        `${window.location.origin}/api/auth/approve-recovery-key-reset/${userId}`,
                         {
                             method: 'POST',
                             headers: {
-                                Authorization: `Bearer ${authToken}`,
+                                'Authorization': `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                         }
                     );
+                    
+                    console.log('Response status:', response.status);
+                    console.log('Response ok:', response.ok);
 
                     if (!response.ok) {
                         throw new Error('Failed to approve request');
                     }
 
                     const data = await response.json();
-                    showMessage(
-                        'Request approved successfully. Temporary key: ' +
-                            data.temporaryKey,
-                        'success'
-                    );
+                    console.log('Response data:', data);
+                    showMessage('Request approved successfully!', 'success');
+                    showTemporaryKey(data.temporaryKey);
                     loadRequests(); // Reload the list
                 } catch (error) {
+                    console.error('Error in approveRequest:', error);
                     showMessage(
                         'Error approving request: ' + error.message,
                         'error'
@@ -368,11 +508,11 @@
 
                 try {
                     const response = await fetch(
-                        `/api/auth/reject-recovery-key-reset/${currentUserId}`,
+                        `${window.location.origin}/api/auth/reject-recovery-key-reset/${currentUserId}`,
                         {
                             method: 'POST',
                             headers: {
-                                Authorization: `Bearer ${authToken}`,
+                                'Authorization': `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({ reason }),
@@ -401,6 +541,69 @@
                 setTimeout(() => {
                     messageDiv.innerHTML = '';
                 }, 5000);
+            }
+
+            function showTemporaryKey(temporaryKey) {
+                const tempKeyDisplay = document.getElementById('tempKeyDisplay');
+                tempKeyDisplay.innerHTML = `
+                    <div class="temp-key-display">
+                        <button class="close-temp-key" id="closeTempKeyBtn">&times;</button>
+                        <h4>🔑 Temporary Recovery Key Generated</h4>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
+                            Copy this key and share it with the user. They can use it to reset their recovery key.
+                        </p>
+                        <div class="temp-key-container">
+                            <input type="text" class="temp-key-text" value="${temporaryKey}" readonly id="tempKeyInput">
+                            <button class="copy-btn" id="copyBtn">Copy</button>
+                        </div>
+                    </div>
+                `;
+                tempKeyDisplay.style.display = 'block';
+                
+                // Add event listeners after the HTML is inserted
+                document.getElementById('closeTempKeyBtn').addEventListener('click', hideTemporaryKey);
+                document.getElementById('copyBtn').addEventListener('click', copyTemporaryKey);
+            }
+
+            function hideTemporaryKey() {
+                const tempKeyDisplay = document.getElementById('tempKeyDisplay');
+                tempKeyDisplay.style.display = 'none';
+                tempKeyDisplay.innerHTML = '';
+            }
+
+            function copyTemporaryKey() {
+                const tempKeyInput = document.getElementById('tempKeyInput');
+                const copyBtn = document.getElementById('copyBtn');
+                
+                // Select the text
+                tempKeyInput.select();
+                tempKeyInput.setSelectionRange(0, 99999); // For mobile devices
+                
+                // Copy to clipboard
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    // Fallback for modern browsers
+                    navigator.clipboard.writeText(tempKeyInput.value).then(() => {
+                        copyBtn.textContent = 'Copied!';
+                        copyBtn.classList.add('copied');
+                        
+                        setTimeout(() => {
+                            copyBtn.textContent = 'Copy';
+                            copyBtn.classList.remove('copied');
+                        }, 2000);
+                    }).catch(() => {
+                        alert('Failed to copy. Please select and copy manually.');
+                    });
+                }
             }
 
             // Close modal when clicking outside

@@ -358,7 +358,7 @@ export const getRecoveryKeyResetRequests = async (req, res) => {
 // Admin: Approve recovery key reset request
 export const approveRecoveryKeyReset = async (req, res) => {
     const { userId } = req.params;
-    const adminId = req.user.id;
+    const adminId = req.admin?.email || 'admin';
 
     try {
         const user = await User.findById(userId);

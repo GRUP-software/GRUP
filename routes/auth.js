@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Transaction from '../models/Transaction.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
+import { verifyAdminToken } from './adminAuthRoutes.js';
 import { addReferral } from '../utils/referralBonusService.js';
 import {
     signup,
@@ -181,20 +182,20 @@ router.patch('/update-recovery-key', verifyToken, updateSecretRecoveryKey);
 router.post('/request-recovery-key-reset', requestRecoveryKeyReset);
 router.post('/use-temporary-recovery-key', useTemporaryRecoveryKey);
 
-// ADMIN ROUTES (require authentication)
+// ADMIN ROUTES (require admin authentication)
 router.get(
     '/recovery-key-reset-requests',
-    verifyToken,
+    verifyAdminToken,
     getRecoveryKeyResetRequests
 );
 router.post(
     '/approve-recovery-key-reset/:userId',
-    verifyToken,
+    verifyAdminToken,
     approveRecoveryKeyReset
 );
 router.post(
     '/reject-recovery-key-reset/:userId',
-    verifyToken,
+    verifyAdminToken,
     rejectRecoveryKeyReset
 );
 

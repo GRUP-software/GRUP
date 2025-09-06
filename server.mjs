@@ -177,6 +177,16 @@ app.get('/admin-upload.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-upload.html'));
 });
 
+// Explicit route for admin login page
+app.get('/admin-login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+});
+
+// Explicit route for admin recovery key requests page
+app.get('/admin-recovery-key-requests.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-recovery-key-requests.html'));
+});
+
 // AdminJS setup MUST come BEFORE body parser
 app.use('/admin', adminRouter);
 
