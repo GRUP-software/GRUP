@@ -111,6 +111,17 @@
     </div>
 
     <script>
+        // Test admin routes on page load
+        window.addEventListener('load', async () => {
+            try {
+                const testResponse = await fetch('/api/admin/test');
+                const testData = await testResponse.json();
+                console.log('Admin routes test:', testData);
+            } catch (error) {
+                console.error('Admin routes test failed:', error);
+            }
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -129,6 +140,8 @@
             loginBtn.textContent = 'Logging in...';
             
             try {
+                console.log('Attempting to login with:', { email, password: '***' });
+                
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: {
@@ -137,7 +150,11 @@
                     body: JSON.stringify({ email, password }),
                 });
                 
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (data.success) {
                     // Store token
@@ -156,7 +173,8 @@
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
-                errorDiv.textContent = 'Network error. Please try again.';
+                console.error('Login error:', error);
+                errorDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
                 errorDiv.style.display = 'block';
             } finally {
                 // Re-enable button
