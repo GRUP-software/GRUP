@@ -238,7 +238,7 @@ export const processGroupBuys = async (paymentHistory) => {
                         participantData.amount <= 0
                     ) {
                         throw new Error(
-i                            'Participant amount must be a positive number'
+                            'Participant amount must be a positive number'
                         );
                     }
 
