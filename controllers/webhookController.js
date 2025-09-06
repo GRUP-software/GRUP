@@ -393,7 +393,7 @@ const handleSuccessfulCharge = async (data) => {
             try {
                 const User = (await import('../models/User.js')).default;
                 const user = await User.findById(paymentHistory.userId).select(
-                    'firstName lastName'
+                    'name email'
                 );
 
                 if (user && groupBuys.length > 0) {
@@ -406,7 +406,7 @@ const handleSuccessfulCharge = async (data) => {
 
                     if (product) {
                         // Anonymize user name (show only first name)
-                        const displayName = user.firstName || 'Someone';
+                        const displayName = user.name || 'Someone';
                         const productName = product.title || 'a product';
 
                         io.emit('purchase:social_proof', {
@@ -415,10 +415,6 @@ const handleSuccessfulCharge = async (data) => {
                             timestamp: new Date(),
                             purchaseId: paymentHistory._id,
                         });
-
-                        console.log(
-                            `✅ Social proof emitted: ${displayName} joined groupbuy for ${productName}`
-                        );
                     }
                 }
             } catch (socialProofError) {

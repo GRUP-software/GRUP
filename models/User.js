@@ -62,7 +62,7 @@ const userSchema = new Schema(
                 enum: ['pending', 'approved', 'rejected', 'completed'],
                 default: null,
             },
-            approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+            approvedBy: { type: String }, // Admin email or identifier
             approvedAt: { type: Date },
             temporaryKey: { type: String }, // Temporary key set by admin
             expiresAt: { type: Date }, // Temporary key expiration

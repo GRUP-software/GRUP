@@ -6,23 +6,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Debug: Log where we're looking for .env file
-console.log('🔍 .env file search debug:');
-console.log('  Current directory:', __dirname);
-console.log('  Looking for .env in:', path.resolve(__dirname, '..'));
-console.log('  Looking for .env in:', path.resolve(__dirname, '../..'));
-
 // Load environment variables
-const result = dotenv.config();
-console.log('  dotenv.config() result:', result);
-
-// Log all environment variables that start with FLUTTERWAVE
-console.log('🔍 Flutterwave environment variables:');
-Object.keys(process.env).forEach((key) => {
-    if (key.includes('FLUTTERWAVE')) {
-        console.log(`  ${key}: ${process.env[key] ? 'SET' : 'NOT SET'}`);
-    }
-});
+dotenv.config();
 
 const config = {
     // Environment
@@ -138,38 +123,6 @@ const getCurrentConfig = () => {
 // Export current configuration
 const finalConfig = getCurrentConfig();
 
-// Debug logging
-console.log('🔍 Environment Configuration Debug:');
-console.log('  NODE_ENV:', process.env.NODE_ENV);
-console.log(
-    '  FLUTTERWAVE_SECRET_KEY exists:',
-    !!process.env.FLUTTERWAVE_SECRET_KEY
-);
-console.log(
-    '  FLUTTERWAVE_SECRET_KEY length:',
-    process.env.FLUTTERWAVE_SECRET_KEY
-        ? process.env.FLUTTERWAVE_SECRET_KEY.length
-        : 0
-);
-console.log(
-    '  FLUTTERWAVE_ENCRYPTION_KEY exists:',
-    !!process.env.FLUTTERWAVE_ENCRYPTION_KEY
-);
-console.log(
-    '  FLUTTERWAVE_ENCRYPTION_KEY length:',
-    process.env.FLUTTERWAVE_ENCRYPTION_KEY
-        ? process.env.FLUTTERWAVE_ENCRYPTION_KEY.length
-        : 0
-);
-console.log(
-    '  Final config FLUTTERWAVE.SECRET_KEY exists:',
-    !!finalConfig.FLUTTERWAVE?.SECRET_KEY
-);
-console.log(
-    '  Final config FLUTTERWAVE.ENCRYPTION_KEY exists:',
-    !!finalConfig.FLUTTERWAVE?.ENCRYPTION_KEY
-);
-console.log('  Final config keys:', Object.keys(finalConfig));
 
 export default finalConfig;
 

@@ -527,7 +527,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
             if (io && groupBuys.length > 0) {
                 const User = (await import('../models/User.js')).default;
                 const user = await User.findById(paymentHistory.userId).select(
-                    'firstName lastName'
+                    'name email'
                 );
 
                 if (user) {
@@ -540,7 +540,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
 
                     if (product) {
                         // Anonymize user name (show only first name)
-                        const displayName = user.firstName || 'Someone';
+                        const displayName = user.name || 'Someone';
                         const productName = product.title || 'a product';
 
                         io.emit('purchase:social_proof', {
@@ -549,10 +549,6 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
                             timestamp: new Date(),
                             purchaseId: paymentHistory._id,
                         });
-
-                        console.log(
-                            `✅ Social proof emitted: ${displayName} joined groupbuy for ${productName}`
-                        );
                     }
                 }
             }
