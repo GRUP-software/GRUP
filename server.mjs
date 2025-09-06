@@ -178,7 +178,7 @@ app.get('/admin-upload.html', (req, res) => {
 });
 
 // AdminJS setup MUST come BEFORE body parser
-app.use('/admin', adminRouter);
+app.use('/grup-admin/v00', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
 app.use(express.json({ limit: '10mb' }));
@@ -193,7 +193,7 @@ app.use((req, res, next) => {
 // API routes - NO RATE LIMITING
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/admin/', adminRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
