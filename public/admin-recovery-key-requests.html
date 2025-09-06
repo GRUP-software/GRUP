@@ -203,6 +203,9 @@
             <div class="header">
                 <h1>Recovery Key Reset Requests</h1>
                 <p>Review and manage user requests for recovery key resets</p>
+                <div style="text-align: right; margin-top: 10px;">
+                    <a href="/admin" style="color: #6b7280; text-decoration: none; font-size: 14px;">← Back to Admin Panel</a>
+                </div>
             </div>
 
             <div id="message"></div>
@@ -238,21 +241,40 @@
         <script>
             let currentUserId = null;
             let authToken = localStorage.getItem('adminToken');
-
-            if (!authToken) {
-                window.location.href = '/admin';
+            
+            // Check if user is authenticated
+            function checkAuth() {
+                if (!authToken) {
+                    // Try to get token from session storage or prompt for login
+                    const sessionToken = sessionStorage.getItem('adminToken');
+                    if (sessionToken) {
+                        authToken = sessionToken;
+                        localStorage.setItem('adminToken', sessionToken);
+                    } else {
+                        // Redirect to admin login page
+                        window.location.href = '/admin-login.html';
+                        return false;
+                    }
+                }
+                return true;
             }
 
             // Load requests on page load
-            document.addEventListener('DOMContentLoaded', loadRequests);
+            document.addEventListener('DOMContentLoaded', () => {
+                const isAuthenticated = checkAuth();
+                if (isAuthenticated) {
+                    loadRequests();
+                }
+            });
 
             async function loadRequests() {
                 try {
                     const response = await fetch(
                         '/api/auth/recovery-key-reset-requests',
                         {
+                            method: 'GET',
                             headers: {
-                                Authorization: `Bearer ${authToken}`,
+                                'Authorization': `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                         }
@@ -320,7 +342,7 @@
                         {
                             method: 'POST',
                             headers: {
-                                Authorization: `Bearer ${authToken}`,
+                                'Authorization': `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                         }
@@ -372,7 +394,7 @@
                         {
                             method: 'POST',
                             headers: {
-                                Authorization: `Bearer ${authToken}`,
+                                'Authorization': `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({ reason }),
