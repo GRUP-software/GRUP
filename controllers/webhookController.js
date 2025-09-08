@@ -15,6 +15,12 @@ import config from '../config/environment.js'; // Import environment configurati
 // Helper function to create order after successful payment
 const createOrderFromPayment = async (paymentHistory) => {
     try {
+        // CRITICAL: Validate that payment is actually successful before creating order
+        if (paymentHistory.status !== 'paid') {
+            console.error(`❌ Cannot create order for payment ${paymentHistory._id}. Status: ${paymentHistory.status}`);
+            throw new Error(`Payment status is not 'paid'. Current status: ${paymentHistory.status}`);
+        }
+
         console.log(`Creating order for PaymentHistory: ${paymentHistory._id}`);
 
         const trackingNumber = generateTrackingNumber();
@@ -110,8 +116,19 @@ export const handleFlutterwaveWebhook = async (req, res) => {
         const secretHash = process.env.FLUTTERWAVE_SECRET_KEY;
         const signature = req.headers['verif-hash'];
 
-        if (!signature || signature !== secretHash) {
+        // Enhanced signature validation
+        if (!signature) {
+            console.error('❌ Missing webhook signature');
+            logger.error('Webhook received without signature');
+            return res.status(400).json({ message: 'Missing signature' });
+        }
+
+        if (signature !== secretHash) {
             console.error('❌ Invalid webhook signature');
+            logger.error('Webhook received with invalid signature', {
+                received: signature,
+                expected: secretHash ? 'SET' : 'NOT_SET'
+            });
             return res.status(400).json({ message: 'Invalid signature' });
         }
 
@@ -121,6 +138,11 @@ export const handleFlutterwaveWebhook = async (req, res) => {
             await handleSuccessfulCharge(event.data);
         } else if (event.event === 'charge.failed') {
             await handleFailedCharge(event.data);
+        } else if (event.event === 'charge.cancelled') {
+            await handleCancelledCharge(event.data);
+        } else {
+            console.log(`🔔 Unhandled webhook event: ${event.event}`);
+            logger.info(`Unhandled webhook event: ${event.event}`, event.data);
         }
 
         res.status(200).json({ message: 'Webhook processed successfully' });
@@ -143,6 +165,13 @@ const handleSuccessfulCharge = async (data) => {
         console.log(`   Reference: ${tx_ref}`);
         console.log(`   Amount: ${amount}`);
         console.log(`   Status: ${status}`);
+
+        // CRITICAL: Validate that the payment is actually successful
+        if (status !== 'successful') {
+            logger.error(`Payment ${tx_ref} not successful. Status: ${status}`);
+            console.error(`❌ Payment ${tx_ref} not successful. Status: ${status}`);
+            return;
+        }
 
         // Find payment history by Flutterwave reference
         console.log(`🔍 Looking for payment history with referenxe: ${tx_ref}`);
@@ -464,5 +493,44 @@ const handleFailedCharge = async (data) => {
         }
     } catch (error) {
         logger.error('Error handling failed charge:', error);
+    }
+};
+
+const handleCancelledCharge = async (data) => {
+    try {
+        const { reference } = data;
+
+        console.log(`🔔 Payment cancelled: ${reference}`);
+
+        const paymentHistory = await PaymentHistory.findOne({
+            flutterwaveReference: reference,
+        });
+        if (!paymentHistory) {
+            logger.error(
+                `Payment history not found for cancelled charge: ${reference}`
+            );
+            return;
+        }
+
+        // Mark payment as cancelled
+        paymentHistory.status = 'cancelled';
+        paymentHistory.flutterwaveData = data;
+        await paymentHistory.save();
+
+        logger.info(`Payment ${reference} marked as cancelled`);
+
+        // Emit WebSocket event to notify user
+        const io = global.io;
+        if (io) {
+            io.to(`user_${paymentHistory.userId}`).emit('paymentCancelled', {
+                reference,
+                message: 'Payment was cancelled. Your cart has been preserved.',
+            });
+        }
+
+        console.log(`✅ Payment ${reference} cancellation handled successfully`);
+    } catch (error) {
+        logger.error('Error handling cancelled charge:', error);
+        console.error('❌ Error handling cancelled charge:', error);
     }
 };

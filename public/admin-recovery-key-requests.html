@@ -42,6 +42,144 @@
                 color: #6b7280;
             }
 
+            /* Notification Panel Styles */
+            .notification-panel {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+                overflow: hidden;
+            }
+
+            .notification-header {
+                background: #3b82f6;
+                color: white;
+                padding: 15px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .notification-header h3 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .notification-badge {
+                background: #ef4444;
+                color: white;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            .notification-list {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            .notification-item {
+                padding: 15px 20px;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                transition: background-color 0.2s;
+            }
+
+            .notification-item:hover {
+                background-color: #f9fafb;
+            }
+
+            .notification-item:last-child {
+                border-bottom: none;
+            }
+
+            .notification-content {
+                flex: 1;
+            }
+
+            .notification-title {
+                font-weight: 600;
+                color: #1f2937;
+                margin-bottom: 4px;
+            }
+
+            .notification-message {
+                color: #6b7280;
+                font-size: 14px;
+                margin-bottom: 4px;
+            }
+
+            .notification-time {
+                color: #9ca3af;
+                font-size: 12px;
+            }
+
+            .notification-actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            .notification-btn {
+                padding: 6px 12px;
+                border: none;
+                border-radius: 4px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .notification-btn.primary {
+                background: #3b82f6;
+                color: white;
+            }
+
+            .notification-btn.primary:hover {
+                background: #2563eb;
+            }
+
+            .notification-btn.secondary {
+                background: #e5e7eb;
+                color: #374151;
+            }
+
+            .notification-btn.secondary:hover {
+                background: #d1d5db;
+            }
+
+            .no-notifications {
+                padding: 40px 20px;
+                text-align: center;
+                color: #6b7280;
+            }
+
+            .refresh-btn {
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: background-color 0.2s;
+            }
+
+            .refresh-btn:hover {
+                background: #059669;
+            }
+
+            .refresh-btn:disabled {
+                background: #9ca3af;
+                cursor: not-allowed;
+            }
+
             .requests-container {
                 background: white;
                 border-radius: 8px;
@@ -279,6 +417,24 @@
                 </div>
             </div>
 
+            <!-- Notification Panel -->
+            <div class="notification-panel">
+                <div class="notification-header">
+                    <h3>🔔 Recent Requests</h3>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="notification-badge" id="notificationBadge">0</span>
+                        <button class="refresh-btn" id="refreshNotifications" onclick="loadNotifications()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="notification-list" id="notificationList">
+                    <div class="no-notifications">
+                        <p>No recent requests</p>
+                    </div>
+                </div>
+            </div>
+
             <div id="message"></div>
             
             <div id="tempKeyDisplay" style="display: none;"></div>
@@ -340,6 +496,7 @@
                 console.log('Current authToken:', authToken);
                 if (isAuthenticated) {
                     loadRequests();
+                    loadNotifications();
                 }
                 
                 // Add event listener for test button
@@ -613,6 +770,127 @@
                     closeRejectModal();
                 }
             };
+
+            // Notification functions
+            async function loadNotifications() {
+                try {
+                    const response = await fetch(`${window.location.origin}/api/notifications/admin`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            displayNotifications(data.data.notifications);
+                        }
+                    } else {
+                        console.error('Failed to load notifications:', response.status);
+                    }
+                } catch (error) {
+                    console.error('Error loading notifications:', error);
+                }
+            }
+
+            function displayNotifications(notifications) {
+                const notificationList = document.getElementById('notificationList');
+                const notificationBadge = document.getElementById('notificationBadge');
+                
+                // Filter for recovery key reset requests
+                const recoveryKeyNotifications = notifications.filter(notification => 
+                    notification.category === 'system' && 
+                    notification.data && 
+                    notification.data.actionType === 'recovery_key_reset_request'
+                );
+
+                // Update badge count
+                notificationBadge.textContent = recoveryKeyNotifications.length;
+
+                if (recoveryKeyNotifications.length === 0) {
+                    notificationList.innerHTML = '<div class="no-notifications"><p>No recent requests</p></div>';
+                    return;
+                }
+
+                // Sort by creation date (newest first)
+                recoveryKeyNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                // Display notifications
+                notificationList.innerHTML = recoveryKeyNotifications.map(notification => {
+                    const timeAgo = getTimeAgo(new Date(notification.createdAt));
+                    const isRead = notification.read ? 'read' : 'unread';
+                    
+                    return `
+                        <div class="notification-item ${isRead}">
+                            <div class="notification-content">
+                                <div class="notification-title">${notification.title}</div>
+                                <div class="notification-message">${notification.message}</div>
+                                <div class="notification-time">${timeAgo}</div>
+                            </div>
+                            <div class="notification-actions">
+                                <button class="notification-btn primary" onclick="viewRequest('${notification.data.userId}')">
+                                    View Request
+                                </button>
+                                <button class="notification-btn secondary" onclick="markNotificationRead('${notification._id}')">
+                                    Mark Read
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            function getTimeAgo(date) {
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - date) / 1000);
+                
+                if (diffInSeconds < 60) return 'Just now';
+                if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+                if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+                return `${Math.floor(diffInSeconds / 86400)}d ago`;
+            }
+
+            function viewRequest(userId) {
+                // Scroll to the request in the main list
+                const requestElement = document.querySelector(`[data-user-id="${userId}"]`);
+                if (requestElement) {
+                    requestElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    requestElement.style.backgroundColor = '#fef3c7';
+                    setTimeout(() => {
+                        requestElement.style.backgroundColor = '';
+                    }, 3000);
+                }
+            }
+
+            async function markNotificationRead(notificationId) {
+                try {
+                    const response = await fetch(`${window.location.origin}/api/notifications/admin/${notificationId}/read`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        // Reload notifications to update the display
+                        loadNotifications();
+                    }
+                } catch (error) {
+                    console.error('Error marking notification as read:', error);
+                }
+            }
+
+            // Auto-refresh notifications every 30 seconds
+            setInterval(() => {
+                if (authToken) {
+                    loadNotifications();
+                }
+            }, 30000);
         </script>
     </body>
 </html>

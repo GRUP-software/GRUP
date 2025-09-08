@@ -38,6 +38,18 @@ const ShareLinkComponent = componentLoader.add(
     path.join(__dirname, 'components', 'ShareLinkComponent.jsx')
 );
 
+// Add RecoveryKeyNotificationComponent
+const RecoveryKeyNotificationComponent = componentLoader.add(
+    'RecoveryKeyNotificationComponent',
+    path.join(__dirname, 'components', 'RecoveryKeyNotificationComponent.jsx')
+);
+
+// Add AdminDashboardComponent
+const AdminDashboardComponent = componentLoader.add(
+    'AdminDashboardComponent',
+    path.join(__dirname, 'components', 'AdminDashboardComponent.jsx')
+);
+
 // We'll add it back as a simple text field for now
 let SellingUnitsManagerComponent = null;
 
@@ -81,6 +93,17 @@ const adminJs = new AdminJS({
                 actions: {
                     edit: { isAccessible: true },
                     new: { isAccessible: false },
+                    recoveryKeyNotifications: {
+                        actionType: 'resource',
+                        component: RecoveryKeyNotificationComponent,
+                        isVisible: true,
+                        isAccessible: true,
+                        handler: async () => {
+                            return {
+                                record: {},
+                            };
+                        },
+                    },
                 },
                 perPage: 200,
             },

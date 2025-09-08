@@ -1,5 +1,6 @@
 import express from 'express';
 import { verifyToken } from '../middleware/authMiddleware.js';
+import { verifyAdminToken } from './adminAuthRoutes.js';
 import notificationService from '../services/notificationService.js';
 
 const router = express.Router();
@@ -200,6 +201,90 @@ router.post('/test', verifyToken, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to create test notification',
+        });
+    }
+});
+
+// Admin notification routes
+// Get admin notifications (for recovery key reset requests)
+router.get('/admin', verifyAdminToken, async (req, res) => {
+    try {
+        const adminUserId = process.env.ADMIN_USER_ID;
+        const { page, limit, category, read, sortBy, sortOrder } = req.query;
+
+        const options = {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 20,
+            category: category || null,
+            read: read === 'true' ? true : read === 'false' ? false : null,
+            sortBy: sortBy || 'createdAt',
+            sortOrder: sortOrder || 'desc',
+        };
+
+        const result = await notificationService.getUserNotifications(
+            adminUserId,
+            options
+        );
+
+        res.json({
+            success: true,
+            data: result,
+        });
+    } catch (error) {
+        console.error('Error fetching admin notifications:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch admin notifications',
+        });
+    }
+});
+
+// Mark admin notification as read
+router.patch('/admin/:notificationId/read', verifyAdminToken, async (req, res) => {
+    try {
+        const adminUserId = process.env.ADMIN_USER_ID;
+        const { notificationId } = req.params;
+
+        const notification = await notificationService.markAsRead(
+            adminUserId,
+            notificationId
+        );
+
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found',
+            });
+        }
+
+        res.json({
+            success: true,
+            data: { notification },
+        });
+    } catch (error) {
+        console.error('Error marking admin notification as read:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to mark notification as read',
+        });
+    }
+});
+
+// Get admin unread count
+router.get('/admin/unread-count', verifyAdminToken, async (req, res) => {
+    try {
+        const adminUserId = process.env.ADMIN_USER_ID;
+        const count = await notificationService.getUnreadCount(adminUserId);
+
+        res.json({
+            success: true,
+            data: { unreadCount: count },
+        });
+    } catch (error) {
+        console.error('Error fetching admin unread count:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch unread count',
         });
     }
 });
