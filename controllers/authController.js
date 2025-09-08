@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import { addReferral } from '../utils/referralBonusService.js';
+import notificationService from '../services/notificationService.js';
 
 export const signup = async (req, res) => {
     const { name, email, password, referralCode, secretRecoveryKey } = req.body;
@@ -315,6 +316,51 @@ export const requestRecoveryKeyReset = async (req, res) => {
             status: 'pending',
         };
         await user.save();
+
+        // Send notification to admin about the new recovery key reset request
+        try {
+            // Create in-app notification
+            await notificationService.createNotification({
+                userId: process.env.ADMIN_USER_ID,
+                type: 'warning',
+                category: 'system',
+                title: 'New Recovery Key Reset Request',
+                message: `${user.name} (${user.email}) has requested a recovery key reset. Reason: ${reason}`,
+                data: {
+                    userId: user._id,
+                    userName: user.name,
+                    userEmail: user.email,
+                    userPhone: user.phone,
+                    reason: reason,
+                    requestedAt: new Date(),
+                    actionType: 'recovery_key_reset_request',
+                },
+                priority: 'high',
+                actionUrl: '/admin-recovery-key-requests.html',
+                actionText: 'Review Request',
+            });
+
+            // Send email notification to admin
+            await notificationService.sendEmailNotification(
+                process.env.ADMIN_USER_ID,
+                'admin_action_notification',
+                {
+                    actionType: 'recovery_key_reset_request',
+                    actionDetails: {
+                        title: 'New Recovery Key Reset Request',
+                        description: `User ${user.name} (${user.email}) has requested a recovery key reset.`,
+                        reason: reason,
+                        userPhone: user.phone,
+                        requestedAt: new Date(),
+                    },
+                    adminName: 'System',
+                    timestamp: new Date(),
+                }
+            );
+        } catch (notificationError) {
+            console.error('Error sending admin notification:', notificationError);
+            // Don't fail the request if notification fails
+        }
 
         res.json({
             message:
