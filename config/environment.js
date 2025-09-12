@@ -33,7 +33,7 @@ const config = {
         'your-session-secret-key-change-this-in-production',
 
     // Frontend URL
-    FRONTEND_URL: process.env.FRONTEND_URL || 'https://grupclient.netlify.app',
+    FRONTEND_URL: process.env.FRONTEND_URL || 'https://grup.com.ng',
 
     // Cloudinary Configuration
     CLOUDINARY: {

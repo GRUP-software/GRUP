@@ -46,6 +46,7 @@ import referralRoutes from './routes/referralRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import productHtmlRoutes from './routes/productHtmlRoutes.js';
+import productMetaRoutes from './routes/productMetaRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
@@ -218,6 +219,9 @@ app.use('/api/upload', uploadRoutes);
 
 // Product HTML routes for social media crawlers (no auth required)
 app.use('/', productHtmlRoutes);
+
+// Product meta routes for frontend
+app.use('/', productMetaRoutes);
 
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);

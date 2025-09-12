@@ -38,9 +38,9 @@ router.get('/product/:slug', async (req, res) => {
                     <p>The product you're looking for doesn't exist.</p>
                     <script>
                         // Redirect to frontend after a short delay
-                        setTimeout(() => {
-                            window.location.href = '${process.env.FRONTEND_URL || 'https://grup.netlify.app'}/product/${slug}';
-                        }, 1000);
+                    setTimeout(() => {
+                        window.location.href = '${process.env.FRONTEND_URL || 'https://grup.com.ng'}/product/${slug}';
+                    }, 1000);
                     </script>
                 </body>
                 </html>
@@ -80,7 +80,7 @@ router.get('/product/:slug', async (req, res) => {
 
         // Get current URL
         const currentUrl = `${req.protocol}://${req.get('host')}/product/${productData.slug}`;
-        const frontendUrl = process.env.FRONTEND_URL || 'https://grup.netlify.app';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://grup.com.ng';
 
         // Generate HTML with proper meta tags
         const html = `
@@ -162,7 +162,7 @@ router.get('/product/:slug', async (req, res) => {
                 <p>Sorry, there was an error loading this product.</p>
                 <script>
                     setTimeout(() => {
-                        window.location.href = '${process.env.FRONTEND_URL || 'https://grup.netlify.app'}';
+                        window.location.href = '${process.env.FRONTEND_URL || 'https://grup.com.ng'}';
                     }, 2000);
                 </script>
             </body>
