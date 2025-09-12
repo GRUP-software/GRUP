@@ -186,7 +186,9 @@ app.get('/admin-login.html', (req, res) => {
 
 // Explicit route for admin recovery key requests page
 app.get('/admin-recovery-key-requests.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-recovery-key-requests.html'));
+    res.sendFile(
+        path.join(__dirname, 'public', 'admin-recovery-key-requests.html')
+    );
 });
 
 // AdminJS setup MUST come BEFORE body parser

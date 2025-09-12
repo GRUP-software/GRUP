@@ -17,8 +17,12 @@ const createOrderFromPayment = async (paymentHistory) => {
     try {
         // CRITICAL: Validate that payment is actually successful before creating order
         if (paymentHistory.status !== 'paid') {
-            console.error(`❌ Cannot create order for payment ${paymentHistory._id}. Status: ${paymentHistory.status}`);
-            throw new Error(`Payment status is not 'paid'. Current status: ${paymentHistory.status}`);
+            console.error(
+                `❌ Cannot create order for payment ${paymentHistory._id}. Status: ${paymentHistory.status}`
+            );
+            throw new Error(
+                `Payment status is not 'paid'. Current status: ${paymentHistory.status}`
+            );
         }
 
         console.log(`Creating order for PaymentHistory: ${paymentHistory._id}`);
@@ -127,7 +131,7 @@ export const handleFlutterwaveWebhook = async (req, res) => {
             console.error('❌ Invalid webhook signature');
             logger.error('Webhook received with invalid signature', {
                 received: signature,
-                expected: secretHash ? 'SET' : 'NOT_SET'
+                expected: secretHash ? 'SET' : 'NOT_SET',
             });
             return res.status(400).json({ message: 'Invalid signature' });
         }
@@ -169,7 +173,9 @@ const handleSuccessfulCharge = async (data) => {
         // CRITICAL: Validate that the payment is actually successful
         if (status !== 'successful') {
             logger.error(`Payment ${tx_ref} not successful. Status: ${status}`);
-            console.error(`❌ Payment ${tx_ref} not successful. Status: ${status}`);
+            console.error(
+                `❌ Payment ${tx_ref} not successful. Status: ${status}`
+            );
             return;
         }
 
@@ -528,7 +534,9 @@ const handleCancelledCharge = async (data) => {
             });
         }
 
-        console.log(`✅ Payment ${reference} cancellation handled successfully`);
+        console.log(
+            `✅ Payment ${reference} cancellation handled successfully`
+        );
     } catch (error) {
         logger.error('Error handling cancelled charge:', error);
         console.error('❌ Error handling cancelled charge:', error);

@@ -9,10 +9,10 @@ const router = express.Router();
 router.get('/api/product-meta/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
-        
+
         // Find the product by slug
         const product = await Product.findOne({ slug });
-        
+
         if (!product) {
             return res.status(404).json({
                 success: false,
@@ -37,18 +37,20 @@ router.get('/api/product-meta/:slug', async (req, res) => {
         };
 
         // Get the first image or use fallback
-        const productImage = productData.images && productData.images.length > 0 
-            ? productData.images[0] 
-            : 'https://res.cloudinary.com/dafkhnw7p/image/upload/v1755722659/WhatsApp_Image_2025-08-10_at_17.39.41_ef2d2dfe_m8okfh.jpg';
+        const productImage =
+            productData.images && productData.images.length > 0
+                ? productData.images[0]
+                : 'https://res.cloudinary.com/dafkhnw7p/image/upload/v1755722659/WhatsApp_Image_2025-08-10_at_17.39.41_ef2d2dfe_m8okfh.jpg';
 
         // Ensure image URL is absolute
-        const absoluteImageUrl = productImage.startsWith('http') 
-            ? productImage 
+        const absoluteImageUrl = productImage.startsWith('http')
+            ? productImage
             : `${req.protocol}://${req.get('host')}${productImage}`;
 
         // Truncate description for meta tags
-        const metaDescription = productData.description 
-            ? productData.description.substring(0, 160) + (productData.description.length > 160 ? '...' : '')
+        const metaDescription = productData.description
+            ? productData.description.substring(0, 160) +
+              (productData.description.length > 160 ? '...' : '')
             : 'Buy Together, Save Together';
 
         // Get current URL
@@ -66,10 +68,9 @@ router.get('/api/product-meta/:slug', async (req, res) => {
                 type: 'product',
                 siteName: 'Grup',
                 price: productData.price,
-                currency: 'NGN'
-            }
+                currency: 'NGN',
+            },
         });
-
     } catch (error) {
         console.error('Error getting product meta:', error);
         res.status(500).json({

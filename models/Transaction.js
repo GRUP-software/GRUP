@@ -19,7 +19,14 @@ const transactionSchema = new Schema({
 
     reason: {
         type: String,
-        enum: ['ORDER', 'REFUND', 'PARTIAL_REFUND', 'REFERRAL_BONUS', 'LOYALTY_REWARD', 'system_error_recovery'], // Valid reasons
+        enum: [
+            'ORDER',
+            'REFUND',
+            'PARTIAL_REFUND',
+            'REFERRAL_BONUS',
+            'LOYALTY_REWARD',
+            'system_error_recovery',
+        ], // Valid reasons
         required: true,
     },
 

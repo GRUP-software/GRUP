@@ -52,15 +52,18 @@ EMAIL_FROM_NAME=Grup Team
 ## 🔧 Deployment Steps
 
 ### 1. Backend Deployment
+
 1. Deploy the backend code to your production server
 2. Set the environment variables above
 3. Restart your backend service
 
 ### 2. Frontend Deployment
+
 1. Deploy the frontend code to Netlify
 2. The redirects will automatically handle product URLs
 
 ### 3. Testing
+
 1. Test with Facebook Debugger: https://developers.facebook.com/tools/debug/
 2. Test with Twitter Card Validator: https://cards-dev.twitter.com/validator
 3. Test WhatsApp sharing with a product link
@@ -68,6 +71,7 @@ EMAIL_FROM_NAME=Grup Team
 ## 📱 Expected Results
 
 After deployment, when users share product links:
+
 - **URL**: `https://grup.com.ng/product/yellow-garri`
 - **Image**: Shows the actual yellow-garri product image
 - **Title**: "Grup - Yellow Garri"
@@ -77,6 +81,7 @@ After deployment, when users share product links:
 ## 🛠️ Troubleshooting
 
 If meta tags aren't working:
+
 1. Check that the backend API is accessible at `https://api.grup.com.ng/api/product-meta/{slug}`
 2. Verify that Netlify redirects are working
 3. Clear browser cache and test again
@@ -85,6 +90,7 @@ If meta tags aren't working:
 ## 📞 Support
 
 If you encounter any issues, check:
+
 1. Backend logs for errors
 2. Browser console for JavaScript errors
 3. Network tab for failed API calls

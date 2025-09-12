@@ -144,8 +144,12 @@ export const processGroupBuys = async (paymentHistory) => {
     try {
         // CRITICAL: Validate that payment is actually successful before creating group buys
         if (paymentHistory.status !== 'paid') {
-            console.error(`❌ Cannot create group buys for payment ${paymentHistory._id}. Status: ${paymentHistory.status}`);
-            throw new Error(`Payment status is not 'paid'. Current status: ${paymentHistory.status}`);
+            console.error(
+                `❌ Cannot create group buys for payment ${paymentHistory._id}. Status: ${paymentHistory.status}`
+            );
+            throw new Error(
+                `Payment status is not 'paid'. Current status: ${paymentHistory.status}`
+            );
         }
         for (const item of paymentHistory.cartItems) {
             const itemAmount = item.price * item.quantity;
