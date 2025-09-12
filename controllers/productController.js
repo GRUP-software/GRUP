@@ -17,6 +17,7 @@ export const productLink = async (req, res) => {
         basePrice: product.basePrice || 0,
         title: product.title,
         slug: product.slug,
+        icon: "https://grup.com.ng/favicon.ico"
     };
 
     const frontendUrl = `${process.env.FRONTEND_URL}/product/${productData.slug}`;
