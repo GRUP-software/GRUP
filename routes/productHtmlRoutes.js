@@ -4,55 +4,85 @@ import GroupBuy from '../models/GroupBuy.js';
 
 const router = express.Router();
 
+// Function to detect if request is from a social media crawler
+const isSocialMediaCrawler = (userAgent) => {
+    if (!userAgent) return false;
+    
+    const crawlerPatterns = [
+        'WhatsApp',
+        'facebookexternalhit',
+        'Twitterbot',
+        'LinkedInBot',
+        'Slackbot',
+        'TelegramBot',
+        'SkypeUriPreview',
+        'Discordbot',
+        'Applebot',
+        'Googlebot'
+    ];
+    
+    return crawlerPatterns.some(pattern => 
+        userAgent.toLowerCase().includes(pattern.toLowerCase())
+    );
+};
+
+// Function to generate dynamic description
+const generateDynamicDescription = (productName) => {
+    return `Wow, I just bought ${productName}! Click on the link so we can complete the order.`;
+};
+
 // Serve HTML with meta tags for product pages (for social media crawlers)
 router.get('/product/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
+        const userAgent = req.get('User-Agent');
+        const isBot = isSocialMediaCrawler(userAgent);
         
         // Find the product by slug
         const product = await Product.findOne({ slug });
         
         if (!product) {
-            // Return 404 page with basic meta tags
-            return res.status(404).send(`
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Product Not Found - Grup</title>
-                    <meta name="description" content="Product not found on Grup">
-                    <meta property="og:title" content="Product Not Found - Grup">
-                    <meta property="og:description" content="Product not found on Grup">
-                    <meta property="og:image" content="https://res.cloudinary.com/dafkhnw7p/image/upload/v1755722659/WhatsApp_Image_2025-08-10_at_17.39.41_ef2d2dfe_m8okfh.jpg">
-                    <meta property="og:url" content="${req.protocol}://${req.get('host')}/product/${slug}">
-                    <meta property="og:type" content="website">
-                    <meta property="og:site_name" content="Grup">
-                    <meta name="twitter:card" content="summary_large_image">
-                    <meta name="twitter:title" content="Product Not Found - Grup">
-                    <meta name="twitter:description" content="Product not found on Grup">
-                    <meta name="twitter:image" content="https://res.cloudinary.com/dafkhnw7p/image/upload/v1755722659/WhatsApp_Image_2025-08-10_at_17.39.41_ef2d2dfe_m8okfh.jpg">
-                </head>
-                <body>
-                    <h1>Product Not Found</h1>
-                    <p>The product you're looking for doesn't exist.</p>
-                    <script>
-                        // Redirect to frontend after a short delay
-                    setTimeout(() => {
-                        window.location.href = '${process.env.FRONTEND_URL || 'https://grup.com.ng'}/product/${slug}';
-                    }, 1000);
-                    </script>
-                </body>
-                </html>
-            `);
+            // For bots, return 404 page with meta tags
+            if (isBot) {
+                return res.status(404).send(`
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Product Not Found - Grup</title>
+                        <meta name="description" content="Product not found on Grup">
+                        <meta property="og:title" content="Product Not Found - Grup">
+                        <meta property="og:description" content="Product not found on Grup">
+                        <meta property="og:image" content="https://res.cloudinary.com/dafkhnw7p/image/upload/v1755722659/WhatsApp_Image_2025-08-10_at_17.39.41_ef2d2dfe_m8okfh.jpg">
+                        <meta property="og:url" content="${req.protocol}://${req.get('host')}/product/${slug}">
+                        <meta property="og:type" content="website">
+                        <meta property="og:site_name" content="Grup">
+                        <meta name="twitter:card" content="summary_large_image">
+                        <meta name="twitter:title" content="Product Not Found - Grup">
+                        <meta name="twitter:description" content="Product not found on Grup">
+                        <meta name="twitter:image" content="https://res.cloudinary.com/dafkhnw7p/image/upload/v1755722659/WhatsApp_Image_2025-08-10_at_17.39.41_ef2d2dfe_m8okfh.jpg">
+                    </head>
+                    <body>
+                        <h1>Product Not Found</h1>
+                        <p>The product you're looking for doesn't exist.</p>
+                    </body>
+                    </html>
+                `);
+            }
+            
+            // For real users, redirect to frontend
+            const frontendUrl = process.env.FRONTEND_URL || 'https://grup.com.ng';
+            return res.redirect(302, `${frontendUrl}/product/${slug}`);
         }
 
-        // Get group buy data
-        const groupBuy = await GroupBuy.findOne({ productId: product._id })
-            .sort({ createdAt: -1 })
-            .populate('productId', 'title price');
+        // If it's a real user (not a bot), redirect immediately to frontend
+        if (!isBot) {
+            const frontendUrl = process.env.FRONTEND_URL || 'https://grup.com.ng';
+            return res.redirect(302, `${frontendUrl}/product/${slug}`);
+        }
 
-        // Prepare product data
+        // For bots, prepare product data and return HTML with meta tags
         const productData = {
             ...product.toObject(),
             description: product.description || '',
@@ -73,17 +103,13 @@ router.get('/product/:slug', async (req, res) => {
             ? productImage 
             : `${req.protocol}://${req.get('host')}${productImage}`;
 
-        // Truncate description for meta tags
-        const metaDescription = productData.description 
-            ? productData.description.substring(0, 160) + (productData.description.length > 160 ? '...' : '')
-            : 'Buy Together, Save Together';
-
-        // Get current URL
-        const currentUrl = `${req.protocol}://${req.get('host')}/product/${productData.slug}`;
+        // Generate dynamic description for social sharing
+        const dynamicDescription = generateDynamicDescription(productData.title);
+        
+        // Get frontend URL for canonical link
         const frontendUrl = process.env.FRONTEND_URL || 'https://grup.com.ng';
 
-        // Generate HTML with proper meta tags for social media crawlers
-        // But redirect users immediately to the frontend product page
+        // Generate clean HTML with proper meta tags for social media crawlers
         const html = `
             <!DOCTYPE html>
             <html lang="en">
@@ -91,11 +117,11 @@ router.get('/product/:slug', async (req, res) => {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Grup - ${productData.title}</title>
-                <meta name="description" content="${metaDescription}">
+                <meta name="description" content="${dynamicDescription}">
                 
                 <!-- Open Graph Meta Tags -->
                 <meta property="og:title" content="Grup - ${productData.title}">
-                <meta property="og:description" content="${metaDescription}">
+                <meta property="og:description" content="${dynamicDescription}">
                 <meta property="og:image" content="${absoluteImageUrl}">
                 <meta property="og:url" content="${frontendUrl}/product/${productData.slug}">
                 <meta property="og:type" content="product">
@@ -104,7 +130,7 @@ router.get('/product/:slug', async (req, res) => {
                 <!-- Twitter Card Meta Tags -->
                 <meta name="twitter:card" content="summary_large_image">
                 <meta name="twitter:title" content="Grup - ${productData.title}">
-                <meta name="twitter:description" content="${metaDescription}">
+                <meta name="twitter:description" content="${dynamicDescription}">
                 <meta name="twitter:image" content="${absoluteImageUrl}">
                 
                 <!-- Additional Product Meta Tags -->
@@ -113,15 +139,12 @@ router.get('/product/:slug', async (req, res) => {
                 
                 <!-- Canonical URL -->
                 <link rel="canonical" href="${frontendUrl}/product/${productData.slug}">
-                
-                <!-- Immediate redirect to frontend product page -->
-                <script>
-                    window.location.href = '${frontendUrl}/product/${productData.slug}';
-                </script>
             </head>
             <body>
                 <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-                    <p>Redirecting to product page...</p>
+                    <h1>Grup - ${productData.title}</h1>
+                    <p>${dynamicDescription}</p>
+                    <p><a href="${frontendUrl}/product/${productData.slug}">View Product on Grup</a></p>
                 </div>
             </body>
             </html>
@@ -133,7 +156,16 @@ router.get('/product/:slug', async (req, res) => {
     } catch (error) {
         console.error('Error serving product HTML:', error);
         
-        // Return error page
+        const userAgent = req.get('User-Agent');
+        const isBot = isSocialMediaCrawler(userAgent);
+        
+        // For real users, redirect to frontend on error
+        if (!isBot) {
+            const frontendUrl = process.env.FRONTEND_URL || 'https://grup.com.ng';
+            return res.redirect(302, `${frontendUrl}/product/${req.params.slug}`);
+        }
+        
+        // For bots, return error page with meta tags
         res.status(500).send(`
             <!DOCTYPE html>
             <html lang="en">
@@ -152,11 +184,6 @@ router.get('/product/:slug', async (req, res) => {
             <body>
                 <h1>Error Loading Product</h1>
                 <p>Sorry, there was an error loading this product.</p>
-                <script>
-                    setTimeout(() => {
-                        window.location.href = '${process.env.FRONTEND_URL || 'https://grup.com.ng'}';
-                    }, 2000);
-                </script>
             </body>
             </html>
         `);
