@@ -1,6 +1,32 @@
 import Product from '../models/Product.js';
 import GroupBuy from '../models/GroupBuy.js';
 
+export const productLink = async (req, res) => {
+    const { slug } = req.params;
+    const product = await Product.findOne({ slug });
+
+    if (!product) {
+        return res.redirect(process.env.FRONTEND_URL);
+    }
+
+    const productData = {
+        ...product.toObject(),
+        description: product.description || '',
+        image: product.image?.[0] || '',
+        price: product.price || 0,
+        basePrice: product.basePrice || 0,
+        title: product.title,
+        slug: product.slug,
+    };
+
+    const frontendUrl = `${process.env.FRONTEND_URL}/product/${productData.slug}`;
+
+    res.render('shareableproduct', {
+        ...productData,
+        link: frontendUrl,
+    });
+};
+
 // GET all products with shareable message links and enhanced data
 export const getAllProducts = async (req, res) => {
     try {

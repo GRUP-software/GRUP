@@ -81,6 +81,9 @@ notificationService.setIO(io);
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', 1);
 
+// Set the view engine to EJS
+app.set('view engine', 'ejs');
+
 // Compression middleware
 app.use(compression());
 
