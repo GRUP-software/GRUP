@@ -358,7 +358,10 @@ export const requestRecoveryKeyReset = async (req, res) => {
                 }
             );
         } catch (notificationError) {
-            console.error('Error sending admin notification:', notificationError);
+            console.error(
+                'Error sending admin notification:',
+                notificationError
+            );
             // Don't fail the request if notification fails
         }
 

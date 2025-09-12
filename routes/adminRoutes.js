@@ -17,7 +17,10 @@ const router = express.Router();
 
 // Test endpoint to verify admin routes are working
 router.get('/test', (req, res) => {
-    res.json({ message: 'Admin routes are working!', timestamp: new Date().toISOString() });
+    res.json({
+        message: 'Admin routes are working!',
+        timestamp: new Date().toISOString(),
+    });
 });
 
 // Admin login endpoint

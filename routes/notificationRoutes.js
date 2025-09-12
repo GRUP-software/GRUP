@@ -240,35 +240,39 @@ router.get('/admin', verifyAdminToken, async (req, res) => {
 });
 
 // Mark admin notification as read
-router.patch('/admin/:notificationId/read', verifyAdminToken, async (req, res) => {
-    try {
-        const adminUserId = process.env.ADMIN_USER_ID;
-        const { notificationId } = req.params;
+router.patch(
+    '/admin/:notificationId/read',
+    verifyAdminToken,
+    async (req, res) => {
+        try {
+            const adminUserId = process.env.ADMIN_USER_ID;
+            const { notificationId } = req.params;
 
-        const notification = await notificationService.markAsRead(
-            adminUserId,
-            notificationId
-        );
+            const notification = await notificationService.markAsRead(
+                adminUserId,
+                notificationId
+            );
 
-        if (!notification) {
-            return res.status(404).json({
+            if (!notification) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Notification not found',
+                });
+            }
+
+            res.json({
+                success: true,
+                data: { notification },
+            });
+        } catch (error) {
+            console.error('Error marking admin notification as read:', error);
+            res.status(500).json({
                 success: false,
-                message: 'Notification not found',
+                message: 'Failed to mark notification as read',
             });
         }
-
-        res.json({
-            success: true,
-            data: { notification },
-        });
-    } catch (error) {
-        console.error('Error marking admin notification as read:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to mark notification as read',
-        });
     }
-});
+);
 
 // Get admin unread count
 router.get('/admin/unread-count', verifyAdminToken, async (req, res) => {

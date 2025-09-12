@@ -4,5 +4,6 @@ import RecoveryKeyNotificationComponent from '../components/RecoveryKeyNotificat
 import AdminDashboardComponent from '../components/AdminDashboardComponent';
 
 AdminJS.UserComponents.ShareLinkComponent = ShareLinkComponent;
-AdminJS.UserComponents.RecoveryKeyNotificationComponent = RecoveryKeyNotificationComponent;
+AdminJS.UserComponents.RecoveryKeyNotificationComponent =
+    RecoveryKeyNotificationComponent;
 AdminJS.UserComponents.AdminDashboardComponent = AdminDashboardComponent;

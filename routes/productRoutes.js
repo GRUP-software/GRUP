@@ -2,6 +2,7 @@ import express from 'express';
 import upload from '../middleware/upload.js'; // for image uploads
 import { verifyToken } from '../middleware/authMiddleware.js';
 import {
+    productLink,
     getAllProducts,
     createProduct,
     updateProduct,
@@ -18,6 +19,7 @@ const router = express.Router();
 router.get('/', getAllProducts);
 router.get('/slug/:slug', getProductBySlug);
 router.get('/id/:id', getProductById);
+router.get('/link/:slug', productLink);
 
 router.get('/:productId/selling-unit/:optionName/price', getSellingUnitPrice);
 
