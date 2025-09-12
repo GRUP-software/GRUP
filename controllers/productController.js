@@ -59,7 +59,7 @@ export const getAllProducts = async (req, res) => {
 
                 return {
                     ...product.toObject(),
-                    shareLink: `${process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : process.env.BACKEND_URL || 'https://api.grup.com.ng'}/product/${product.slug}?msg=${encodedMessage}`,
+                    shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
                     // Ensure description is included
                     description: product.description || '',
                     // Add computed fields for frontend
