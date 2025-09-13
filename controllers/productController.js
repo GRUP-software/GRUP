@@ -82,7 +82,7 @@ export const getAllProducts = async (req, res) => {
 
                 return {
                     ...product.toObject(),
-                    shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
+                    shareLink: `${process.env.BACKEND_URL}/api/products/link/${product.slug}?msg=${encodedMessage}`,
                     // Ensure description is included
                     description: product.description || '',
                     // Add computed fields for frontend
@@ -190,7 +190,7 @@ export const getProductBySlug = async (req, res) => {
 
         const enrichedProduct = {
             ...product.toObject(),
-            shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
+            shareLink: `${process.env.BACKEND_URL}/api/products/link/${product.slug}?msg=${encodedMessage}`,
             // Ensure full description is available
             description: product.description || '',
             hasDescription: Boolean(
