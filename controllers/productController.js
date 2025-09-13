@@ -150,7 +150,7 @@ export const getProductBySlug = async (req, res) => {
                 : process.env.FRONTEND_URL || 'https://grupclient.netlify.app';
 
         // Updated share message as requested by user
-        const message = `Wow I just bought ${product.title}! Click on the link so we can complete the order.`;
+        const message = `Wow I just bought ${product.title} at a massive discount! Click on the link so we can complete the order. deal ends soon`;
         const encodedMessage = encodeURIComponent(message);
 
         const groupBuy = await GroupBuy.findOne({ productId: product._id })
