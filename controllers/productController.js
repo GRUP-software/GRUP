@@ -12,7 +12,7 @@ export const productLink = async (req, res) => {
     const productData = {
         ...product.toObject(),
         description: product.description || '',
-        image: product.image?.[0] || '',
+        image: product.images?.[0] || '',
         price: product.price || 0,
         basePrice: product.basePrice || 0,
         title: product.title,
