@@ -150,13 +150,16 @@
                     const loginData = { email, password };
                     console.log('Sending login request:', loginData);
 
-                    const response = await fetch('/api/admin-auth/admin-login', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(loginData),
-                    });
+                    const response = await fetch(
+                        '/api/z3c6v9b2/k8j3h2g7',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(loginData),
+                        }
+                    );
 
                     console.log('Login response status:', response.status);
                     console.log('Login response headers:', [
@@ -168,7 +171,7 @@
 
                     debugDiv.innerHTML = `
                     <strong>Login Test Results:</strong><br>
-                    URL: ${window.location.origin}/api/admin-auth/admin-login<br>
+                    URL: ${window.location.origin}/api/z3c6v9b2/k8j3h2g7<br>
                     Method: POST<br>
                     Status: ${response.status}<br>
                     Headers: Content-Type: application/json<br>

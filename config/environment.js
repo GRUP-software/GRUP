@@ -123,7 +123,6 @@ const getCurrentConfig = () => {
 // Export current configuration
 const finalConfig = getCurrentConfig();
 
-
 export default finalConfig;
 
 // Export all configurations for testing

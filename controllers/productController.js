@@ -1,6 +1,29 @@
 import Product from '../models/Product.js';
 import GroupBuy from '../models/GroupBuy.js';
 
+export const productLink = async (req, res) => {
+    const { slug } = req.params;
+    const product = await Product.findOne({ slug });
+
+    if (!product) {
+        return res.redirect(process.env.FRONTEND_URL);
+    }
+
+    const productData = {
+        ...product.toObject(),
+        description: product.description || '',
+        image: product.images?.[0] || '',
+        price: product.price || 0,
+        basePrice: product.basePrice || 0,
+        title: product.title,
+        slug: product.slug,
+        icon: 'https://grup.com.ng/favicon.ico',
+        link: `${process.env.FRONTEND_URL}/product/${product.slug}`,
+    };
+
+    res.render('shareableproduct', productData);
+};
+
 // GET all products with shareable message links and enhanced data
 export const getAllProducts = async (req, res) => {
     try {
@@ -59,7 +82,7 @@ export const getAllProducts = async (req, res) => {
 
                 return {
                     ...product.toObject(),
-                    shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
+                    shareLink: `${process.env.BACKEND_URL}/api/products/link/${product.slug}?msg=${encodedMessage}`,
                     // Ensure description is included
                     description: product.description || '',
                     // Add computed fields for frontend
@@ -127,7 +150,7 @@ export const getProductBySlug = async (req, res) => {
                 : process.env.FRONTEND_URL || 'https://grupclient.netlify.app';
 
         // Updated share message as requested by user
-        const message = `Wow I just bought ${product.title}! Click on the link so we can complete the order.`;
+        const message = `Wow I just bought ${product.title} at a massive discount! Click on the link so we can complete the order. deal ends soon`;
         const encodedMessage = encodeURIComponent(message);
 
         const groupBuy = await GroupBuy.findOne({ productId: product._id })
@@ -167,7 +190,7 @@ export const getProductBySlug = async (req, res) => {
 
         const enrichedProduct = {
             ...product.toObject(),
-            shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
+            shareLink: `${process.env.BACKEND_URL}/api/products/link/${product.slug}?msg=${encodedMessage}`,
             // Ensure full description is available
             description: product.description || '',
             hasDescription: Boolean(
@@ -225,12 +248,6 @@ export const getProductById = async (req, res) => {
             });
         }
 
-        // Use frontend URL instead of backend URL for share links
-        const frontendHost =
-            process.env.NODE_ENV === 'development'
-                ? 'http://localhost:5173'
-                : process.env.FRONTEND_URL || 'https://grupclient.netlify.app';
-
         // Updated share message as requested by user
         const message = `Wow I just bought ${product.title}! Click on the link so we can complete the order.`;
         const encodedMessage = encodeURIComponent(message);
@@ -272,7 +289,7 @@ export const getProductById = async (req, res) => {
 
         const enrichedProduct = {
             ...product.toObject(),
-            shareLink: `${frontendHost}/product/${product.slug}?msg=${encodedMessage}`,
+            shareLink: `${process.env.BACKEND_URL}/api/products/link/${product.slug}?msg=${encodedMessage}`,
             description: product.description || '',
             hasDescription: Boolean(
                 product.description && product.description.trim()

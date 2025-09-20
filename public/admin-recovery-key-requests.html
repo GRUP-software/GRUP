@@ -411,9 +411,30 @@
             <div class="header">
                 <h1>Recovery Key Reset Requests</h1>
                 <p>Review and manage user requests for recovery key resets</p>
-                <div style="text-align: right; margin-top: 10px;">
-                    <a href="/admin" style="color: #6b7280; text-decoration: none; font-size: 14px;">← Back to Admin Panel</a>
-                    <button id="testButton" style="margin-left: 10px; padding: 5px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">Test JS</button>
+                <div style="text-align: right; margin-top: 10px">
+                    <a
+                        href="/z7k9m2x4"
+                        style="
+                            color: #6b7280;
+                            text-decoration: none;
+                            font-size: 14px;
+                        "
+                        >← Back to Admin Panel</a
+                    >
+                    <button
+                        id="testButton"
+                        style="
+                            margin-left: 10px;
+                            padding: 5px 10px;
+                            background: #3b82f6;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        "
+                    >
+                        Test JS
+                    </button>
                 </div>
             </div>
 
@@ -421,9 +442,15 @@
             <div class="notification-panel">
                 <div class="notification-header">
                     <h3>🔔 Recent Requests</h3>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="notification-badge" id="notificationBadge">0</span>
-                        <button class="refresh-btn" id="refreshNotifications" onclick="loadNotifications()">
+                    <div style="display: flex; align-items: center; gap: 10px">
+                        <span class="notification-badge" id="notificationBadge"
+                            >0</span
+                        >
+                        <button
+                            class="refresh-btn"
+                            id="refreshNotifications"
+                            onclick="loadNotifications()"
+                        >
                             🔄 Refresh
                         </button>
                     </div>
@@ -436,8 +463,8 @@
             </div>
 
             <div id="message"></div>
-            
-            <div id="tempKeyDisplay" style="display: none;"></div>
+
+            <div id="tempKeyDisplay" style="display: none"></div>
 
             <div class="requests-container" id="requestsContainer">
                 <div class="loading">Loading requests...</div>
@@ -454,10 +481,7 @@
                     placeholder="Enter rejection reason..."
                 ></textarea>
                 <div class="modal-actions">
-                    <button
-                        class="btn btn-secondary"
-                        id="cancelRejectBtn"
-                    >
+                    <button class="btn btn-secondary" id="cancelRejectBtn">
                         Cancel
                     </button>
                     <button class="btn btn-reject" id="confirmRejectBtn">
@@ -470,7 +494,7 @@
         <script>
             let currentUserId = null;
             let authToken = localStorage.getItem('adminToken');
-            
+
             // Check if user is authenticated
             function checkAuth() {
                 if (!authToken) {
@@ -481,7 +505,7 @@
                         localStorage.setItem('adminToken', sessionToken);
                     } else {
                         // Redirect to admin login page
-                        window.location.href = '/admin-login.html';
+                        window.location.href = '/k8j3h2g7.html';
                         return false;
                     }
                 }
@@ -498,7 +522,7 @@
                     loadRequests();
                     loadNotifications();
                 }
-                
+
                 // Add event listener for test button
                 const testButton = document.getElementById('testButton');
                 if (testButton) {
@@ -507,15 +531,17 @@
                         alert('JavaScript is working!');
                     });
                 }
-                
+
                 // Add event listeners for reject modal buttons
-                const cancelRejectBtn = document.getElementById('cancelRejectBtn');
-                const confirmRejectBtn = document.getElementById('confirmRejectBtn');
-                
+                const cancelRejectBtn =
+                    document.getElementById('cancelRejectBtn');
+                const confirmRejectBtn =
+                    document.getElementById('confirmRejectBtn');
+
                 if (cancelRejectBtn) {
                     cancelRejectBtn.addEventListener('click', closeRejectModal);
                 }
-                
+
                 if (confirmRejectBtn) {
                     confirmRejectBtn.addEventListener('click', confirmReject);
                 }
@@ -528,7 +554,7 @@
                         {
                             method: 'GET',
                             headers: {
-                                'Authorization': `Bearer ${authToken}`,
+                                Authorization: `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                         }
@@ -579,16 +605,16 @@
             `
                     )
                     .join('');
-                
+
                 // Add event listeners to the buttons
-                container.querySelectorAll('.btn-approve').forEach(button => {
+                container.querySelectorAll('.btn-approve').forEach((button) => {
                     button.addEventListener('click', (e) => {
                         const userId = e.target.getAttribute('data-user-id');
                         approveRequest(userId);
                     });
                 });
-                
-                container.querySelectorAll('.btn-reject').forEach(button => {
+
+                container.querySelectorAll('.btn-reject').forEach((button) => {
                     button.addEventListener('click', (e) => {
                         const userId = e.target.getAttribute('data-user-id');
                         showRejectModal(userId);
@@ -599,7 +625,7 @@
             async function approveRequest(userId) {
                 console.log('approveRequest called with userId:', userId);
                 console.log('authToken:', authToken);
-                
+
                 if (
                     !confirm(
                         'Are you sure you want to approve this recovery key reset request?'
@@ -615,12 +641,12 @@
                         {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${authToken}`,
+                                Authorization: `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                         }
                     );
-                    
+
                     console.log('Response status:', response.status);
                     console.log('Response ok:', response.ok);
 
@@ -669,7 +695,7 @@
                         {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${authToken}`,
+                                Authorization: `Bearer ${authToken}`,
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({ reason }),
@@ -701,7 +727,8 @@
             }
 
             function showTemporaryKey(temporaryKey) {
-                const tempKeyDisplay = document.getElementById('tempKeyDisplay');
+                const tempKeyDisplay =
+                    document.getElementById('tempKeyDisplay');
                 tempKeyDisplay.innerHTML = `
                     <div class="temp-key-display">
                         <button class="close-temp-key" id="closeTempKeyBtn">&times;</button>
@@ -716,14 +743,19 @@
                     </div>
                 `;
                 tempKeyDisplay.style.display = 'block';
-                
+
                 // Add event listeners after the HTML is inserted
-                document.getElementById('closeTempKeyBtn').addEventListener('click', hideTemporaryKey);
-                document.getElementById('copyBtn').addEventListener('click', copyTemporaryKey);
+                document
+                    .getElementById('closeTempKeyBtn')
+                    .addEventListener('click', hideTemporaryKey);
+                document
+                    .getElementById('copyBtn')
+                    .addEventListener('click', copyTemporaryKey);
             }
 
             function hideTemporaryKey() {
-                const tempKeyDisplay = document.getElementById('tempKeyDisplay');
+                const tempKeyDisplay =
+                    document.getElementById('tempKeyDisplay');
                 tempKeyDisplay.style.display = 'none';
                 tempKeyDisplay.innerHTML = '';
             }
@@ -731,17 +763,17 @@
             function copyTemporaryKey() {
                 const tempKeyInput = document.getElementById('tempKeyInput');
                 const copyBtn = document.getElementById('copyBtn');
-                
+
                 // Select the text
                 tempKeyInput.select();
                 tempKeyInput.setSelectionRange(0, 99999); // For mobile devices
-                
+
                 // Copy to clipboard
                 try {
                     document.execCommand('copy');
                     copyBtn.textContent = 'Copied!';
                     copyBtn.classList.add('copied');
-                    
+
                     // Reset button after 2 seconds
                     setTimeout(() => {
                         copyBtn.textContent = 'Copy';
@@ -749,17 +781,22 @@
                     }, 2000);
                 } catch (err) {
                     // Fallback for modern browsers
-                    navigator.clipboard.writeText(tempKeyInput.value).then(() => {
-                        copyBtn.textContent = 'Copied!';
-                        copyBtn.classList.add('copied');
-                        
-                        setTimeout(() => {
-                            copyBtn.textContent = 'Copy';
-                            copyBtn.classList.remove('copied');
-                        }, 2000);
-                    }).catch(() => {
-                        alert('Failed to copy. Please select and copy manually.');
-                    });
+                    navigator.clipboard
+                        .writeText(tempKeyInput.value)
+                        .then(() => {
+                            copyBtn.textContent = 'Copied!';
+                            copyBtn.classList.add('copied');
+
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Copy';
+                                copyBtn.classList.remove('copied');
+                            }, 2000);
+                        })
+                        .catch(() => {
+                            alert(
+                                'Failed to copy. Please select and copy manually.'
+                            );
+                        });
                 }
             }
 
@@ -774,14 +811,17 @@
             // Notification functions
             async function loadNotifications() {
                 try {
-                    const response = await fetch(`${window.location.origin}/api/notifications/admin`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        credentials: 'include'
-                    });
+                    const response = await fetch(
+                        `${window.location.origin}/api/notifications/x9k2m5p8`,
+                        {
+                            method: 'GET',
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                        }
+                    );
 
                     if (response.ok) {
                         const data = await response.json();
@@ -789,7 +829,10 @@
                             displayNotifications(data.data.notifications);
                         }
                     } else {
-                        console.error('Failed to load notifications:', response.status);
+                        console.error(
+                            'Failed to load notifications:',
+                            response.status
+                        );
                     }
                 } catch (error) {
                     console.error('Error loading notifications:', error);
@@ -797,33 +840,43 @@
             }
 
             function displayNotifications(notifications) {
-                const notificationList = document.getElementById('notificationList');
-                const notificationBadge = document.getElementById('notificationBadge');
-                
+                const notificationList =
+                    document.getElementById('notificationList');
+                const notificationBadge =
+                    document.getElementById('notificationBadge');
+
                 // Filter for recovery key reset requests
-                const recoveryKeyNotifications = notifications.filter(notification => 
-                    notification.category === 'system' && 
-                    notification.data && 
-                    notification.data.actionType === 'recovery_key_reset_request'
+                const recoveryKeyNotifications = notifications.filter(
+                    (notification) =>
+                        notification.category === 'system' &&
+                        notification.data &&
+                        notification.data.actionType ===
+                            'recovery_key_reset_request'
                 );
 
                 // Update badge count
                 notificationBadge.textContent = recoveryKeyNotifications.length;
 
                 if (recoveryKeyNotifications.length === 0) {
-                    notificationList.innerHTML = '<div class="no-notifications"><p>No recent requests</p></div>';
+                    notificationList.innerHTML =
+                        '<div class="no-notifications"><p>No recent requests</p></div>';
                     return;
                 }
 
                 // Sort by creation date (newest first)
-                recoveryKeyNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                recoveryKeyNotifications.sort(
+                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                );
 
                 // Display notifications
-                notificationList.innerHTML = recoveryKeyNotifications.map(notification => {
-                    const timeAgo = getTimeAgo(new Date(notification.createdAt));
-                    const isRead = notification.read ? 'read' : 'unread';
-                    
-                    return `
+                notificationList.innerHTML = recoveryKeyNotifications
+                    .map((notification) => {
+                        const timeAgo = getTimeAgo(
+                            new Date(notification.createdAt)
+                        );
+                        const isRead = notification.read ? 'read' : 'unread';
+
+                        return `
                         <div class="notification-item ${isRead}">
                             <div class="notification-content">
                                 <div class="notification-title">${notification.title}</div>
@@ -840,24 +893,32 @@
                             </div>
                         </div>
                     `;
-                }).join('');
+                    })
+                    .join('');
             }
 
             function getTimeAgo(date) {
                 const now = new Date();
                 const diffInSeconds = Math.floor((now - date) / 1000);
-                
+
                 if (diffInSeconds < 60) return 'Just now';
-                if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-                if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+                if (diffInSeconds < 3600)
+                    return `${Math.floor(diffInSeconds / 60)}m ago`;
+                if (diffInSeconds < 86400)
+                    return `${Math.floor(diffInSeconds / 3600)}h ago`;
                 return `${Math.floor(diffInSeconds / 86400)}d ago`;
             }
 
             function viewRequest(userId) {
                 // Scroll to the request in the main list
-                const requestElement = document.querySelector(`[data-user-id="${userId}"]`);
+                const requestElement = document.querySelector(
+                    `[data-user-id="${userId}"]`
+                );
                 if (requestElement) {
-                    requestElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    requestElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                    });
                     requestElement.style.backgroundColor = '#fef3c7';
                     setTimeout(() => {
                         requestElement.style.backgroundColor = '';
@@ -867,14 +928,17 @@
 
             async function markNotificationRead(notificationId) {
                 try {
-                    const response = await fetch(`${window.location.origin}/api/notifications/admin/${notificationId}/read`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        credentials: 'include'
-                    });
+                    const response = await fetch(
+                        `${window.location.origin}/api/notifications/x9k2m5p8/${notificationId}/read`,
+                        {
+                            method: 'PATCH',
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                        }
+                    );
 
                     if (response.ok) {
                         // Reload notifications to update the display
