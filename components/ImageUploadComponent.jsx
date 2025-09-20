@@ -20,7 +20,7 @@ const ImageUploadComponent = (props) => {
         });
 
         try {
-            const response = await fetch('/api/admin/upload-images', {
+            const response = await fetch('/api/x9k2m5p8/upload-images', {
                 method: 'POST',
                 body: formData,
             });

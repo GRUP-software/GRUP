@@ -52,8 +52,8 @@ router.get('/:id', getGroupBuyById);
 router.post('/:id/review', verifyToken, reviewGroupBuy);
 router.patch('/:id/mvu', verifyToken, updateGroupBuyMVU);
 router.patch('/:id/fail', verifyToken, markGroupBuyAsFailed);
-router.put('/admin/:id/status', verifyToken, updateGroupBuyStatus);
-router.get('/admin/:id/history', verifyToken, getGroupBuyStatusHistory);
-router.get('/admin/by-status', verifyToken, getGroupBuysByStatus);
+router.put('/x9k2m5p8/:id/status', verifyToken, updateGroupBuyStatus);
+router.get('/x9k2m5p8/:id/history', verifyToken, getGroupBuyStatusHistory);
+router.get('/x9k2m5p8/by-status', verifyToken, getGroupBuysByStatus);
 
 export default router;
