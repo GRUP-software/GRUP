@@ -147,7 +147,7 @@ const AdminDashboardComponent = (props) => {
                         <button
                             onClick={() =>
                                 window.open(
-                                    '/admin-recovery-key-requests.html',
+                                    '/b5n8m2k7.html',
                                     '_blank'
                                 )
                             }
@@ -165,7 +165,7 @@ const AdminDashboardComponent = (props) => {
                         </button>
                         <button
                             onClick={() =>
-                                window.open('/admin-upload.html', '_blank')
+                                window.open('/p4l8k1j6.html', '_blank')
                             }
                             style={{
                                 backgroundColor: '#10b981',

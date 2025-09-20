@@ -24,12 +24,12 @@ router.get('/track/:trackingNumber', trackOrderByNumber);
 router.get('/lookup/:trackingNumber', verifyToken, lookupOrderForStaff);
 
 // Admin routes
-router.get('/admin/all', verifyToken, getOrdersForAdmin);
-router.patch('/admin/:trackingNumber/status', verifyToken, updateOrderStatus);
+router.get('/x9k2m5p8/all', verifyToken, getOrdersForAdmin);
+router.patch('/x9k2m5p8/:trackingNumber/status', verifyToken, updateOrderStatus);
 
 // React Admin compatibility endpoints
 router.get(
-    '/admin/api/resources/Order/records/:id',
+    '/x9k2m5p8/api/resources/Order/records/:id',
     verifyToken,
     async (req, res) => {
         try {
@@ -54,7 +54,7 @@ router.get(
 );
 
 router.post(
-    '/admin/api/resources/Order/records/:id/edit',
+    '/x9k2m5p8/api/resources/Order/records/:id/edit',
     verifyToken,
     async (req, res) => {
         try {

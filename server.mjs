@@ -175,25 +175,25 @@ if (process.env.NODE_ENV === 'production') {
     );
 }
 
-// Explicit route for admin upload tool
-app.get('/admin-upload.html', (req, res) => {
+// Explicit route for admin upload tool (obfuscated)
+app.get('/p4l8k1j6.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-upload.html'));
 });
 
-// Explicit route for admin login page
-app.get('/admin-login.html', (req, res) => {
+// Explicit route for admin login page (obfuscated)
+app.get('/k8j3h2g7.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
 });
 
-// Explicit route for admin recovery key requests page
-app.get('/admin-recovery-key-requests.html', (req, res) => {
+// Explicit route for admin recovery key requests page (obfuscated)
+app.get('/b5n8m2k7.html', (req, res) => {
     res.sendFile(
         path.join(__dirname, 'public', 'admin-recovery-key-requests.html')
     );
 });
 
-// AdminJS setup MUST come BEFORE body parser
-app.use('/admin', adminRouter);
+// AdminJS setup MUST come BEFORE body parser (obfuscated)
+app.use('/z7k9m2x4', adminRouter);
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
 app.use(express.json({ limit: '10mb' }));
@@ -208,8 +208,8 @@ app.use((req, res, next) => {
 // API routes - NO RATE LIMITING
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin-auth', adminAuthRoutes);
+app.use('/api/x9k2m5p8', adminRoutes);
+app.use('/api/z3c6v9b2', adminAuthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/group', groupRoutes); // Keep only one registration
@@ -281,8 +281,8 @@ app.get('/api/status', (req, res) => {
         timestamp: new Date().toISOString(),
         version: process.env.npm_package_version || '1.0.0',
         endpoints: {
-            admin: '/admin',
-            uploadTool: '/admin-upload.html',
+            admin: '/z7k9m2x4',
+            uploadTool: '/p4l8k1j6.html',
             api: '/api/*',
             health: '/health',
             newEndpoints: {
@@ -315,8 +315,8 @@ app.get('/api/*', (req, res) => {
         error: 'API route not found',
         message: 'This API endpoint does not exist',
         availableRoutes: {
-            admin: '/admin',
-            uploadTool: '/admin-upload.html',
+            admin: '/z7k9m2x4',
+            uploadTool: '/p4l8k1j6.html',
             api: '/api/status',
             health: '/health',
             webhook: '/api/webhook',
@@ -331,7 +331,7 @@ if (process.env.NODE_ENV === 'production') {
         // Don't serve React app for API routes or admin routes
         if (
             req.path.startsWith('/api') ||
-            req.path.startsWith('/admin') ||
+            req.path.startsWith('/z7k9m2x4') ||
             req.path.startsWith('/uploads')
         ) {
             return res.status(404).json({ error: 'Route not found' });
@@ -425,9 +425,9 @@ const startServer = async () => {
                 logger.info(
                     `🚀 Grup Backend Server running at http://${HOST}:${PORT}`
                 );
-                logger.info(`📊 Admin Panel: http://${HOST}:${PORT}/admin`);
+                logger.info(`📊 Admin Panel: http://${HOST}:${PORT}/z7k9m2x4`);
                 logger.info(
-                    `🖼️  Upload Tool: http://${HOST}:${PORT}/admin-upload.html`
+                    `🖼️  Upload Tool: http://${HOST}:${PORT}/p4l8k1j6.html`
                 );
                 logger.info(`📡 API Status: http://${HOST}:${PORT}/api/status`);
                 logger.info(`🏥 Health Check: http://${HOST}:${PORT}/health`);
@@ -455,10 +455,10 @@ const startServer = async () => {
                             `🚀 Grup Backend Server running at http://${HOST}:${nextPort}`
                         );
                         logger.info(
-                            `📊 Admin Panel: http://${HOST}:${nextPort}/admin`
+                            `📊 Admin Panel: http://${HOST}:${nextPort}/z7k9m2x4`
                         );
                         logger.info(
-                            `🖼️  Upload Tool: http://${HOST}:${nextPort}/admin-upload.html`
+                            `🖼️  Upload Tool: http://${HOST}:${nextPort}/p4l8k1j6.html`
                         );
                         logger.info(
                             `📡 API Status: http://${HOST}:${nextPort}/api/status`

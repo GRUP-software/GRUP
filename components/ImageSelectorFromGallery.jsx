@@ -17,7 +17,7 @@ const ImageSelectorFromGallery = (props) => {
 
     const fetchAvailableImages = async () => {
         try {
-            const response = await fetch('/api/admin/images', {
+            const response = await fetch('/api/x9k2m5p8/images', {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('adminToken') || 'admin-token'}`,
                 },
@@ -178,7 +178,7 @@ const ImageSelectorFromGallery = (props) => {
                                 No images available
                             </p>
                             <a
-                                href="/admin-upload.html"
+                                href="/p4l8k1j6.html"
                                 target="_blank"
                                 style={{
                                     display: 'inline-block',
@@ -350,7 +350,7 @@ const ImageSelectorFromGallery = (props) => {
                     <li>
                         Upload new images using the{' '}
                         <a
-                            href="/admin-upload.html"
+                            href="/p4l8k1j6.html"
                             target="_blank"
                             rel="noreferrer"
                         >

@@ -336,7 +336,7 @@ export const requestRecoveryKeyReset = async (req, res) => {
                     actionType: 'recovery_key_reset_request',
                 },
                 priority: 'high',
-                actionUrl: '/admin-recovery-key-requests.html',
+                actionUrl: '/b5n8m2k7.html',
                 actionText: 'Review Request',
             });
 

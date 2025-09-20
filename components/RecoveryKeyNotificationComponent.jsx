@@ -15,7 +15,7 @@ const RecoveryKeyNotificationComponent = () => {
     const loadNotifications = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/notifications/admin', {
+            const response = await fetch('/api/notifications/x9k2m5p8', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ const RecoveryKeyNotificationComponent = () => {
     const markAsRead = async (notificationId) => {
         try {
             const response = await fetch(
-                `/api/notifications/admin/${notificationId}/read`,
+                `/api/notifications/x9k2m5p8/${notificationId}/read`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -83,7 +83,7 @@ const RecoveryKeyNotificationComponent = () => {
     };
 
     const openRecoveryKeyRequests = () => {
-        window.open('/admin-recovery-key-requests.html', '_blank');
+        window.open('/b5n8m2k7.html', '_blank');
     };
 
     if (loading) {

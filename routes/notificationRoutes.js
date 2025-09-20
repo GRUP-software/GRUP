@@ -207,7 +207,7 @@ router.post('/test', verifyToken, async (req, res) => {
 
 // Admin notification routes
 // Get admin notifications (for recovery key reset requests)
-router.get('/admin', verifyAdminToken, async (req, res) => {
+router.get('/x9k2m5p8', verifyAdminToken, async (req, res) => {
     try {
         const adminUserId = process.env.ADMIN_USER_ID;
         const { page, limit, category, read, sortBy, sortOrder } = req.query;
@@ -241,7 +241,7 @@ router.get('/admin', verifyAdminToken, async (req, res) => {
 
 // Mark admin notification as read
 router.patch(
-    '/admin/:notificationId/read',
+    '/x9k2m5p8/:notificationId/read',
     verifyAdminToken,
     async (req, res) => {
         try {
@@ -275,7 +275,7 @@ router.patch(
 );
 
 // Get admin unread count
-router.get('/admin/unread-count', verifyAdminToken, async (req, res) => {
+router.get('/x9k2m5p8/unread-count', verifyAdminToken, async (req, res) => {
     try {
         const adminUserId = process.env.ADMIN_USER_ID;
         const count = await notificationService.getUnreadCount(adminUserId);

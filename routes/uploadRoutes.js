@@ -205,7 +205,7 @@ router.get('/url/:publicId', verifyToken, async (req, res) => {
 
 // Admin-specific upload routes (for admin panel)
 router.post(
-    '/admin/single',
+    '/x9k2m5p8/single',
     verifyAdminToken,
     uploadSingleToCloudinary('image'),
     async (req, res) => {
@@ -256,7 +256,7 @@ router.post(
 
 // Admin multiple upload route
 router.post(
-    '/admin/multiple',
+    '/x9k2m5p8/multiple',
     verifyAdminToken,
     uploadToCloudinary('images', 10),
     async (req, res) => {

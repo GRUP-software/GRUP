@@ -9,7 +9,7 @@ const ADMIN_CREDENTIALS = {
 };
 
 // Admin login endpoint specifically for the upload tool
-router.post('/admin-login', async (req, res) => {
+router.post('/k8j3h2g7', async (req, res) => {
     try {
         const { email, password } = req.body;
 

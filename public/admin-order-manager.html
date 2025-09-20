@@ -811,7 +811,7 @@
 
                 try {
                     const response = await fetch(
-                        'http://localhost:5000/api/admin-auth/admin-login',
+                        'http://localhost:5000/api/z3c6v9b2/k8j3h2g7',
                         {
                             method: 'POST',
                             headers: {
@@ -849,7 +849,7 @@
             async function loadStats() {
                 try {
                     const response = await fetch(
-                        'http://localhost:5000/api/admin/orders/stats',
+                        'http://localhost:5000/api/x9k2m5p8/orders/stats',
                         {
                             headers: {
                                 Authorization: `Bearer ${currentToken}`,
@@ -906,7 +906,7 @@
                     params.append('page', currentPage);
 
                     const response = await fetch(
-                        `http://localhost:5000/api/admin/orders/search?${params}`,
+                        `http://localhost:5000/api/x9k2m5p8/orders/search?${params}`,
                         {
                             headers: {
                                 Authorization: `Bearer ${currentToken}`,
@@ -949,7 +949,7 @@
                 suggestionTimeout = setTimeout(async () => {
                     try {
                         const response = await fetch(
-                            `http://localhost:5000/api/admin/orders/suggestions?trackingNumber=${trackingNumber}`,
+                            `http://localhost:5000/api/x9k2m5p8/orders/suggestions?trackingNumber=${trackingNumber}`,
                             {
                                 headers: {
                                     Authorization: `Bearer ${currentToken}`,
@@ -1039,7 +1039,7 @@
 
                 // Download CSV
                 const link = document.createElement('a');
-                link.href = `http://localhost:5000/api/admin/orders/export?${params}`;
+                link.href = `http://localhost:5000/api/x9k2m5p8/orders/export?${params}`;
                 link.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
                 link.click();
             }
@@ -1051,7 +1051,7 @@
                     params.append('limit', 10);
 
                     const response = await fetch(
-                        `http://localhost:5000/api/admin/orders?${params}`,
+                        `http://localhost:5000/api/x9k2m5p8/orders?${params}`,
                         {
                             headers: {
                                 Authorization: `Bearer ${currentToken}`,
@@ -1234,7 +1234,7 @@
 
                 try {
                     const response = await fetch(
-                        `http://localhost:5000/api/admin/orders/${currentOrderId}/status`,
+                        `http://localhost:5000/api/x9k2m5p8/orders/${currentOrderId}/status`,
                         {
                             method: 'PATCH',
                             headers: {
@@ -1268,7 +1268,7 @@
             async function viewOrderDetails(trackingNumber) {
                 try {
                     const response = await fetch(
-                        `http://localhost:5000/api/admin/orders/tracking/${trackingNumber}`,
+                        `http://localhost:5000/api/x9k2m5p8/orders/tracking/${trackingNumber}`,
                         {
                             headers: {
                                 Authorization: `Bearer ${currentToken}`,
