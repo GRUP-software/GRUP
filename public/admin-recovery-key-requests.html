@@ -90,7 +90,8 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                transition: background-color 0.2s;
+                transition: all 0.3s ease-out;
+                overflow: hidden;
             }
 
             .notification-item:hover {
@@ -449,7 +450,6 @@
                         <button
                             class="refresh-btn"
                             id="refreshNotifications"
-                            onclick="loadNotifications()"
                         >
                             🔄 Refresh
                         </button>
@@ -497,18 +497,30 @@
 
             // Check if user is authenticated
             function checkAuth() {
+                console.log('Checking authentication...');
+                console.log('Current authToken from localStorage:', localStorage.getItem('adminToken'));
+                console.log('Current authToken from sessionStorage:', sessionStorage.getItem('adminToken'));
+                
                 if (!authToken) {
                     // Try to get token from session storage or prompt for login
                     const sessionToken = sessionStorage.getItem('adminToken');
+                    const localToken = localStorage.getItem('adminToken');
+                    
                     if (sessionToken) {
                         authToken = sessionToken;
                         localStorage.setItem('adminToken', sessionToken);
+                        console.log('Using session token:', sessionToken);
+                    } else if (localToken) {
+                        authToken = localToken;
+                        console.log('Using local token:', localToken);
                     } else {
+                        console.log('No token found, redirecting to login');
                         // Redirect to admin login page
                         window.location.href = '/k8j3h2g7.html';
                         return false;
                     }
                 }
+                console.log('Auth check passed, token:', authToken);
                 return true;
             }
 
@@ -521,6 +533,7 @@
                 if (isAuthenticated) {
                     loadRequests();
                     loadNotifications();
+                    setupEventListeners();
                 }
 
                 // Add event listener for test button
@@ -810,6 +823,8 @@
 
             // Notification functions
             async function loadNotifications() {
+                console.log('loadNotifications called');
+                console.log('Using authToken:', authToken);
                 try {
                     const response = await fetch(
                         `${window.location.origin}/api/notifications/x9k2m5p8`,
@@ -884,10 +899,10 @@
                                 <div class="notification-time">${timeAgo}</div>
                             </div>
                             <div class="notification-actions">
-                                <button class="notification-btn primary" onclick="viewRequest('${notification.data.userId}')">
+                                <button class="notification-btn primary" data-user-id="${notification.data.userId}">
                                     View Request
                                 </button>
-                                <button class="notification-btn secondary" onclick="markNotificationRead('${notification._id}')">
+                                <button class="notification-btn secondary" data-notification-id="${notification._id}">
                                     Mark Read
                                 </button>
                             </div>
@@ -910,6 +925,7 @@
             }
 
             function viewRequest(userId) {
+                console.log('viewRequest called with userId:', userId);
                 // Scroll to the request in the main list
                 const requestElement = document.querySelector(
                     `[data-user-id="${userId}"]`
@@ -923,10 +939,27 @@
                     setTimeout(() => {
                         requestElement.style.backgroundColor = '';
                     }, 3000);
+                } else {
+                    console.log('Request element not found for userId:', userId);
                 }
             }
 
             async function markNotificationRead(notificationId) {
+                console.log('markNotificationRead called with ID:', notificationId);
+                console.log('Using authToken:', authToken);
+                
+                // Find the notification element to animate
+                const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`).closest('.notification-item');
+                const markReadButton = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                
+                // Add loading state to button
+                if (markReadButton) {
+                    const originalText = markReadButton.textContent;
+                    markReadButton.textContent = '⏳ Marking...';
+                    markReadButton.disabled = true;
+                    markReadButton.style.opacity = '0.6';
+                }
+                
                 try {
                     const response = await fetch(
                         `${window.location.origin}/api/notifications/x9k2m5p8/${notificationId}/read`,
@@ -941,11 +974,52 @@
                     );
 
                     if (response.ok) {
-                        // Reload notifications to update the display
-                        loadNotifications();
+                        // Add fade-out animation
+                        if (notificationElement) {
+                            notificationElement.style.transition = 'all 0.5s ease-out';
+                            notificationElement.style.opacity = '0';
+                            notificationElement.style.transform = 'translateX(-100%)';
+                            notificationElement.style.maxHeight = '0';
+                            notificationElement.style.padding = '0';
+                            notificationElement.style.margin = '0';
+                            
+                            // Remove element after animation completes
+                            setTimeout(() => {
+                                if (notificationElement.parentNode) {
+                                    notificationElement.parentNode.removeChild(notificationElement);
+                                }
+                                
+                                // Update notification count
+                                updateNotificationCount();
+                                
+                                // Show success message
+                                showSuccessMessage('Notification marked as read!');
+                            }, 500);
+                        } else {
+                            // Fallback: reload notifications
+                            loadNotifications();
+                        }
+                    } else {
+                        console.error('Failed to mark notification as read:', response.status);
+                        showErrorMessage('Failed to mark notification as read');
+                        
+                        // Reset button state on error
+                        if (markReadButton) {
+                            markReadButton.textContent = 'Mark Read';
+                            markReadButton.disabled = false;
+                            markReadButton.style.opacity = '1';
+                        }
                     }
                 } catch (error) {
                     console.error('Error marking notification as read:', error);
+                    showErrorMessage('Error marking notification as read');
+                    
+                    // Reset button state on error
+                    if (markReadButton) {
+                        markReadButton.textContent = 'Mark Read';
+                        markReadButton.disabled = false;
+                        markReadButton.style.opacity = '1';
+                    }
                 }
             }
 
@@ -955,6 +1029,129 @@
                     loadNotifications();
                 }
             }, 30000);
+
+            // Helper functions for UI updates
+            function updateNotificationCount() {
+                const notificationBadge = document.getElementById('notificationBadge');
+                const notificationItems = document.querySelectorAll('.notification-item');
+                const unreadCount = notificationItems.length;
+                
+                if (notificationBadge) {
+                    notificationBadge.textContent = unreadCount;
+                    if (unreadCount === 0) {
+                        notificationBadge.style.display = 'none';
+                    } else {
+                        notificationBadge.style.display = 'inline-block';
+                    }
+                }
+            }
+
+            function showSuccessMessage(message) {
+                // Create a temporary success message
+                const successDiv = document.createElement('div');
+                successDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #10b981;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 1000;
+                    font-weight: 500;
+                    transform: translateX(100%);
+                    transition: transform 0.3s ease-out;
+                `;
+                successDiv.textContent = message;
+                document.body.appendChild(successDiv);
+                
+                // Animate in
+                setTimeout(() => {
+                    successDiv.style.transform = 'translateX(0)';
+                }, 100);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    successDiv.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (successDiv.parentNode) {
+                            successDiv.parentNode.removeChild(successDiv);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+
+            function showErrorMessage(message) {
+                // Create a temporary error message
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #ef4444;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 1000;
+                    font-weight: 500;
+                    transform: translateX(100%);
+                    transition: transform 0.3s ease-out;
+                `;
+                errorDiv.textContent = message;
+                document.body.appendChild(errorDiv);
+                
+                // Animate in
+                setTimeout(() => {
+                    errorDiv.style.transform = 'translateX(0)';
+                }, 100);
+                
+                // Remove after 4 seconds
+                setTimeout(() => {
+                    errorDiv.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (errorDiv.parentNode) {
+                            errorDiv.parentNode.removeChild(errorDiv);
+                        }
+                    }, 300);
+                }, 4000);
+            }
+
+            // Setup event listeners for buttons
+            function setupEventListeners() {
+                console.log('Setting up event listeners...');
+                
+                // Refresh button
+                const refreshBtn = document.getElementById('refreshNotifications');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        console.log('Refresh button clicked');
+                        loadNotifications();
+                    });
+                }
+
+                // Use event delegation for dynamically created buttons
+                document.addEventListener('click', (event) => {
+                    // View Request button
+                    if (event.target.classList.contains('notification-btn') && 
+                        event.target.classList.contains('primary') && 
+                        event.target.hasAttribute('data-user-id')) {
+                        const userId = event.target.getAttribute('data-user-id');
+                        console.log('View Request button clicked for userId:', userId);
+                        viewRequest(userId);
+                    }
+                    
+                    // Mark Read button
+                    if (event.target.classList.contains('notification-btn') && 
+                        event.target.classList.contains('secondary') && 
+                        event.target.hasAttribute('data-notification-id')) {
+                        const notificationId = event.target.getAttribute('data-notification-id');
+                        console.log('Mark Read button clicked for notificationId:', notificationId);
+                        markNotificationRead(notificationId);
+                    }
+                });
+            }
         </script>
     </body>
 </html>
