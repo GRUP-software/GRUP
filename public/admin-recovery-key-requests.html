@@ -412,31 +412,6 @@
             <div class="header">
                 <h1>Recovery Key Reset Requests</h1>
                 <p>Review and manage user requests for recovery key resets</p>
-                <div style="text-align: right; margin-top: 10px">
-                    <span
-                        style="
-                            color: #6b7280;
-                            font-size: 14px;
-                            cursor: pointer;
-                        "
-                        onclick="showAdminOptions()"
-                        >← Admin Tools</span
-                    >
-                    <button
-                        id="testButton"
-                        style="
-                            margin-left: 10px;
-                            padding: 5px 10px;
-                            background: #3b82f6;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            cursor: pointer;
-                        "
-                    >
-                        Test JS
-                    </button>
-                </div>
             </div>
 
             <!-- Notification Panel -->
@@ -536,14 +511,6 @@
                     setupEventListeners();
                 }
 
-                // Add event listener for test button
-                const testButton = document.getElementById('testButton');
-                if (testButton) {
-                    testButton.addEventListener('click', () => {
-                        console.log('Test button clicked');
-                        alert('JavaScript is working!');
-                    });
-                }
 
                 // Add event listeners for reject modal buttons
                 const cancelRejectBtn =
@@ -860,13 +827,14 @@
                 const notificationBadge =
                     document.getElementById('notificationBadge');
 
-                // Filter for recovery key reset requests
+                // Filter for recovery key reset requests AND only unread ones
                 const recoveryKeyNotifications = notifications.filter(
                     (notification) =>
                         notification.category === 'system' &&
                         notification.data &&
                         notification.data.actionType ===
-                            'recovery_key_reset_request'
+                            'recovery_key_reset_request' &&
+                        !notification.read  // Only show unread notifications
                 );
 
                 // Update badge count
@@ -889,10 +857,9 @@
                         const timeAgo = getTimeAgo(
                             new Date(notification.createdAt)
                         );
-                        const isRead = notification.read ? 'read' : 'unread';
 
                         return `
-                        <div class="notification-item ${isRead}">
+                        <div class="notification-item unread">
                             <div class="notification-content">
                                 <div class="notification-title">${notification.title}</div>
                                 <div class="notification-message">${notification.message}</div>
@@ -1118,31 +1085,6 @@
                 }, 4000);
             }
 
-            // Admin tools dropdown
-            function showAdminOptions() {
-                const options = [
-                    { name: '📊 AdminJS Dashboard', url: '/z7k9m2x4', newTab: true },
-                    { name: '📤 Upload Tool', url: '/p4l8k1j6.html', newTab: false },
-                    { name: '📋 Order Manager', url: '/m9k2n5p8.html', newTab: false },
-                    { name: '🔑 Recovery Keys', url: '/b5n8m2k7.html', newTab: false }
-                ];
-                
-                const optionsText = options.map(opt => 
-                    `${opt.name} - ${opt.newTab ? 'Opens in new tab' : 'Current tab'}`
-                ).join('\n');
-                
-                const choice = prompt(`Choose an admin tool:\n\n${optionsText}\n\nEnter number (1-4):`);
-                const choiceNum = parseInt(choice);
-                
-                if (choiceNum >= 1 && choiceNum <= 4) {
-                    const selectedOption = options[choiceNum - 1];
-                    if (selectedOption.newTab) {
-                        window.open(selectedOption.url, '_blank');
-                    } else {
-                        window.location.href = selectedOption.url;
-                    }
-                }
-            }
 
             // Setup event listeners for buttons
             function setupEventListeners() {
@@ -1181,4 +1123,4 @@
         </script>
     </body>
 </html>
-npm start
+ 
