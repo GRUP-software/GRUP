@@ -413,14 +413,14 @@
                 <h1>Recovery Key Reset Requests</h1>
                 <p>Review and manage user requests for recovery key resets</p>
                 <div style="text-align: right; margin-top: 10px">
-                    <a
-                        href="/z7k9m2x4"
+                    <span
                         style="
                             color: #6b7280;
-                            text-decoration: none;
                             font-size: 14px;
+                            cursor: pointer;
                         "
-                        >← Back to Admin Panel</a
+                        onclick="showAdminOptions()"
+                        >← Admin Tools</span
                     >
                     <button
                         id="testButton"
@@ -1118,6 +1118,32 @@
                 }, 4000);
             }
 
+            // Admin tools dropdown
+            function showAdminOptions() {
+                const options = [
+                    { name: '📊 AdminJS Dashboard', url: '/z7k9m2x4', newTab: true },
+                    { name: '📤 Upload Tool', url: '/p4l8k1j6.html', newTab: false },
+                    { name: '📋 Order Manager', url: '/m9k2n5p8.html', newTab: false },
+                    { name: '🔑 Recovery Keys', url: '/b5n8m2k7.html', newTab: false }
+                ];
+                
+                const optionsText = options.map(opt => 
+                    `${opt.name} - ${opt.newTab ? 'Opens in new tab' : 'Current tab'}`
+                ).join('\n');
+                
+                const choice = prompt(`Choose an admin tool:\n\n${optionsText}\n\nEnter number (1-4):`);
+                const choiceNum = parseInt(choice);
+                
+                if (choiceNum >= 1 && choiceNum <= 4) {
+                    const selectedOption = options[choiceNum - 1];
+                    if (selectedOption.newTab) {
+                        window.open(selectedOption.url, '_blank');
+                    } else {
+                        window.location.href = selectedOption.url;
+                    }
+                }
+            }
+
             // Setup event listeners for buttons
             function setupEventListeners() {
                 console.log('Setting up event listeners...');
@@ -1155,3 +1181,4 @@
         </script>
     </body>
 </html>
+npm start
