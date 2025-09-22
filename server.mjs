@@ -175,12 +175,18 @@ app.get('/admin-login.html', (req, res) => {
     res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
 });
 
-app.get('/admin', (req, res) => {
-    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
-});
+// AdminJS setup (internal use only) - for serving frontend assets
+app.use('/admin', adminRouter);
 
-app.get('/admin/*', (req, res) => {
-    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+// Middleware to block direct access to admin routes (SECURITY: Must be after AdminJS setup)
+app.use('/admin', (req, res, next) => {
+    // Allow AdminJS frontend assets to load
+    if (req.path.startsWith('/admin/frontend/') || req.path.startsWith('/admin/assets/')) {
+        return next();
+    }
+    
+    // Block all other direct access to /admin routes
+    return res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
 });
 
 // Serve static files from public directory
@@ -217,61 +223,42 @@ app.get('/b5n8m2k7.html', (req, res) => {
     );
 });
 
-// AdminJS setup MUST come BEFORE body parser (hidden)
-app.use('/admin', adminRouter);
 
-// Comprehensive reverse proxy for obfuscated admin path
+// Obfuscated admin access - proxy to AdminJS with proper URL rewriting
 app.use('/z7k9m2x4', (req, res, next) => {
-    // Store original URL and headers
+    // Store original URL
     const originalUrl = req.url;
-    const originalHost = req.get('host');
     
-    // Rewrite URL to internal admin path
+    // Rewrite URL to use /admin internally
     req.url = req.url.replace('/z7k9m2x4', '/admin');
     
-    // Intercept responses to rewrite URLs
-    const originalWrite = res.write;
-    const originalEnd = res.end;
+    // Intercept redirects and rewrite them
     const originalRedirect = res.redirect;
-    
-    // Override redirect to rewrite URLs
-    res.redirect = function(url) {
+    res.redirect = function(url, status) {
         if (typeof url === 'string' && url.startsWith('/admin')) {
             url = url.replace('/admin', '/z7k9m2x4');
         }
-        return originalRedirect.call(this, url);
+        if (status !== undefined) {
+            originalRedirect.call(this, status, url);
+        } else {
+            originalRedirect.call(this, url);
+        }
     };
     
-    // Override write to rewrite URLs in response body
-    res.write = function(chunk, encoding) {
-        if (chunk && typeof chunk === 'string') {
-            // Rewrite admin URLs in the response
-            chunk = chunk.replace(/\/admin\//g, '/z7k9m2x4/');
-            chunk = chunk.replace(/\/admin"/g, '/z7k9m2x4"');
-            chunk = chunk.replace(/\/admin'/g, '/z7k9m2x4"');
-            chunk = chunk.replace(/\/admin\b/g, '/z7k9m2x4');
+    // Intercept HTML responses to rewrite URLs
+    const originalSend = res.send;
+    res.send = function(data) {
+        if (req.method === 'GET' && typeof data === 'string' && data.includes('/admin/')) {
+            data = data.replace(/\/admin\//g, '/z7k9m2x4/');
         }
-        return originalWrite.call(this, chunk, encoding);
-    };
-    
-    // Override end to rewrite URLs in final response
-    res.end = function(chunk, encoding) {
-        if (chunk && typeof chunk === 'string') {
-            // Rewrite admin URLs in the response
-            chunk = chunk.replace(/\/admin\//g, '/z7k9m2x4/');
-            chunk = chunk.replace(/\/admin"/g, '/z7k9m2x4"');
-            chunk = chunk.replace(/\/admin'/g, '/z7k9m2x4"');
-            chunk = chunk.replace(/\/admin\b/g, '/z7k9m2x4');
-        }
-        return originalEnd.call(this, chunk, encoding);
+        originalSend.call(this, data);
     };
     
     // Handle the request through AdminJS router
     adminRouter(req, res, (err) => {
         if (err) {
-            // Restore original URL for error handling
             req.url = originalUrl;
-            return next(err);
+            next(err);
         }
     });
 });
@@ -281,9 +268,12 @@ app.get('/test-admin', (req, res) => {
     res.json({
         message: 'AdminJS test route',
         adminPath: '/z7k9m2x4',
+        loginPath: '/z7k9m2x4/login',
         timestamp: new Date().toISOString()
     });
 });
+
+
 
 // ✅ NOW we can add body parsing middleware AFTER AdminJS
 app.use(express.json({ limit: '10mb' }));
@@ -580,3 +570,5 @@ const startServer = async () => {
 
 // Start the server
 startServer();
+ 
+ 
