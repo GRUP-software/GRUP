@@ -175,12 +175,22 @@ app.get('/admin-login.html', (req, res) => {
     res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
 });
 
-// AdminJS setup (internal use only)
+// AdminJS setup (internal use only) - for serving frontend assets
 app.use('/admin', adminRouter);
 
-// Middleware to block direct access to old admin routes (must be after AdminJS setup)
+// Middleware to block direct access to admin routes (SECURITY: Must be after AdminJS setup)
 app.use('/admin', (req, res, next) => {
-    // Block all direct access to /admin routes
+    // Allow AdminJS frontend assets to load
+    if (req.path.startsWith('/admin/frontend/') || req.path.startsWith('/admin/assets/')) {
+        return next();
+    }
+    
+    // Quick fix: Redirect authenticated users from /admin to /z7k9m2x4
+    if (req.session && req.session.adminjs && req.session.adminjs.userId) {
+        return res.redirect('/z7k9m2x4');
+    }
+    
+    // Block all other direct access to /admin routes
     return res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
 });
 
@@ -229,11 +239,51 @@ app.use('/z7k9m2x4', (req, res, next) => {
     
     // Intercept redirects and rewrite them
     const originalRedirect = res.redirect;
-    res.redirect = function(url) {
-        if (typeof url === 'string' && url.startsWith('/admin')) {
-            url = url.replace('/admin', '/z7k9m2x4');
+    res.redirect = function(url, status) {
+        if (typeof url === 'string') {
+            // Handle different redirect patterns
+            if (url.startsWith('/admin')) {
+                url = url.replace('/admin', '/z7k9m2x4');
+            } else if (url === '/admin' || url === '/admin/') {
+                url = '/z7k9m2x4';
+            } else if (url.startsWith('/z7k9m2x4')) {
+                // Already correct, no change needed
+            } else if (url === '/' && req.url.includes('/admin')) {
+                // If redirecting to root from admin context, redirect to obfuscated root
+                url = '/z7k9m2x4';
+            }
         }
-        originalRedirect.call(this, url);
+        
+        // Call original redirect with proper parameters
+        if (status !== undefined) {
+            originalRedirect.call(this, status, url);
+        } else {
+            originalRedirect.call(this, url);
+        }
+    };
+    
+    // Intercept response to rewrite HTML content (only for GET requests)
+    const originalSend = res.send;
+    res.send = function(data) {
+        if (req.method === 'GET' && typeof data === 'string' && data.includes('/admin/')) {
+            // Rewrite all /admin/ references to /z7k9m2x4/ in HTML content
+            data = data.replace(/\/admin\//g, '/z7k9m2x4/');
+        }
+        originalSend.call(this, data);
+    };
+    
+    // Also intercept JSON responses for API calls
+    const originalJson = res.json;
+    res.json = function(data) {
+        if (typeof data === 'object' && data !== null) {
+            // Rewrite any URLs in JSON responses
+            const jsonString = JSON.stringify(data);
+            if (jsonString.includes('/admin/')) {
+                const rewrittenString = jsonString.replace(/\/admin\//g, '/z7k9m2x4/');
+                data = JSON.parse(rewrittenString);
+            }
+        }
+        originalJson.call(this, data);
     };
     
     // Handle the request through AdminJS router
@@ -553,4 +603,5 @@ const startServer = async () => {
 
 // Start the server
 startServer();
+ 
  
