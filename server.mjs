@@ -158,6 +158,27 @@ app.use(
     })
 );
 
+// BLOCK ORIGINAL ADMIN URLs - Security measure (MUST be before static files)
+app.get('/admin-recovery-key-requests.html', (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+});
+
+app.get('/admin-order-manager.html', (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+});
+
+app.get('/admin-upload.html', (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+});
+
+app.get('/admin-login.html', (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+});
+
+app.get('/admin', (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+});
+
 // Serve static files from public directory
 app.use(
     express.static(path.join(__dirname, 'public'), {
@@ -392,7 +413,7 @@ app.get('/api/*', (req, res) => {
 
 // Catch-all handler for React Router (must be after API routes)
 if (process.env.NODE_ENV === 'production') {
-    app.get('*', (req, res) => {
+    app.get('*', async (req, res) => {
         // Don't serve React app for API routes or admin routes
         if (
             req.path.startsWith('/api') ||
@@ -401,9 +422,19 @@ if (process.env.NODE_ENV === 'production') {
         ) {
             return res.status(404).json({ error: 'Route not found' });
         }
-        res.sendFile(
-            path.join(__dirname, 'zahara-frontend-main', 'dist', 'index.html')
-        );
+        
+        // Check if the file exists before trying to serve it
+        const frontendPath = path.join(__dirname, 'zahara-frontend-main', 'dist', 'index.html');
+        try {
+            const fs = await import('fs');
+            if (fs.existsSync(frontendPath)) {
+                res.sendFile(frontendPath);
+            } else {
+                res.status(404).send('Not Found');
+            }
+        } catch (error) {
+            res.status(404).send('Not Found');
+        }
     });
 }
 
