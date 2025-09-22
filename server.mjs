@@ -179,6 +179,10 @@ app.get('/admin', (req, res) => {
     res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
 });
 
+app.get('/admin/*', (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404-admin.html'));
+});
+
 // Serve static files from public directory
 app.use(
     express.static(path.join(__dirname, 'public'), {
