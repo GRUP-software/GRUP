@@ -419,6 +419,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
         // Update payment history with wallet usage
         paymentHistory.walletUsed = walletUse;
         paymentHistory.flutterwaveAmount = 0;
+        paymentHistory.status = 'paid'; // Mark as paid BEFORE processing group buys
         await paymentHistory.save();
 
         // Deduct the amount from wallet
@@ -484,9 +485,7 @@ const processWalletOnlyPayment = async (paymentHistory, walletUse, res) => {
             console.error('Failed to send wallet update notification:', error);
         }
 
-        // Mark payment as paid
-        paymentHistory.status = 'paid';
-        await paymentHistory.save();
+        // Payment already marked as paid above
 
         // Clear user's cart
         try {

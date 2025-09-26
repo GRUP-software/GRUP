@@ -201,6 +201,12 @@ export const addToCart = async (req, res) => {
         let itemUnitPrice = product.price; // Default to product price
 
         if (sellingUnit && product.sellingUnits?.enabled) {
+            console.log('🔍 Add to Cart Debug - Selling Unit Data:', {
+                sellingUnit: sellingUnit,
+                baseUnitQuantity: sellingUnit.baseUnitQuantity,
+                productId: productId
+            });
+            
             const unitPrice = calculateSellingUnitPrice(product, sellingUnit);
 
             const baseUnitQuantity = Number(sellingUnit.baseUnitQuantity) || 0;
@@ -215,7 +221,7 @@ export const addToCart = async (req, res) => {
             );
 
             sellingUnitData = {
-                optionName: sellingUnit.name,
+                optionName: sellingUnit.optionName || sellingUnit.name,
                 displayName: sellingUnit.displayName,
                 baseUnitQuantity: baseUnitQuantity,
                 baseUnitName: product.sellingUnits.baseUnitName,
