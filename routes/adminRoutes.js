@@ -1008,15 +1008,66 @@ router.post(
                     .json({ message: 'Invalid refund amount' });
             }
 
-            // Process refund logic here (update wallet, etc.)
-            // This is a placeholder - implement actual refund logic
-            const Wallet = (await import('../models/Wallet.js')).default;
-            const userWallet = await Wallet.findOne({ user: order.user._id });
-
-            if (userWallet) {
-                userWallet.balance += amount;
-                await userWallet.save();
+            // Validate refund amount against order total
+            if (amount > order.totalAmount) {
+                return res.status(400).json({ 
+                    message: 'Refund amount exceeds order total',
+                    orderTotal: order.totalAmount,
+                    requestedRefund: amount
+                });
             }
+
+            // Check for existing refunds to prevent double refunds
+            const existingRefunds = await Transaction.find({
+                'metadata.orderId': order._id,
+                reason: { $in: ['REFUND', 'PARTIAL_REFUND'] }
+            });
+
+            const totalRefunded = existingRefunds.reduce((sum, tx) => sum + tx.amount, 0);
+            if (totalRefunded + amount > order.totalAmount) {
+                return res.status(400).json({
+                    message: 'Total refunds would exceed order amount',
+                    orderTotal: order.totalAmount,
+                    alreadyRefunded: totalRefunded,
+                    requestedRefund: amount,
+                    maxAllowed: order.totalAmount - totalRefunded
+                });
+            }
+
+            // Process refund with proper transaction records
+            const Wallet = (await import('../models/Wallet.js')).default;
+            const Transaction = (await import('../models/Transaction.js')).default;
+            
+            let userWallet = await Wallet.findOne({ user: order.user._id });
+            if (!userWallet) {
+                userWallet = new Wallet({
+                    user: order.user._id,
+                    balance: 0
+                });
+            }
+
+            // Use atomic operation to update wallet balance
+            const updatedWallet = await Wallet.findByIdAndUpdate(
+                userWallet._id,
+                { $inc: { balance: amount } },
+                { new: true, upsert: true }
+            );
+
+            // Create transaction record for audit trail
+            await Transaction.create({
+                wallet: updatedWallet._id,
+                user: order.user._id,
+                type: 'credit',
+                amount: amount,
+                reason: 'REFUND',
+                description: `Admin refund for order ${order.trackingNumber}: ${reason}`,
+                metadata: {
+                    orderId: order._id,
+                    adminId: req.user?.id || req.user?.email,
+                    refundReason: reason,
+                    originalOrderAmount: order.totalAmount
+                }
+            });
 
             // Send notification to customer
             await notificationService.notifyAdminRefundProcessed(
