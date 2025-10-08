@@ -671,7 +671,7 @@ const processPartialWalletPayment = async (
 
         // Initialize Flutterwave payment for remaining amount
         const flutterwaveData = {
-            amount: paymentHistory.amount,
+            amount: flutterwaveAmount,
             tx_ref: paymentHistory.referenceId,
             customer: {
                 email: user.email,
@@ -758,7 +758,7 @@ const processPartialWalletPayment = async (
                 success: true,
                 message:
                     'Partial wallet payment initialized, redirecting to Flutterwave',
-                authorization_url: data.data.authorization_url,
+                authorization_url: data.data.link,
                 reference: paymentHistory.referenceId,
                 paymentHistoryId: paymentHistory._id,
                 walletUse: walletUse,

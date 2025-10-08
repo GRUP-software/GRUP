@@ -15,41 +15,35 @@ class EmailService {
 
     async init() {
         try {
-            // Temporarily disable email service to prevent connection errors
-            // Uncomment the code below when you have valid email credentials
+            // Check if email configuration is available and not empty
+            if (config.EMAIL.HOST && config.EMAIL.USER && config.EMAIL.PASS && 
+                config.EMAIL.USER.trim() !== '' && config.EMAIL.PASS.trim() !== '') {
+                
+                logger.info('📧 Attempting to configure email service...');
+                
+                this.transporter = nodemailer.createTransporter({
+                    host: config.EMAIL.HOST,
+                    port: config.EMAIL.PORT || 587,
+                    secure: config.EMAIL.PORT === 465, // true for 465, false for other ports
+                    auth: {
+                        user: config.EMAIL.USER,
+                        pass: config.EMAIL.PASS,
+                    },
+                });
 
-            /*
-      // Check if email configuration is available and not empty
-      if (config.EMAIL.HOST && config.EMAIL.USER && config.EMAIL.PASS && 
-          config.EMAIL.USER.trim() !== '' && config.EMAIL.PASS.trim() !== '') {
-        
-        logger.info('📧 Attempting to configure email service...');
-        
-        this.transporter = nodemailer.createTransport({
-          host: config.EMAIL.HOST,
-          port: config.EMAIL.PORT || 587,
-          secure: config.EMAIL.PORT === 465, // true for 465, false for other ports
-          auth: {
-            user: config.EMAIL.USER,
-            pass: config.EMAIL.PASS,
-          },
-        });
-
-        // Verify connection
-        await this.transporter.verify();
-        this.isConfigured = true;
-        logger.info('✅ Email service configured successfully');
-      } else {
-        logger.info('ℹ️ Email service not configured - missing or empty credentials');
-        this.isConfigured = false;
-      }
-      */
-
-            // For now, just disable email service
-            logger.info(
-                'ℹ️ Email service temporarily disabled - in-app notifications only'
-            );
-            this.isConfigured = false;
+                // Verify connection
+                await this.transporter.verify();
+                this.isConfigured = true;
+                logger.info('✅ Email service configured successfully');
+            } else {
+                logger.info('ℹ️ Email service not configured - missing or empty credentials');
+                logger.info('📝 To enable email service, set these environment variables:');
+                logger.info('   EMAIL_HOST=your-smtp-host');
+                logger.info('   EMAIL_USER=your-email@domain.com');
+                logger.info('   EMAIL_PASS=your-email-password');
+                logger.info('   EMAIL_FROM_NAME=Your App Name');
+                this.isConfigured = false;
+            }
         } catch (error) {
             logger.error('❌ Email service configuration failed:', error);
             this.isConfigured = false;
@@ -444,6 +438,189 @@ class EmailService {
           <div class="footer">
             <p>Thank you for your patience!</p>
             <p>If you have any questions, please contact our support team.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    }
+
+    // OTP Email Templates
+    generateSignupOTPEmail(data) {
+        const { otp, name, email } = data;
+        
+        return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Grup - Verify Your Email</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .otp-box { background: white; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #667eea; }
+          .otp-code { font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Welcome to Grup! 🎉</h1>
+            <p>Hello ${name},</p>
+          </div>
+          
+          <div class="content">
+            <h2>Verify Your Email Address</h2>
+            <p>Thank you for signing up with Grup! To complete your registration, please verify your email address using the OTP below:</p>
+            
+            <div class="otp-box">
+              <h3>Your Verification Code</h3>
+              <div class="otp-code">${otp}</div>
+              <p><strong>This code expires in 10 minutes</strong></p>
+            </div>
+            
+            <div class="warning">
+              <p><strong>⚠️ Security Notice:</strong></p>
+              <ul>
+                <li>Never share this code with anyone</li>
+                <li>Grup will never ask for your OTP via phone or email</li>
+                <li>If you didn't request this, please ignore this email</li>
+              </ul>
+            </div>
+            
+            <p>If you didn't create an account with Grup, please ignore this email.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Welcome to the Grup family!</p>
+            <p>Start saving money with group buying today.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    }
+
+    generatePasswordResetOTPEmail(data) {
+        const { otp, name, email } = data;
+        
+        return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset - Grup</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .otp-box { background: white; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #ef4444; }
+          .otp-code { font-size: 32px; font-weight: bold; color: #ef4444; letter-spacing: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          .warning { background: #fef2f2; border: 1px solid #ef4444; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Password Reset Request</h1>
+            <p>Hello ${name},</p>
+          </div>
+          
+          <div class="content">
+            <h2>Reset Your Password</h2>
+            <p>We received a request to reset your password for your Grup account. Use the OTP below to verify your identity:</p>
+            
+            <div class="otp-box">
+              <h3>Your Reset Code</h3>
+              <div class="otp-code">${otp}</div>
+              <p><strong>This code expires in 10 minutes</strong></p>
+            </div>
+            
+            <div class="warning">
+              <p><strong>🔒 Security Notice:</strong></p>
+              <ul>
+                <li>Never share this code with anyone</li>
+                <li>Grup will never ask for your OTP via phone or email</li>
+                <li>If you didn't request this reset, please ignore this email</li>
+                <li>Your account remains secure if you don't take any action</li>
+              </ul>
+            </div>
+            
+            <p>If you didn't request a password reset, please ignore this email and your password will remain unchanged.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Stay secure with Grup!</p>
+            <p>If you have any concerns, contact our support team immediately.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    }
+
+    generateEmailVerificationOTPEmail(data) {
+        const { otp, name, email } = data;
+        
+        return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verification - Grup</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .otp-box { background: white; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #10b981; }
+          .otp-code { font-size: 32px; font-weight: bold; color: #10b981; letter-spacing: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          .warning { background: #f0fdf4; border: 1px solid #10b981; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Email Verification</h1>
+            <p>Hello ${name},</p>
+          </div>
+          
+          <div class="content">
+            <h2>Verify Your Email Address</h2>
+            <p>Please verify your email address to ensure you receive important updates about your orders and account:</p>
+            
+            <div class="otp-box">
+              <h3>Your Verification Code</h3>
+              <div class="otp-code">${otp}</div>
+              <p><strong>This code expires in 10 minutes</strong></p>
+            </div>
+            
+            <div class="warning">
+              <p><strong>✅ Verification Benefits:</strong></p>
+              <ul>
+                <li>Receive order updates and notifications</li>
+                <li>Access to exclusive deals and promotions</li>
+                <li>Enhanced account security</li>
+                <li>Priority customer support</li>
+              </ul>
+            </div>
+            
+            <p>If you didn't request this verification, please ignore this email.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thank you for choosing Grup!</p>
+            <p>We're excited to have you as part of our community.</p>
           </div>
         </div>
       </body>
