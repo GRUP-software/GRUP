@@ -1,15 +1,28 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
-// Admin credentials (in production, these should be in environment variables)
+// Rate limiting for admin login attempts
+const adminLoginLimit = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window
+    message: {
+        success: false,
+        message: 'Too many admin login attempts, please try again later'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Admin credentials - MUST be set in environment variables
 const ADMIN_CREDENTIALS = {
-    email: 'adiazi@grup.com',
-    password: '12345678',
+    email: process.env.ADMIN_EMAIL || 'admin@grup.com',
+    password: process.env.ADMIN_PASSWORD_HASH || '$2b$10$defaultHash', // Use bcrypt hash
 };
 
 // Admin login endpoint specifically for the upload tool
-router.post('/k8j3h2g7', async (req, res) => {
+router.post('/k8j3h2g7', adminLoginLimit, async (req, res) => {
     try {
         const { email, password } = req.body;
 

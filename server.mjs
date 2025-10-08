@@ -48,6 +48,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 
 // Import NEW routes
 import webhookRoutes from './routes/webhookRoutes.js';
+import otpRoutes from './routes/otpRoutes.js';
 // REMOVED DUPLICATE: import groupBuyRoutes from './routes/groupBuyRoutes.js';
 
 // Import controllers
@@ -301,6 +302,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 // NEW API routes
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/otp', otpRoutes);
 // REMOVED DUPLICATE: app.use('/api/groupbuy', groupBuyRoutes);
 
 // Socket.IO connection handling
